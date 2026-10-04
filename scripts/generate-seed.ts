@@ -1,0 +1,138 @@
+import { writeFileSync } from "node:fs";
+import path from "node:path";
+import { event as settings } from "@/data/event";
+import { weekends } from "@/data/weekends";
+import { speakers } from "@/data/speakers";
+import { team } from "@/data/team";
+import { sponsorTiers } from "@/data/sponsors";
+import { faqs } from "@/data/faq";
+import { testimonials } from "@/data/testimonials";
+import { gallery } from "@/data/gallery";
+import { stats } from "@/data/stats";
+import { SOCIETIES } from "@/supabase/seed-data/societies";
+import { EVENT_SOCIETY_MAP } from "@/supabase/seed-data/event-map";
+import { WIE_EVENTS } from "@/supabase/seed-data/wie-events";
+
+export function sqlLiteral(v: unknown): string {
+  if (v === null || v === undefined) return "null";
+  if (typeof v === "number") return Number.isFinite(v) ? String(v) : "null";
+  if (typeof v === "boolean") return v ? "true" : "false";
+  if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
+  if (Array.isArray(v) && v.every((x) => typeof x === "string"))
+    return `array[${v.map(sqlLiteral).join(",")}]::text[]`;
+  return `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
+}
+
+/** Always a jsonb literal (sqlLiteral would turn an empty array into text[]). */
+export const sqlJson = (v: unknown): string => `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
+
+const L = sqlLiteral;
+const emptyText = "'{}'::text[]";
+const arr = (a: readonly string[]) => (a.length ? L([...a]) : emptyText);
+
+interface EventSeedRow {
+  slug: string; society: string; track: string; step: number; finale: boolean;
+  title: string; topic: string; summary: string; description: string;
+  start: string; end: string; level: string; formats: readonly string[];
+  agenda: unknown; outcomes: readonly string[]; prerequisites: readonly string[]; bring: readonly string[];
+  capacity: number; resources: unknown; winners: unknown; speakerIds: readonly string[];
+}
+
+function eventRows(): EventSeedRow[] {
+  const existing = weekends.map((w) => {
+    const m = EVENT_SOCIETY_MAP[w.slug];
+    if (!m) throw new Error(`No society mapping for ${w.slug}`);
+    return {
+      slug: w.slug, society: m.society, track: m.track, step: m.step, finale: !!m.finale,
+      title: w.title, topic: w.topic, summary: w.summary, description: w.description,
+      start: w.start, end: w.end, level: w.level, formats: w.formats, agenda: w.agenda,
+      outcomes: w.outcomes, prerequisites: w.prerequisites, bring: w.bring, capacity: w.seatsTotal,
+      resources: w.resources ?? {}, winners: w.winners ?? [], speakerIds: w.speakerIds,
+    };
+  });
+  const wie = WIE_EVENTS.map((w) => ({
+    slug: w.slug, society: "wie", track: w.trackName, step: w.step, finale: false,
+    title: w.title, topic: w.topic, summary: w.summary, description: w.description,
+    start: w.start, end: w.end, level: w.level, formats: w.formats, agenda: w.agenda,
+    outcomes: w.outcomes, prerequisites: w.prerequisites, bring: w.bring, capacity: w.seatsTotal,
+    resources: {}, winners: [], speakerIds: w.speakerIds,
+  }));
+  return [...existing, ...wie];
+}
+
+export function buildSeedSql(): string {
+  const out: string[] = ["begin;"];
+  out.push(
+    "truncate table public.event_speakers, public.gallery_items, public.events, public.tracks, public.speakers, public.societies, public.sponsors, public.team_members, public.faqs, public.testimonials, public.site_blocks restart identity cascade;",
+  );
+
+  // site blocks: settings (the old data/event.ts shape) + stats
+  out.push(`insert into public.site_blocks (key, data) values ('settings', ${L(settings)}), ('stats', ${L({ items: stats })});`);
+
+  SOCIETIES.forEach((s, i) => {
+    out.push(
+      `insert into public.societies (slug, name, short_name, description, color, sort_order) values (${L(s.slug)}, ${L(s.name)}, ${L(s.shortName)}, ${L(s.description)}, ${L(s.color)}, ${i});`,
+    );
+    s.tracks.forEach((t, j) => {
+      out.push(
+        `insert into public.tracks (society_id, name, sort_order) select s.id, ${L(t)}, ${j} from public.societies s where s.slug = ${L(s.slug)};`,
+      );
+    });
+  });
+
+  speakers.forEach((sp, i) => {
+    out.push(
+      `insert into public.speakers (slug, name, designation, organization, photo_url, bio, topic, links, sort_order) values (${L(sp.id)}, ${L(sp.name)}, ${L(sp.designation)}, ${L(sp.organization)}, ${L(sp.photo ?? null)}, ${L(sp.bio)}, ${L(sp.topic)}, ${L(sp.links)}, ${i});`,
+    );
+  });
+
+  for (const e of eventRows()) {
+    const prefix = `${e.society.toUpperCase()}-${String(e.step).padStart(2, "0")}`;
+    out.push(
+      `insert into public.events (society_id, track_id, step_number, slug, title, topic, summary, description, starts_at, ends_at, venue, level, formats, agenda, outcomes, prerequisites, bring, capacity, price_paise, ticket_type, token_prefix, status, is_finale, resources, winners)
+select s.id, t.id, ${e.step}, ${L(e.slug)}, ${L(e.title)}, ${L(e.topic)}, ${L(e.summary)}, ${L(e.description)}, ${L(e.start)}, ${L(e.end)}, ${L(settings.venue.hall)}, ${L(e.level)}, ${arr(e.formats)}, ${sqlJson(e.agenda)}, ${arr(e.outcomes)}, ${arr(e.prerequisites)}, ${arr(e.bring)}, ${e.capacity}, 0, 'qr', ${L(prefix)}, 'published', ${L(e.finale)}, ${sqlJson(e.resources)}, ${sqlJson(e.winners)}
+from public.societies s left join public.tracks t on t.society_id = s.id and t.name = ${L(e.track)} where s.slug = ${L(e.society)};`,
+    );
+    e.speakerIds.forEach((sid, k) => {
+      out.push(
+        `insert into public.event_speakers (event_id, speaker_id, sort_order) select e.id, sp.id, ${k} from public.events e, public.speakers sp where e.slug = ${L(e.slug)} and sp.slug = ${L(sid)};`,
+      );
+    });
+  }
+
+  let order = 0;
+  for (const tier of sponsorTiers) {
+    for (const sp of tier.sponsors) {
+      out.push(
+        `insert into public.sponsors (name, url, logo_url, tier, tier_size, sort_order) values (${L(sp.name)}, ${L(sp.url)}, ${L(sp.logo ?? null)}, ${L(tier.tier)}, ${L(tier.size)}, ${order++});`,
+      );
+    }
+  }
+  team.forEach((m, i) =>
+    out.push(
+      `insert into public.team_members (name, role, "group", photo_url, fun_fact, links, sort_order) values (${L(m.name)}, ${L(m.role)}, ${L(m.group)}, ${L(m.photo ?? null)}, ${L(m.funFact)}, ${L(m.links)}, ${i});`,
+    ),
+  );
+  faqs.forEach((f, i) => out.push(`insert into public.faqs (question, answer, sort_order) values (${L(f.q)}, ${L(f.a)}, ${i});`));
+  testimonials.forEach((t, i) =>
+    out.push(
+      `insert into public.testimonials (quote, name, detail, step_label, photo_url, sort_order) values (${L(t.quote)}, ${L(t.name)}, ${L(t.detail)}, ${L(t.step)}, ${L(t.photo ?? null)}, ${i});`,
+    ),
+  );
+  gallery.forEach((g, i) => {
+    const w = weekends.find((x) => x.step === g.step);
+    out.push(
+      `insert into public.gallery_items (event_id, society_id, image_url, caption, alt, ratio, sort_order) select e.id, e.society_id, ${L(g.src ?? null)}, ${L(g.caption)}, ${L(g.alt)}, ${L(g.ratio)}, ${i} from public.events e where e.slug = ${L(w?.slug ?? "")};`,
+    );
+  });
+
+  out.push("commit;");
+  return out.join("\n") + "\n";
+}
+
+// CLI: `npm run seed:generate` writes supabase/seed.sql
+if (process.argv[1] && path.basename(process.argv[1]).startsWith("generate-seed")) {
+  const file = path.resolve(process.cwd(), "supabase/seed.sql");
+  writeFileSync(file, buildSeedSql());
+  console.log(`wrote ${file}`);
+}

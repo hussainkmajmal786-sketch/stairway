@@ -7,22 +7,28 @@
     "build": "next build",
     "start": "npx --yes serve@14 out",
     "lint": "eslint",
-    "deploy:cloudflare": "next build && npx --yes wrangler@4 pages deploy out --project-name stairway --branch main"
+    "deploy:cloudflare": "next build && npx --yes wrangler@4 pages deploy out --project-name stairway --branch main",
+    "test": "vitest run",
+    "seed:generate": "tsx scripts/generate-seed.ts"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",
     "next": "16.3.8",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.3"
   }
 }
