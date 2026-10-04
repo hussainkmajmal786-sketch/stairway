@@ -1,0 +1,59 @@
+import { weekends } from "@/data/weekends";
+import type { Weekend, WeekendStatus } from "@/data/types";
+import { event } from "@/data/event";
+
+export interface WeekendWithStatus extends Weekend {
+  status: WeekendStatus;
+  seatsLeft: number;
+}
+
+/** Computes completed / next / upcoming for every weekend at time `now`. */
+export function withStatus(now: number): WeekendWithStatus[] {
+  const sorted = [...weekends].sort((a, b) => a.step - b.step);
+  let nextAssigned = false;
+  return sorted.map((w) => {
+    let status: WeekendStatus;
+    if (w.statusOverride) status = w.statusOverride;
+    else if (new Date(w.end).getTime() < now) status = "completed";
+    else if (!nextAssigned) status = "next";
+    else status = "upcoming";
+    if (status === "next") nextAssigned = true;
+    return { ...w, status, seatsLeft: Math.max(0, w.seatsTotal - w.seatsFilled) };
+  });
+}
+
+export function getNext(list: WeekendWithStatus[]) {
+  return list.find((w) => w.status === "next") ?? list[list.length - 1];
+}
+
+export const getWeekend = (slug: string) => weekends.find((w) => w.slug === slug);
+
+export const pad2 = (n: number) => String(n).padStart(2, "0");
+
+const TZ = "Asia/Kolkata";
+
+export function formatDate(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
+  return new Intl.DateTimeFormat("en-IN", { timeZone: TZ, ...opts }).format(new Date(iso));
+}
+
+export const shortDate = (iso: string) =>
+  formatDate(iso, { weekday: "short", day: "2-digit", month: "short" });
+export const longDate = (iso: string) =>
+  formatDate(iso, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+export const timeOf = (iso: string) =>
+  formatDate(iso, { hour: "numeric", minute: "2-digit", hour12: true });
+
+/** Whole days from `now` until `iso` (0 = today / already started). */
+export function daysUntil(iso: string, now: number) {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - now) / 86_400_000));
+}
+
+export function registerHref(slug?: string) {
+  if (event.registration.mode === "external") return event.registration.googleFormUrl;
+  return slug ? `/register?step=${slug}` : "/register";
+}
+
+export function seatsTone(w: { seatsLeft: number; seatsTotal: number }) {
+  if (w.seatsLeft === 0) return "full";
+  return w.seatsLeft / w.seatsTotal < 0.2 ? "low" : "ok";
+}
