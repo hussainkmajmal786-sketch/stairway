@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "npx --yes serve@14 out",
+    "lint": "eslint",
+    "deploy:cloudflare": "next build && npx --yes wrangler@4 pages deploy out --project-name stairway --branch main"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

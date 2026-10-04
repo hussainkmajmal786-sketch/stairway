@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { event } from "@/data/event";
 
+// generated once at build time (static export)
+export const dynamic = "force-static";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "st(AI)rway — Weekend AI Series by IEEE SB CEK",

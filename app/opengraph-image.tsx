@@ -1,6 +1,9 @@
 import { ImageResponse } from "next/og";
 import { OgFrame, ogSize } from "@/lib/og";
 
+// generated once at build time (static export)
+export const dynamic = "force-static";
+
 export const alt = "st(AI)rway — Weekend AI Event Series by IEEE SB CEK";
 export const size = ogSize;
 export const contentType = "image/png";

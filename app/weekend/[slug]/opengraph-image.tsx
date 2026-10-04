@@ -3,6 +3,9 @@ import { weekends } from "@/data/weekends";
 import { getWeekend, pad2 } from "@/lib/weekends";
 import { OgFrame, ogSize } from "@/lib/og";
 
+// generated once at build time (static export)
+export const dynamic = "force-static";
+
 export const alt = "st(AI)rway weekend";
 export const size = ogSize;
 export const contentType = "image/png";

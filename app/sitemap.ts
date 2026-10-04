@@ -2,6 +2,9 @@ import type { MetadataRoute } from "next";
 import { event } from "@/data/event";
 import { weekends } from "@/data/weekends";
 
+// generated once at build time (static export)
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = event.siteUrl;
   const pages = ["", "/gallery", "/resources", "/register", "/code-of-conduct", "/privacy"].map((p) => ({

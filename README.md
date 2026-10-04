@@ -20,7 +20,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. For a production check:
+Open http://localhost:3000. For a production check, build the static site and serve `out/`:
 
 ```bash
 npm run build
@@ -102,19 +102,33 @@ Set `gaId: "G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares, s
 
 ## 4. Deploy for free
 
-### Vercel (recommended)
-1. Push this folder to a GitHub repository.
-2. Go to https://vercel.com/new and import the repository. The defaults are correct.
-3. Click **Deploy**. Every push to `main` redeploys.
+The site is a **static export**: `npm run build` writes plain files to `out/`, so it runs on any static host.
+
+### Cloudflare Pages
+From your machine (log in once with `npx wrangler login`):
+
+```bash
+npm run deploy:cloudflare
+```
+
+This builds and uploads `out/` to the Pages project `stairway`. The first run creates the project and prints your `*.pages.dev` URL.
+
+To deploy automatically on every push instead, go to Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**, pick this repo, and set:
+- Build command: `npm run build`
+- Build output directory: `out`
+- Environment variable `NODE_VERSION` = `20` (or newer)
+
+`public/_headers` sets content types for the generated share images and long caching for build assets.
+
+### Vercel
+Import the repo at https://vercel.com/new. The defaults are correct, and every push to `main` redeploys.
 
 ### Netlify
-1. Import the repository at https://app.netlify.com/start.
-2. Build command `npm run build`. Netlify's Next.js runtime is detected automatically.
+Import the repo at https://app.netlify.com/start. Use build command `npm run build` and publish directory `out`.
 
 ### Custom domain
-1. In Vercel: **Project → Settings → Domains → Add** (e.g. `stairway.ieeesbcek.org`).
-2. At your DNS provider, add the record Vercel shows. For a subdomain this is a `CNAME` to `cname.vercel-dns.com`.
-3. Update `siteUrl` in `data/event.ts` so canonical URLs, the sitemap and OG images use the new domain.
+1. Cloudflare Pages: **your project → Custom domains → Set up a domain**. If the domain's DNS is on Cloudflare, the record is added for you. Otherwise add the `CNAME` it shows to `<project>.pages.dev`.
+2. Update `siteUrl` in `data/event.ts` so canonical URLs, the sitemap and share images use the new domain, then redeploy.
 
 ---
 
