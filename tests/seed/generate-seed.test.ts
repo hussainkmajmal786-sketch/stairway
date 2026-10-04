@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSeedSql, sqlJson, sqlLiteral } from "@/scripts/generate-seed";
+import { buildSeedSql, sqlJson, sqlLiteral, validateSeedInputs } from "@/scripts/generate-seed";
 
 describe("sqlLiteral", () => {
   it("escapes single quotes and handles null", () => {
@@ -29,9 +29,39 @@ describe("buildSeedSql", () => {
     expect(sql.match(/insert into public\.tracks/g)?.length).toBe(20);
   });
 
+  const statements = sql.split(";\n");
+  const eventInserts = statements.filter((st) => st.includes("insert into public.events "));
+  const eventInsert = (slug: string) => {
+    const st = eventInserts.find((x) => x.includes(`'${slug}'`));
+    if (!st) throw new Error(`no event insert for ${slug}`);
+    return st;
+  };
+
   it("maps every existing session onto a society stairway", () => {
-    expect(sql).toMatch(/'seeing-machines'[\s\S]*?where s\.slug = 'ras'/);
-    expect(sql).toMatch(/'the-summit'[\s\S]*?true/); // is_finale
+    expect(eventInsert("seeing-machines")).toContain("where s.slug = 'ras'");
+  });
+
+  it("flags only the summit as finale", () => {
+    const finales = eventInserts.filter((st) => st.includes("'published', true,"));
+    expect(finales).toHaveLength(1);
+    expect(finales[0]).toContain("'the-summit'");
+  });
+
+  it("renders agenda, resources and winners as jsonb in every event insert", () => {
+    expect(eventInserts).toHaveLength(16);
+    for (const st of eventInserts) {
+      expect(st).toMatch(/\]'::jsonb, array\[/); // agenda then outcomes
+      expect(st).toMatch(/'published', (true|false), '\{.*\}'::jsonb, '\[.*\]'::jsonb\s+from public\.societies/);
+    }
+  });
+
+  it("seeds 8 gallery items and only references existing speakers", () => {
+    expect(statements.filter((st) => st.includes("insert into public.gallery_items"))).toHaveLength(8);
+    const seeded = new Set([...sql.matchAll(/insert into public\.speakers [^\n]*values \('([^']+)'/g)].map((m) => m[1]));
+    expect(seeded.size).toBe(8);
+    const referenced = [...sql.matchAll(/and sp\.slug = '([^']+)'/g)].map((m) => m[1]);
+    expect(referenced.length).toBeGreaterThan(0);
+    for (const r of referenced) expect(seeded.has(r)).toBe(true);
   });
 
   it("publishes the four WIE sessions", () => {
@@ -39,13 +69,27 @@ describe("buildSeedSql", () => {
       expect(sql).toContain(`'${slug}'`);
   });
 
-  it("writes empty winners as jsonb", () => {
-    expect(sql).not.toMatch(/'published', (true|false), '\{[^']*\}'::jsonb, array\[\]::text\[\]/);
-  });
-
   it("is idempotent (truncates content tables first)", () => {
-    expect(sql.startsWith("begin;")).toBe(true);
+    const firstCode = sql.split("\n").find((l) => l.trim() !== "" && !l.startsWith("--"));
+    expect(firstCode).toBe("begin;");
+    expect(sql.startsWith("--")).toBe(true);
+    expect(sql).toMatch(/NEVER run it against a database holding real registrations/);
     expect(sql).toContain("truncate table public.event_speakers, public.gallery_items, public.events");
     expect(sql.trim().endsWith("commit;")).toBe(true);
   });
+});
+
+describe("validateSeedInputs", () => {
+  const societies = [{ slug: "wie", tracks: ["AI × HealthTech"] }];
+  const ok = { slug: "e", society: "wie", track: "AI × HealthTech", speakerIds: ["a"] };
+  const run = (e: typeof ok, steps: (n: number) => string | undefined = () => "e") =>
+    validateSeedInputs([e], new Set(["a"]), societies, [{ id: "g1", step: 1 }], steps);
+
+  it("accepts valid input", () => expect(() => run(ok)).not.toThrow());
+  it("rejects a track outside the society", () =>
+    expect(() => run({ ...ok, track: "Nope" })).toThrow(/not a track of society/));
+  it("rejects unknown speakers", () =>
+    expect(() => run({ ...ok, speakerIds: ["zzz"] })).toThrow(/unknown speaker "zzz"/));
+  it("rejects gallery items with no matching event", () =>
+    expect(() => run(ok, () => undefined)).toThrow(/does not resolve to an event/));
 });
