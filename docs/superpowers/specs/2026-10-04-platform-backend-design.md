@@ -45,7 +45,7 @@ Browser ──► Cloudflare Workers (Next.js via OpenNext)
 ```
 
 - **Rendering:** public pages (home, society, event) are server-rendered on each request, so admin edits appear immediately and share previews (Open Graph) are always correct. Short CDN caching (`s-maxage=60, stale-while-revalidate`) on anonymous public pages.
-- **Auth:** `@supabase/ssr` cookie sessions; a Next.js `proxy` (middleware) refreshes sessions and guards `/me/*` and `/admin/*`.
+- **Auth:** `@supabase/ssr` cookie sessions. **No Next.js `proxy`/middleware**: Next 16's `proxy.ts` runs on the Node runtime, which OpenNext on Cloudflare does not support yet. Instead, the browser Supabase client refreshes tokens (writing the session cookies) and calls `router.refresh()` on auth changes, and `/me/*` and `/admin/*` layouts check the session server-side and redirect to `/login` when it is missing.
 - **Server-only secrets** (Cloudflare Worker secrets): `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RESEND_API_KEY`. Public env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`. No secrets in the repo.
 - **Service-role usage is limited** to: payment confirmation, webhook handling, waitlist promotion, admin invites, and the seat-hold expiry job. Everything else runs as the signed-in user under RLS.
 - **Scheduled job:** a Cloudflare Cron Trigger (every 5 min) expires unpaid seat holds and promotes the waitlist.
