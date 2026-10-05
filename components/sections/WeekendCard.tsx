@@ -58,7 +58,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
         </div>
 
         <h3 id={`wk-${w.slug}`} className="mt-4 text-2xl font-semibold leading-tight md:text-[1.75rem]">
-          <Link href={`/weekend/${w.slug}`} className="underline-offset-4 hover:underline">
+          <Link href={`/events/${w.slug}`} className="underline-offset-4 hover:underline">
             {w.title}
           </Link>
         </h3>
@@ -85,7 +85,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
 
         <div className="mt-5 flex flex-wrap gap-3">
           {done ? (
-            <Link href={`/weekend/${w.slug}#resources`} className="btn btn-sm btn-ghost">
+            <Link href={`/events/${w.slug}#resources`} className="btn btn-sm btn-ghost">
               <FolderOpen size={16} strokeWidth={2} aria-hidden /> Resources
             </Link>
           ) : (
@@ -93,7 +93,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
               {w.status === "next" ? "Claim your step" : "Register"} <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
             </Link>
           )}
-          <Link href={`/weekend/${w.slug}`} className="btn btn-sm btn-ghost">
+          <Link href={`/events/${w.slug}`} className="btn btn-sm btn-ghost">
             <Clock size={16} strokeWidth={2} aria-hidden /> Details
           </Link>
         </div>

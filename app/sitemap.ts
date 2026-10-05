@@ -5,17 +5,22 @@ import { getSiteData } from "@/lib/site/load";
 export const dynamic = "force-static";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { settings, events } = await getSiteData();
+  const { settings, societies, events } = await getSiteData();
   const base = settings.siteUrl;
   const pages = ["", "/gallery", "/resources", "/register", "/code-of-conduct", "/privacy"].map((p) => ({
     url: `${base}${p}`,
     changeFrequency: "weekly" as const,
     priority: p === "" ? 1 : 0.6,
   }));
-  const steps = events.map((w) => ({
-    url: `${base}/weekend/${w.slug}`,
+  const socs = societies.map((s) => ({
+    url: `${base}/s/${s.slug}`,
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));
-  return [...pages, ...steps];
+  const steps = events.map((w) => ({
+    url: `${base}/events/${w.slug}`,
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+  return [...pages, ...socs, ...steps];
 }

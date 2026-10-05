@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // static export. Task 8 finalises the Cloudflare deployment config.
   // Images are still served as-is (no image-optimisation server on the host).
   images: { unoptimized: true },
+  async redirects() {
+    return [{ source: "/weekend/:slug", destination: "/events/:slug", permanent: true }];
+  },
 };
 
 export default nextConfig;

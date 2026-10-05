@@ -113,7 +113,7 @@ export function Speakers() {
               <ul className="space-y-2">
                 {sessionsOf(open.id).map((w) => (
                   <li key={w.slug}>
-                    <Link href={`/weekend/${w.slug}`} className="flex items-center justify-between gap-4 border-2 border-ink bg-paper-2 p-4 hover:bg-yellow" onClick={() => setOpen(null)}>
+                    <Link href={`/events/${w.slug}`} className="flex items-center justify-between gap-4 border-2 border-ink bg-paper-2 p-4 hover:bg-yellow" onClick={() => setOpen(null)}>
                       <span>
                         <span className="font-mono text-xs font-bold">Step {pad2(w.step)}</span>
                         <span className="block font-semibold">{w.title}</span>

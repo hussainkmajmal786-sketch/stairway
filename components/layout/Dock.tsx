@@ -16,7 +16,7 @@ interface Item {
 
 const ITEMS: Item[] = [
   { id: "top", label: "Home", Icon: Home },
-  { id: "stairway", label: "Stairway", Icon: Footprints },
+  { id: "societies", label: "Societies", Icon: Footprints },
   { id: "speakers", label: "Speakers", Icon: Mic2 },
   { id: "gallery", label: "Gallery", Icon: Images },
   { id: "faq", label: "FAQ", Icon: HelpCircle },
@@ -49,8 +49,8 @@ export function Dock() {
 
   const active = isHome
     ? spy
-    : pathname.startsWith("/weekend")
-      ? "stairway"
+    : pathname.startsWith("/events") || pathname.startsWith("/s/")
+      ? "societies"
       : pathname.startsWith("/gallery")
         ? "gallery"
         : pathname.startsWith("/register")

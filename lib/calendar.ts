@@ -11,7 +11,7 @@ export function googleCalendarUrl(w: EventView, settings: Settings) {
     action: "TEMPLATE",
     text: `st(AI)rway Step ${String(w.step).padStart(2, "0")}: ${w.title}`,
     dates: `${stamp(w.start)}/${stamp(w.end)}`,
-    details: `${w.topic}\n\n${w.summary}\n\n${settings.siteUrl}/weekend/${w.slug}`,
+    details: `${w.topic}\n\n${w.summary}\n\n${settings.siteUrl}/events/${w.slug}`,
     location: location(settings),
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -33,7 +33,7 @@ export function icsContent(w: EventView, settings: Settings) {
     `SUMMARY:${esc(`st(AI)rway Step ${w.step}: ${w.title}`)}`,
     `DESCRIPTION:${esc(`${w.topic} — ${w.summary}`)}`,
     `LOCATION:${esc(location(settings))}`,
-    `URL:${settings.siteUrl}/weekend/${w.slug}`,
+    `URL:${settings.siteUrl}/events/${w.slug}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");

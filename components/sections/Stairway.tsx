@@ -5,9 +5,10 @@ import { Footprints } from "lucide-react";
 import { useClock } from "@/components/providers/ClockProvider";
 import { WeekendRow } from "./WeekendCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { societyStairway } from "@/lib/events/status";
 
 const FILTERS = [
-  { id: "all", label: "All 12 steps" },
+  { id: "all" },
   { id: "open", label: "Open" },
   { id: "completed", label: "Climbed" },
 ] as const;
@@ -16,8 +17,9 @@ const FILTERS = [
  * The roadmap as a list of steps. On wide screens each step sits a little
  * further right than the one before, so the column reads as a staircase.
  */
-export function Stairway() {
-  const { weekends } = useClock();
+export function Stairway({ societySlug, title = "Every step, [[one weekend at a time.]]" }: { societySlug: string; title?: string }) {
+  const { weekends: all } = useClock();
+  const weekends = societyStairway(all, societySlug);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const list = weekends.filter((w) => (filter === "all" ? true : filter === "completed" ? w.status === "completed" : w.status !== "completed"));
   const climbed = weekends.filter((w) => w.status === "completed").length;
@@ -30,7 +32,7 @@ export function Stairway() {
             id="stairway-title"
             Icon={Footprints}
             eyebrow="The roadmap"
-            title="Twelve weekends. One [[stairway.]]"
+            title={title}
             lead="Every weekend is one step up. Start anywhere — each step lists exactly what you need to know first."
             className="!mb-0"
           />
@@ -50,7 +52,7 @@ export function Stairway() {
         <div className="mt-10 flex flex-wrap gap-2" role="group" aria-label="Filter steps">
           {FILTERS.map((f) => (
             <button key={f.id} className="chip-btn" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-              {f.label}
+              {"label" in f ? f.label : `All ${weekends.length} steps`}
             </button>
           ))}
         </div>

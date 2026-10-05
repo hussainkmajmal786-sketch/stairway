@@ -88,12 +88,12 @@ export function NextWeekend() {
               <Button href={registerHref(next.slug)} variant="ink" trackAs="register_click" trackProps={{ from: "spotlight", step: next.step }}>
                 Claim your step <ArrowRight size={16} strokeWidth={2} />
               </Button>
-              <Link href={`/weekend/${next.slug}`} className="btn btn-ghost">Find out more</Link>
+              <Link href={`/events/${next.slug}`} className="btn btn-ghost">Find out more</Link>
             </div>
 
             <div className="mt-6 border-t-2 border-ink pt-5">
               <p className="mono mb-3 font-bold">Share with a friend</p>
-              <ShareButtons path={`/weekend/${next.slug}`} text={`Join me at st(AI)rway Step ${pad2(next.step)}: ${next.title}`} />
+              <ShareButtons path={`/events/${next.slug}`} text={`Join me at st(AI)rway Step ${pad2(next.step)}: ${next.title}`} />
             </div>
           </div>
         </div>

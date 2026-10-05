@@ -60,7 +60,7 @@ export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
               r.slides && { href: r.slides, label: "Slides", Icon: FileText },
               r.code && { href: r.code, label: "Code", Icon: Github },
               r.notebook && { href: r.notebook, label: "Notebook", Icon: NotebookPen },
-              r.recording && { href: `/weekend/${w.slug}#recording`, label: "Recording", Icon: Video },
+              r.recording && { href: `/events/${w.slug}#recording`, label: "Recording", Icon: Video },
               ...(r.reading ?? []).map((x) => ({ href: x.href, label: "Reading", Icon: BookOpen })),
             ].filter(Boolean) as { href: string; label: string; Icon: (p: { size?: number; strokeWidth?: number }) => React.ReactNode }[];
             return (

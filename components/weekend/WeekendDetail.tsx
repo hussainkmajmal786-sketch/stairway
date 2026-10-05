@@ -51,14 +51,15 @@ export function WeekendDetail({ slug }: { slug: string }) {
         <div className="wrap">
           <nav aria-label="Breadcrumb" className="mono mb-8 font-bold text-ink-3">
             <Link href="/" className="underline-offset-4 hover:underline">Home</Link> <span aria-hidden>/</span>{" "}
-            <Link href="/#stairway" className="underline-offset-4 hover:underline">Stairway</Link> <span aria-hidden>/</span>{" "}
+            <Link href={`/s/${w.society.slug}`} className="underline-offset-4 hover:underline">{w.society.shortName}</Link> <span aria-hidden>/</span>{" "}
             <span className="text-ink" aria-current="page">Step {pad2(w.step)}</span>
           </nav>
           <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-end">
             <div className={cn("grid h-36 w-36 place-items-center border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] md:h-44 md:w-44", done ? "bg-paper-3" : SOCIETY_FILL[w.society.color])}>
               <span className="text-center font-mono font-bold">
-                <span className="mono block">Step</span>
+                <span className="mono block">{w.society.shortName} · Step</span>
                 <span className="block text-6xl md:text-7xl">{pad2(w.step)}</span>
+                <span className="mono block text-ink-3">/ {pad2(stairway.length)}</span>
               </span>
             </div>
             <div>
@@ -206,7 +207,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
                 <p className="mono font-bold text-green-ink">Climbed ✓</p>
                 <p className="mt-2 text-ink-2">This step is complete. Grab the resources, then claim the next one.</p>
                 {next && (
-                  <Button href={next.status === "completed" ? `/weekend/${next.slug}` : registerHref(next.slug)} className="mt-6 w-full">
+                  <Button href={next.status === "completed" ? `/events/${next.slug}` : registerHref(next.slug)} className="mt-6 w-full">
                     Step {pad2(next.step)}: {next.title} <ArrowRight size={16} strokeWidth={2} />
                   </Button>
                 )}
@@ -234,7 +235,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
           </div>
           <div className="box p-6 shadow-hard" data-reveal>
             <p className="mono mb-3 font-bold">Share this step</p>
-            <ShareButtons path={`/weekend/${w.slug}`} text={`st(AI)rway Step ${pad2(w.step)}: ${w.title} — ${w.topic}`} />
+            <ShareButtons path={`/events/${w.slug}`} text={`st(AI)rway Step ${pad2(w.step)}: ${w.title} — ${w.topic}`} />
           </div>
         </aside>
       </div>
@@ -242,13 +243,13 @@ export function WeekendDetail({ slug }: { slug: string }) {
       <nav aria-label="Step navigation" className="border-t-2 border-ink bg-paper-2">
         <div className="wrap grid grid-cols-2">
           {prev ? (
-            <Link href={`/weekend/${prev.slug}`} className="group flex flex-col gap-1 py-8 pr-4">
+            <Link href={`/events/${prev.slug}`} className="group flex flex-col gap-1 py-8 pr-4">
               <span className="mono inline-flex items-center gap-2 font-bold text-ink-3"><ArrowLeft size={14} strokeWidth={2} aria-hidden /> Step {pad2(prev.step)}</span>
               <span className="text-lg font-semibold underline-offset-4 group-hover:underline md:text-2xl">{prev.title}</span>
             </Link>
           ) : <span />}
           {next ? (
-            <Link href={`/weekend/${next.slug}`} className="group flex flex-col items-end gap-1 border-l-2 border-ink py-8 pl-4 text-right">
+            <Link href={`/events/${next.slug}`} className="group flex flex-col items-end gap-1 border-l-2 border-ink py-8 pl-4 text-right">
               <span className="mono inline-flex items-center gap-2 font-bold text-ink-3">Step {pad2(next.step)} <ArrowRight size={14} strokeWidth={2} aria-hidden /></span>
               <span className="text-lg font-semibold underline-offset-4 group-hover:underline md:text-2xl">{next.title}</span>
             </Link>

@@ -13,8 +13,8 @@ export function eventJsonLd(w: EventView, settings: Settings) {
     endDate: w.end,
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    url: `${settings.siteUrl}/weekend/${w.slug}`,
-    image: [`${settings.siteUrl}/weekend/${w.slug}/opengraph-image`],
+    url: `${settings.siteUrl}/events/${w.slug}`,
+    image: [`${settings.siteUrl}/events/${w.slug}/opengraph-image`],
     location: {
       "@type": "Place",
       name: settings.venue.name,
