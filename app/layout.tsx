@@ -3,6 +3,8 @@ import Script from "next/script";
 import { Space_Mono, Urbanist } from "next/font/google";
 import "./globals.css";
 import { getSiteData } from "@/lib/site/load";
+import { getAuthState } from "@/lib/auth/session";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { SiteDataProvider } from "@/components/providers/SiteDataProvider";
 import { ClockProvider } from "@/components/providers/ClockProvider";
 import { MotionProvider } from "@/components/providers/MotionProvider";
@@ -48,7 +50,7 @@ export const viewport: Viewport = {
 const bootScript = `document.documentElement.classList.add('js');`;
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const data = await getSiteData();
+  const [data, auth] = await Promise.all([getSiteData(), getAuthState()]);
   return (
     <html lang="en-IN" className={`${urbanist.variable} ${spaceMono.variable}`} suppressHydrationWarning>
       <head>
@@ -56,16 +58,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <a href="#main" className="skip-link">Skip to content</a>
-        <SiteDataProvider data={data}>
-          <ClockProvider initialNow={requestTime()}>
-            <TopBar />
-            <main id="main" tabIndex={-1} className="outline-none">
-              {children}
-            </main>
-            <Footer />
-            <Dock />
-          </ClockProvider>
-        </SiteDataProvider>
+        <AuthProvider value={auth}>
+          <SiteDataProvider data={data}>
+            <ClockProvider initialNow={requestTime()}>
+              <TopBar />
+              <main id="main" tabIndex={-1} className="outline-none">
+                {children}
+              </main>
+              <Footer />
+              <Dock />
+            </ClockProvider>
+          </SiteDataProvider>
+        </AuthProvider>
         <MotionProvider />
         <EasterEgg />
         {data.settings.gaId && (
