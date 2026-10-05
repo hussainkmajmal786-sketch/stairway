@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
-  // Content now loads from Supabase at request time, so the site is no longer a
-  // static export. Task 8 finalises the Cloudflare deployment config.
-  // Images are still served as-is (no image-optimisation server on the host).
+  // Cloudflare Workers has no image-optimisation server here; images are served as-is.
   images: { unoptimized: true },
   async redirects() {
     return [{ source: "/weekend/:slug", destination: "/events/:slug", permanent: true }];
@@ -11,3 +10,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+initOpenNextCloudflareForDev();

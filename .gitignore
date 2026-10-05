@@ -44,3 +44,8 @@ next-env.d.ts
 .claude/
 
 !.env.example
+
+# OpenNext / Wrangler
+.open-next
+.wrangler
+.dev.vars

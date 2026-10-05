@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getSiteData } from "@/lib/site/load";
 
-// generated once at build time (static export)
-export const dynamic = "force-static";
+// Reads site settings from Supabase, so render per request rather than at build time.
+export const dynamic = "force-dynamic";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const { settings: event } = await getSiteData();

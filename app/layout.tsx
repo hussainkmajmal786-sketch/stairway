@@ -30,8 +30,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+// Every page renders per request (Supabase data + clock), never at build time.
+export const dynamic = "force-dynamic";
+
 // Request-time clock for the server HTML. The client swaps to the live clock
-// right after hydration (see ClockProvider), so statuses never go stale.
+// right after hydration (see ClockProvider), so statuses stay current.
 const requestTime = () => Date.now();
 
 export const viewport: Viewport = {
