@@ -4,7 +4,13 @@ import { HANDLE_RE } from "./handle";
 
 const httpUrl = z.url({ protocol: /^https?$/, message: "Enter a full link starting with https://" });
 const optionalUrl = z.union([z.literal(""), httpUrl]);
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.");
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, "Pick a real date.");
 
 const fullName = z.string().trim().min(2, "Tell us your full name.").max(80);
 const college = z.string().trim().min(2, "Which college are you from?").max(120);

@@ -10,7 +10,8 @@ describe("OnboardingSchema", () => {
   it("rejects bad handle, branch and short name with friendly messages", () => {
     const r = OnboardingSchema.safeParse({ ...ok, handle: "A", branch: "Nope", fullName: "A" });
     expect(r.success).toBe(false);
-    const e = fieldErrors(r.error!);
+    if (r.success) return;
+    const e = fieldErrors(r.error);
     expect(e.handle).toMatch(/3–30/);
     expect(e.branch).toBeTruthy();
     expect(e.fullName).toBeTruthy();
@@ -29,6 +30,21 @@ describe("ProfileDetailsSchema", () => {
   });
 });
 
+describe("length limits match the database", () => {
+  const base = { ...ok, headline: "", bio: "", skills: [] as string[], links: { linkedin: "", github: "", x: "", instagram: "", website: "" } };
+  const pass = (o: object) => ProfileDetailsSchema.safeParse({ ...base, ...o }).success;
+  it("enforces boundaries", () => {
+    expect(pass({ fullName: "a".repeat(80) })).toBe(true);
+    expect(pass({ fullName: "a".repeat(81) })).toBe(false);
+    expect(pass({ headline: "a".repeat(120) })).toBe(true);
+    expect(pass({ headline: "a".repeat(121) })).toBe(false);
+    expect(pass({ bio: "a".repeat(1500) })).toBe(true);
+    expect(pass({ bio: "a".repeat(1501) })).toBe(false);
+    expect(pass({ skills: Array.from({ length: 30 }, (_, i) => `s${i}`) })).toBe(true);
+    expect(pass({ skills: Array.from({ length: 31 }, (_, i) => `s${i}`) })).toBe(false);
+  });
+});
+
 describe("PrivateSchema", () => {
   it("allows empty and valid values, rejects bad phone / IEEE id", () => {
     expect(PrivateSchema.safeParse({ phone: "", ieeeMemberId: "" }).success).toBe(true);
@@ -43,6 +59,13 @@ describe("ProjectSchema / ExperienceSchema", () => {
     expect(ProjectSchema.safeParse({ title: "A", description: "", url: "" }).success).toBe(false);
     expect(ProjectSchema.safeParse({ title: "Bus tracker", description: "", url: "ftp://x" }).success).toBe(false);
     expect(ProjectSchema.safeParse({ title: "Bus tracker", description: "", url: "https://x.dev" }).success).toBe(true);
+  });
+  it("rejects impossible calendar dates and accepts real ones", () => {
+    const base = { title: "Intern", organization: "Acme", description: "", endDate: "" };
+    for (const d of ["2026-13-45", "2026-02-30"])
+      expect(ExperienceSchema.safeParse({ ...base, startDate: d }).success).toBe(false);
+    for (const d of ["2026-02-28", "2028-02-29"])
+      expect(ExperienceSchema.safeParse({ ...base, startDate: d }).success).toBe(true);
   });
   it("rejects an experience that ends before it starts", () => {
     const base = { title: "Intern", organization: "Acme", description: "" };

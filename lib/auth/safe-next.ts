@@ -10,6 +10,16 @@ export function safeNext(raw: string | null | undefined, fallback = "/"): string
     return fallback;
   }
   if (url.origin !== "http://localhost") return fallback;
-  if (url.pathname === "/login" || url.pathname.startsWith("/auth/")) return fallback;
-  return url.pathname + url.search + url.hash;
+  let path: string;
+  try {
+    path = decodeURIComponent(url.pathname);
+  } catch {
+    return fallback;
+  }
+  path = path.replace(/\/+$/, "").toLowerCase();
+  if (/^\/(login|auth)(\/|$)/.test(path)) return fallback;
+  const out = url.pathname + url.search + url.hash;
+  // Dot-segments can collapse into "//host" or "/\\host" after URL parsing.
+  if (/^\/[\/\\]/.test(out)) return fallback;
+  return out;
 }
