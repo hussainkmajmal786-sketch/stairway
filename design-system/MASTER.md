@@ -12,7 +12,7 @@ Sections alternate `paper` / `paper-2` bands with 2px ink rules between them.
 
 ## Navigation
 - Slim sticky top bar: brand + "Next · Step 04" button. Optional ink announcement strip above it.
-- **Floating bottom dock on every screen size** (Home, Stairway, Speakers, Gallery, FAQ + yellow Register). Active item is red with its label; others are icon squares, with labels from 768px. Footer reserves `--dock-h` of bottom padding.
+- **Floating bottom dock on every screen size** (Home, Societies, Speakers, Gallery, FAQ + yellow Register). Active item is red with its label; others are icon squares, with labels from 768px. Footer reserves `--dock-h` of bottom padding.
 
 ## Colour tokens (`app/globals.css`)
 | Token | Hex | Use |
