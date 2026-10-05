@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextForSociety, nextOverall, societyStairway, withStatus } from "@/lib/events/status";
+import { nextForSociety, nextOverall, pickNext, societyStairway, withStatus } from "@/lib/events/status";
 import type { EventView } from "@/lib/events/types";
 
 const ev = (slug: string, society: string, step: number, start: string, end: string): EventView => ({
@@ -46,5 +46,22 @@ describe("withStatus", () => {
     expect(done.every((e) => e.status === "completed")).toBe(true);
     expect(nextForSociety(done, "main")).toBeUndefined();
     expect(nextOverall(done)).toBeUndefined();
+  });
+});
+
+describe("pickNext", () => {
+  it("returns null when nothing is published", () => {
+    expect(pickNext([])).toBeNull();
+  });
+
+  it("returns the soonest next event", () => {
+    const s = withStatus(list, NOW);
+    expect(pickNext(s)?.slug).toBe("r1");
+  });
+
+  it("falls back to the last event when everything is completed", () => {
+    const s = withStatus(list, new Date("2027-01-01T00:00:00+05:30").getTime());
+    expect(s.every((e) => e.status === "completed")).toBe(true);
+    expect(pickNext(s)?.slug).toBe("r2");
   });
 });

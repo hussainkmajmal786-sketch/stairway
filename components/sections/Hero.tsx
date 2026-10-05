@@ -36,7 +36,7 @@ export function Hero() {
         </p>
 
         <div className="fade-up mt-9 flex flex-col gap-3 sm:flex-row" style={{ ["--d" as string]: 3 }}>
-          <Button href={registerHref(next.slug)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
+          <Button href={registerHref(next?.slug)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
             Claim your step <ArrowRight size={18} strokeWidth={2} />
           </Button>
           <Button href="#societies" variant="ghost" size="lg">
@@ -45,6 +45,7 @@ export function Hero() {
         </div>
 
         {/* next step panel */}
+        {next && (
         <div className="fade-up mt-12 max-w-3xl border-2 border-ink bg-paper-2 shadow-[4px_4px_0_0_var(--ink)]" style={{ ["--d" as string]: 4 }}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink px-5 py-3">
             <span className="flex items-center gap-2">
@@ -65,6 +66,7 @@ export function Hero() {
             <Countdown target={next.start} size="sm" />
           </div>
         </div>
+        )}
       </div>
 
       {/* stats strip */}

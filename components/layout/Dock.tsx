@@ -89,7 +89,7 @@ export function Dock() {
         })}
         <li>
           <Link
-            href={registerHref(next.slug)}
+            href={registerHref(next?.slug)}
             aria-label="Register"
             aria-current={active === "register" ? "page" : undefined}
             className="flex h-12 min-w-12 items-center justify-center gap-2 border-2 border-ink bg-yellow px-3 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-transform duration-150 hover:-translate-y-0.5"

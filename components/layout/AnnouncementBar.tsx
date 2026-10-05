@@ -14,10 +14,10 @@ export function AnnouncementBar() {
   const { settings: event } = useSiteData();
   const { next } = useClock();
   const [dismissed, setDismissed] = useState(false);
-  const id = `${KEY}-${next.slug}`;
+  const id = `${KEY}-${next?.slug ?? "none"}`;
   const stored = useClientValue(() => !!readStorage(id), false);
 
-  if (!event.announcement.enabled || dismissed || stored || next.status !== "next") return null;
+  if (!event.announcement.enabled || dismissed || stored || !next || next.status !== "next") return null;
   const text = event.announcement.text.replace("{step}", pad2(next.step)).replace("{title}", next.title);
 
   return (

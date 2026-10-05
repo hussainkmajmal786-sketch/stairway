@@ -16,6 +16,7 @@ export function NextWeekend() {
   const { settings: event, speakers: allSpeakers } = useSiteData();
   const speakerById = (id: string) => allSpeakers.find((s) => s.id === id);
   const { next, weekends } = useClock();
+  if (!next) return null;
   const stairwayLength = weekends.filter((e) => e.society.slug === next.society.slug).length;
   const speakers = next.speakerIds.map(speakerById).filter(Boolean);
 

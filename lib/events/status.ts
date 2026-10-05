@@ -24,6 +24,11 @@ export function nextOverall(list: EventWithStatus[]) {
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())[0];
 }
 
+/** The soonest "next" event, else the last event (everything completed), else null (nothing published). */
+export function pickNext(list: EventWithStatus[]): EventWithStatus | null {
+  return nextOverall(list) ?? list[list.length - 1] ?? null;
+}
+
 export const nextForSociety = (list: EventWithStatus[], slug: string) =>
   list.find((e) => e.society.slug === slug && e.status === "next");
 

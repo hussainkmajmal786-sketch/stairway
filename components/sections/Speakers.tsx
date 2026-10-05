@@ -83,6 +83,7 @@ export function Speakers() {
         </ul>
 
         {/* event pattern: a register prompt right after speaker credibility */}
+        {next && (
         <div className="mt-12 flex flex-col items-start justify-between gap-5 border-2 border-ink bg-yellow p-6 shadow-hard sm:flex-row sm:items-center md:p-8" data-reveal>
           <div>
             <p className="mono font-bold">Step {pad2(next.step)} · {shortDate(next.start)}</p>
@@ -93,6 +94,7 @@ export function Speakers() {
             Claim your step <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>
+        )}
       </div>
 
       <Modal open={!!open} onClose={() => setOpen(null)} label={open ? `${open.name} — speaker profile` : "Speaker"}>

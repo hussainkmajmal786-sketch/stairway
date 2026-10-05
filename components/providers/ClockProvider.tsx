@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useSiteData } from "./SiteDataProvider";
-import { nextOverall, withStatus } from "@/lib/events/status";
+import { pickNext, withStatus } from "@/lib/events/status";
 import type { EventWithStatus } from "@/lib/events/types";
 
 interface Clock {
@@ -10,7 +10,7 @@ interface Clock {
   /** All published events with per-society status. */
   weekends: EventWithStatus[];
   /** The soonest "next up" session across all societies. */
-  next: EventWithStatus;
+  next: EventWithStatus | null;
 }
 
 const ClockContext = createContext<Clock | null>(null);
@@ -35,7 +35,7 @@ export function ClockProvider({ initialNow, children }: { initialNow: number; ch
 
   const value = useMemo(() => {
     const weekends = withStatus(events, now);
-    const next = nextOverall(weekends) ?? weekends[weekends.length - 1];
+    const next = pickNext(weekends);
     return { now, weekends, next };
   }, [events, now]);
 

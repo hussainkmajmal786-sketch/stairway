@@ -76,10 +76,10 @@ export function RegisterForm() {
   const { weekends, next } = useClock();
   const open = weekends.filter((w) => w.status !== "completed");
   const pre = params.get("step");
-  const initialStep = open.find((w) => w.slug === pre)?.slug ?? next.slug;
+  const initialStep = open.find((w) => w.slug === pre)?.slug ?? next?.slug ?? open[0]?.slug;
 
   const [d, setD] = useState<Data>({
-    name: "", email: "", phone: "", college: "", branch: "", year: "", ieee: "", ieeeId: "", weekends: [initialStep], level: "", source: "",
+    name: "", email: "", phone: "", college: "", branch: "", year: "", ieee: "", ieeeId: "", weekends: initialStep ? [initialStep] : [], level: "", source: "",
   });
   const [touched, setTouched] = useState<Partial<Record<keyof Data, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
