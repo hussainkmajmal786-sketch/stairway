@@ -13,7 +13,9 @@ const oneOf = (list: readonly string[], v: string | undefined) => (v && list.inc
 
 export default async function OnboardingPage({ searchParams }: PageProps<"/onboarding">) {
   const sp = await searchParams;
-  const next = safeNext(typeof sp.next === "string" ? sp.next : undefined, "/me");
+  const raw = safeNext(typeof sp.next === "string" ? sp.next : undefined, "/me");
+  // Never send someone back to onboarding itself (would loop once they're onboarded).
+  const next = /^\/onboarding(?=$|[/?#])/i.test(raw) ? "/me" : raw;
   const { user, profile } = await requireSignedIn(`/onboarding?next=${encodeURIComponent(next)}`);
   if (profile?.onboarded) redirect(next);
   const db = await createClient();

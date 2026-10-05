@@ -39,13 +39,15 @@ export function OnboardingForm({ userId, initial, next }: { userId: string; init
     setBusy(true);
     setFormError(null);
     const v = parsed.data;
-    const { error } = await createClient()
+    const { data, error } = await createClient()
       .from("profiles")
       .update({
         full_name: v.fullName, handle: v.handle, college: v.college, branch: v.branch, year: v.year,
         avatar_url: d.avatarUrl, onboarded: true,
       })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select("id")
+      .maybeSingle();
     setBusy(false);
     if (error) {
       if (error.code === "23505") {
@@ -54,6 +56,8 @@ export function OnboardingForm({ userId, initial, next }: { userId: string; init
       } else setFormError("We couldn't save your profile. Please try again.");
       return;
     }
+    // No row back means the update matched nothing (e.g. RLS or a missing profile): don't pretend it saved.
+    if (!data) return setFormError("We couldn't save your profile. Please try again.");
     router.replace(next);
     router.refresh();
   }

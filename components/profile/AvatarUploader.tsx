@@ -30,9 +30,10 @@ export function AvatarUploader({
     try {
       const blob = await cropToSquareWebp(file);
       const supabase = createClient();
-      const path = `${userId}/avatar-${Date.now()}.webp`;
+      const ext = blob.type === "image/png" ? "png" : "webp";
+      const path = `${userId}/avatar-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, {
-        contentType: "image/webp",
+        contentType: blob.type || "image/webp",
         cacheControl: "31536000",
       });
       if (upErr) throw upErr;
@@ -53,7 +54,7 @@ export function AvatarUploader({
     <div className="flex items-center gap-4">
       <Avatar name={name || "You"} photo={preview ?? undefined} size={88} />
       <div>
-        <input ref={input} type="file" accept="image/*" className="sr-only" id="avatar-input" tabIndex={-1} onChange={pick} />
+        <input ref={input} type="file" accept="image/*" className="sr-only" id="avatar-input" aria-label="Upload profile photo" tabIndex={-1} onChange={pick} />
         <button type="button" className="btn btn-sm btn-ghost" disabled={busy} onClick={() => input.current?.click()}>
           {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Camera size={16} strokeWidth={2} aria-hidden />}
           {preview ? "Change photo" : "Add photo"}
