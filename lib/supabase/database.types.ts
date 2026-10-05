@@ -581,9 +581,7 @@ export type Database = {
       }
     }
     Functions: {
-      is_any_admin: { Args: never; Returns: boolean }
-      is_society_admin: { Args: { sid: string }; Returns: boolean }
-      is_super_admin: { Args: never; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       admin_role: "super_admin" | "society_admin"
