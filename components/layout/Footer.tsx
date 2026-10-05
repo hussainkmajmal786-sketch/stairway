@@ -53,7 +53,7 @@ export function Footer() {
             <ul>
               {[
                 ["/#about", "About"],
-                ["/#stairway", "The Stairway"],
+                ["/#societies", "Societies"],
                 ["/#speakers", "Speakers"],
                 ["/gallery", "Gallery"],
                 ["/resources", "Resources"],

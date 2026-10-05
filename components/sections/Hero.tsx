@@ -39,8 +39,8 @@ export function Hero() {
           <Button href={registerHref(next.slug)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
             Claim your step <ArrowRight size={18} strokeWidth={2} />
           </Button>
-          <Button href="#stairway" variant="ghost" size="lg">
-            <ArrowDown size={18} strokeWidth={2} /> Explore the stairway
+          <Button href="#societies" variant="ghost" size="lg">
+            <ArrowDown size={18} strokeWidth={2} /> Explore the societies
           </Button>
         </div>
 

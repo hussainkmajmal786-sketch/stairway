@@ -24,6 +24,25 @@ export function Stairway({ societySlug, title = "Every step, [[one weekend at a 
   const list = weekends.filter((w) => (filter === "all" ? true : filter === "completed" ? w.status === "completed" : w.status !== "completed"));
   const climbed = weekends.filter((w) => w.status === "completed").length;
 
+  if (weekends.length === 0) {
+    return (
+      <section id="stairway" aria-labelledby="stairway-title" className="section">
+        <div className="wrap">
+          <SectionHeader
+            id="stairway-title"
+            Icon={Footprints}
+            eyebrow="The roadmap"
+            title={title}
+            lead="Every weekend is one step up. Start anywhere — each step lists exactly what you need to know first."
+          />
+          <div className="box-2 border-2 border-ink p-6 shadow-hard" data-reveal>
+            <p className="font-semibold">New steps announced soon — check back, or follow us on WhatsApp.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="stairway" aria-labelledby="stairway-title" className="section">
       <div className="wrap">
