@@ -297,6 +297,175 @@ export type Database = {
           },
         ]
       }
+      profile_experience: {
+        Row: {
+          created_at: string
+          description: string
+          end_date: string | null
+          id: string
+          organization: string
+          sort_order: number
+          start_date: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          organization: string
+          sort_order?: number
+          start_date: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          organization?: string
+          sort_order?: number
+          start_date?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_experience_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_private: {
+        Row: {
+          created_at: string
+          email: string
+          ieee_member_id: string
+          phone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          ieee_member_id?: string
+          phone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          ieee_member_id?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_projects: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          image_url: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+          url?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string
+          branch: string
+          college: string
+          created_at: string
+          full_name: string
+          handle: string
+          headline: string
+          id: string
+          links: Json
+          onboarded: boolean
+          skills: string[]
+          updated_at: string
+          year: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string
+          branch?: string
+          college?: string
+          created_at?: string
+          full_name?: string
+          handle: string
+          headline?: string
+          id: string
+          links?: Json
+          onboarded?: boolean
+          skills?: string[]
+          updated_at?: string
+          year?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string
+          branch?: string
+          college?: string
+          created_at?: string
+          full_name?: string
+          handle?: string
+          headline?: string
+          id?: string
+          links?: Json
+          onboarded?: boolean
+          skills?: string[]
+          updated_at?: string
+          year?: string
+        }
+        Relationships: []
+      }
       site_blocks: {
         Row: {
           data: Json
