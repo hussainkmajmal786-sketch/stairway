@@ -1,14 +1,14 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { event as settings } from "@/data/event";
-import { weekends } from "@/data/weekends";
-import { speakers } from "@/data/speakers";
-import { team } from "@/data/team";
-import { sponsorTiers } from "@/data/sponsors";
-import { faqs } from "@/data/faq";
-import { testimonials } from "@/data/testimonials";
-import { gallery } from "@/data/gallery";
-import { stats } from "@/data/stats";
+import { event as settings } from "@/supabase/seed-data/event";
+import { weekends } from "@/supabase/seed-data/weekends";
+import { speakers } from "@/supabase/seed-data/speakers";
+import { team } from "@/supabase/seed-data/team";
+import { sponsorTiers } from "@/supabase/seed-data/sponsors";
+import { faqs } from "@/supabase/seed-data/faq";
+import { testimonials } from "@/supabase/seed-data/testimonials";
+import { gallery } from "@/supabase/seed-data/gallery";
+import { stats } from "@/supabase/seed-data/stats";
 import { SOCIETIES } from "@/supabase/seed-data/societies";
 import { EVENT_SOCIETY_MAP } from "@/supabase/seed-data/event-map";
 import { WIE_EVENTS } from "@/supabase/seed-data/wie-events";
@@ -103,7 +103,7 @@ export function buildSeedSql(): string {
     "truncate table public.event_speakers, public.gallery_items, public.events, public.tracks, public.speakers, public.societies, public.sponsors, public.team_members, public.faqs, public.testimonials, public.site_blocks restart identity cascade;",
   );
 
-  // site blocks: settings (the old data/event.ts shape) + stats
+  // site blocks: settings (the old data/event.ts shape, now supabase/seed-data/event.ts) + stats
   out.push(`insert into public.site_blocks (key, data) values ('settings', ${L(settings)}), ('stats', ${L({ items: stats })});`);
 
   SOCIETIES.forEach((s, i) => {

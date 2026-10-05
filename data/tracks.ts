@@ -1,6 +1,6 @@
-import type { TrackId } from "./types";
+export type TrackId = "explorer" | "builder" | "innovator" | "summit";
 
-// Learning tracks. Steps belong to a track via `track` in weekends.ts.
+// Learning tracks. Events are grouped into these by level (see components/sections/Tracks.tsx).
 
 export interface Track {
   id: TrackId;

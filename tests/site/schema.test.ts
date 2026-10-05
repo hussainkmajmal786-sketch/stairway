@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SettingsSchema } from "@/lib/site/schema";
-import { event } from "@/data/event";
+import { event } from "@/supabase/seed-data/event";
 
 describe("SettingsSchema", () => {
   it("accepts the current site settings", () => {

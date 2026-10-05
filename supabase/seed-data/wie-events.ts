@@ -1,4 +1,4 @@
-import type { Weekend } from "@/data/types";
+import type { Weekend } from "@/supabase/seed-data/types";
 
 export type WieEvent = Omit<Weekend, "track" | "seatsFilled" | "statusOverride"> & { trackName: string };
 
