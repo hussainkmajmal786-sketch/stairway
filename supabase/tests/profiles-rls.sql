@@ -74,17 +74,73 @@ do $$ declare n int; begin
   reset role;
 end $$;
 
--- anonymous visitors cannot read profile tables at all
+-- anonymous visitors have no privileges on profile tables
+do $$ begin
+  assert not has_table_privilege('anon','public.profiles','select'), 'anon can select profiles';
+  assert not has_table_privilege('anon','public.profile_private','select'), 'anon can select profile_private';
+  assert not has_table_privilege('anon','public.profile_projects','select'), 'anon can select profile_projects';
+  assert not has_table_privilege('anon','public.profile_experience','select'), 'anon can select profile_experience';
+end $$;
+
+-- trigger robustness: same local part, hostile avatar, null email
+insert into auth.users (id, email, aud, role, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000c1', 'sam@x.local', 'authenticated', 'authenticated', '{}'),
+  ('00000000-0000-0000-0000-0000000000c2', 'sam@y.local', 'authenticated', 'authenticated', '{}'),
+  ('00000000-0000-0000-0000-0000000000c3', 'sam@z.local', 'authenticated', 'authenticated', '{}'),
+  ('00000000-0000-0000-0000-0000000000c4', 'evil@x.local', 'authenticated', 'authenticated', '{"avatar_url":"javascript:alert(1)"}');
+insert into auth.users (id, email, aud, role, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000c5', null, 'authenticated', 'authenticated', '{}');
+
 do $$ declare n int; begin
-  set local role anon;
+  select count(distinct handle) into n from public.profiles where id in
+    ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-0000000000c3');
+  assert n = 3, 'same-local-part users should get 3 distinct handles, got ' || n;
+  assert (select count(*) from public.profiles where handle ~ '^sam(-[0-9a-f]{4})?$'
+          and id in ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-0000000000c3')) = 3,
+    'handles not base+suffix shaped';
+  assert (select avatar_url from public.profiles where id = '00000000-0000-0000-0000-0000000000c4') is null, 'non-https avatar kept';
+  assert (select handle from public.profiles where id = '00000000-0000-0000-0000-0000000000c5') ~ '^[a-z0-9][a-z0-9_-]{2,29}$',
+    'null-email user missing or invalid handle';
+  assert exists (select 1 from public.profile_private where user_id = '00000000-0000-0000-0000-0000000000c5'), 'null-email private row missing';
+end $$;
+
+-- storage avatar policies + other write restrictions
+do $$ declare n int; begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
+  set local role authenticated;
+
+  insert into storage.objects (bucket_id, name, owner_id)
+    values ('avatars', '00000000-0000-0000-0000-0000000000b1/a.png', '00000000-0000-0000-0000-0000000000b1');
   begin
-    select count(*) into n from public.profiles;
-    assert n = 0, 'anon read profiles';
+    insert into storage.objects (bucket_id, name) values ('avatars', '00000000-0000-0000-0000-0000000000b2/a.png');
+    assert false, 'uploaded into another user''s avatar folder';
   exception when insufficient_privilege then null; end;
   begin
-    select count(*) into n from public.profile_private;
-    assert n = 0, 'anon read profile_private';
+    insert into storage.objects (bucket_id, name) values ('avatars', 'root.png');
+    assert false, 'uploaded a root-level avatar object';
   exception when insufficient_privilege then null; end;
+  select count(*) into n from storage.objects where bucket_id = 'avatars';
+  assert n = 1, 'user should see only own avatar objects, saw ' || n;
+
+  begin
+    insert into public.profile_private (user_id) values ('00000000-0000-0000-0000-0000000000b1');
+    assert false, 'authenticated inserted profile_private';
+  exception when insufficient_privilege then null; end;
+
+  begin
+    update public.profiles set id = '00000000-0000-0000-0000-0000000000c1' where id = '00000000-0000-0000-0000-0000000000b1';
+    get diagnostics n = row_count;
+    assert n = 0, 'user changed profiles.id';
+  exception when insufficient_privilege or foreign_key_violation or unique_violation then null; end;
+  reset role;
+end $$;
+
+-- B2 cannot list B1's avatar objects
+do $$ declare n int; begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b2","role":"authenticated"}', true);
+  set local role authenticated;
+  select count(*) into n from storage.objects where bucket_id = 'avatars';
+  assert n = 0, 'user listed another user''s avatar objects';
   reset role;
 end $$;
 
