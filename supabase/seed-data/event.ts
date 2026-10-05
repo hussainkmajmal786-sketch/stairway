@@ -17,7 +17,7 @@ export const event = {
     "Climb into the future of AI, one weekend at a time. Workshops, talks, labs and a hackathon by IEEE Student Branch, College of Engineering Kidangoor.",
 
   // Used for canonical URLs, sitemap and OG images. No trailing slash.
-  siteUrl: "https://stairway.pages.dev",
+  siteUrl: "https://stairway.ieeesbcek.workers.dev",
 
   organizer: {
     name: "IEEE Student Branch, College of Engineering Kidangoor",
