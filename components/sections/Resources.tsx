@@ -19,7 +19,7 @@ export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
   const done = useMemo(
     () =>
       weekends
-        .filter((w) => w.status === "completed" && w.resources)
+        .filter((w) => w.status === "completed" && Object.keys(w.resources).length > 0)
         .filter((w) => level === "All" || w.level === level)
         .filter((w) => `${w.title} ${w.topic} ${w.summary}`.toLowerCase().includes(q.trim().toLowerCase())),
     [weekends, q, level],

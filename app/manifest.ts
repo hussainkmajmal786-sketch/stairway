@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
-import { event } from "@/data/event";
+import { getSiteData } from "@/lib/site/load";
 
 // generated once at build time (static export)
 export const dynamic = "force-static";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const { settings: event } = await getSiteData();
   return {
     name: "st(AI)rway — Weekend AI Series by IEEE SB CEK",
     short_name: "st(AI)rway",

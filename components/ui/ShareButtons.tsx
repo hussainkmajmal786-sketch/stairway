@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { Check, Link2 } from "lucide-react";
 import { Linkedin, Whatsapp } from "./BrandIcons";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { track } from "@/lib/analytics";
 
 /** WhatsApp, LinkedIn and copy-link (Instagram-story friendly) sharing. */
 export function ShareButtons({ path, text }: { path: string; text: string }) {
+  const { settings: event } = useSiteData();
   const url = `${event.siteUrl}${path}`;
   const [copied, setCopied] = useState(false);
 

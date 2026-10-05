@@ -5,8 +5,7 @@ import { ArrowDown, ArrowRight, Hourglass, MapPin } from "lucide-react";
 import { Countdown } from "@/components/ui/Countdown";
 import { Button } from "@/components/ui/Button";
 import { useClock } from "@/components/providers/ClockProvider";
-import { event } from "@/data/event";
-import { stats } from "@/data/stats";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { pad2, registerHref, shortDate, timeOf } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +13,7 @@ import { cn } from "@/lib/utils";
 const STAT_COLORS = ["text-blue-ink", "text-green-ink", "text-red-ink", "text-purple-ink", "text-amber-ink"];
 
 export function Hero() {
+  const { settings: event, stats } = useSiteData();
   const { next } = useClock();
 
   return (

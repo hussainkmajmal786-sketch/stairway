@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, MessageSquareQuote, Pause, Play } from "lucide-react";
-import { testimonials } from "@/data/testimonials";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/hooks";
 
 export function Testimonials() {
+  const { testimonials } = useSiteData();
   const [i, setI] = useState(0);
   const reduced = useReducedMotion();
   const [userPaused, setPaused] = useState<boolean | null>(null);

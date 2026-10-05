@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowUpRight, Globe, Mic2, Plus } from "lucide-react";
-import { speakers } from "@/data/speakers";
-import type { Speaker } from "@/data/types";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import type { SpeakerView as Speaker } from "@/lib/site/types";
 import { useClock } from "@/components/providers/ClockProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Avatar } from "@/components/ui/Avatar";
@@ -32,6 +31,7 @@ function SocialLinks({ s }: { s: Speaker }) {
 }
 
 export function Speakers() {
+  const { settings: event, speakers } = useSiteData();
   const { weekends, next } = useClock();
   const [open, setOpen] = useState<Speaker | null>(null);
   const sessionsOf = (id: string) => weekends.filter((w) => w.speakerIds.includes(id));

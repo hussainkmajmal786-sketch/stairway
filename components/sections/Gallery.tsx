@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Camera, ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { gallery, type GalleryItem } from "@/data/gallery";
-import { weekends } from "@/data/weekends";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import type { GalleryItemView as GalleryItem } from "@/lib/site/types";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { GalleryArt } from "@/components/ui/GalleryArt";
 import { Modal } from "@/components/ui/Modal";
@@ -46,7 +45,7 @@ function Lightbox({ items, index, onClose, setIndex }: { items: GalleryItem[]; i
           </div>
           <figcaption className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <span>
-              <span className="tag tag-yellow">Step {pad2(item.step)}</span>
+              {item.step !== null && <span className="tag tag-yellow">Step {pad2(item.step)}</span>}
               <span className="mt-1 block">{item.caption}</span>
             </span>
             <span className="flex items-center gap-2">
@@ -66,18 +65,19 @@ function Lightbox({ items, index, onClose, setIndex }: { items: GalleryItem[]; i
 }
 
 export function GalleryGrid({ limit }: { limit?: number }) {
-  const steps = [...new Set(gallery.map((g) => g.step))].sort((a, b) => a - b);
-  const [filter, setFilter] = useState<number | "all">("all");
+  const { gallery } = useSiteData();
+  const chips = [...new Map(gallery.filter((g) => g.eventSlug).map((g) => [g.eventSlug!, g.eventTitle!])).entries()];
+  const [filter, setFilter] = useState<string>("all");
   const [open, setOpen] = useState<number | null>(null);
-  const items = gallery.filter((g) => filter === "all" || g.step === filter).slice(0, limit);
+  const items = gallery.filter((g) => filter === "all" || g.eventSlug === filter).slice(0, limit);
 
   return (
     <>
       <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label="Filter photos by weekend">
         <button className="chip-btn" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All</button>
-        {steps.map((s) => (
-          <button key={s} className="chip-btn" aria-pressed={filter === s} onClick={() => setFilter(s)}>
-            Step {pad2(s)} · {weekends.find((w) => w.step === s)?.title}
+        {chips.map(([slug, title]) => (
+          <button key={slug} className="chip-btn" aria-pressed={filter === slug} onClick={() => setFilter(slug)}>
+            {title}
           </button>
         ))}
       </div>
@@ -101,6 +101,7 @@ export function GalleryGrid({ limit }: { limit?: number }) {
 }
 
 export function Aftermovie() {
+  const { settings: event } = useSiteData();
   const [play, setPlay] = useState(false);
   return (
     <div className="relative aspect-video overflow-hidden border-2 border-ink shadow-[6px_6px_0_0_var(--ink)]" data-reveal>
@@ -108,7 +109,7 @@ export function Aftermovie() {
         <iframe src={`${event.aftermovieUrl}?autoplay=1`} title="st(AI)rway aftermovie" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
       ) : (
         <button onClick={() => setPlay(true)} className="group absolute inset-0 grid place-items-center" aria-label="Play the st(AI)rway aftermovie">
-          <GalleryArt item={{ id: "after", step: 1, caption: "", alt: "", ratio: "wide", hue: 0 }} />
+          <GalleryArt item={{ id: "after", eventSlug: null, eventTitle: null, step: 1, caption: "", alt: "", ratio: "wide" }} />
           <span className="relative grid h-20 w-20 place-items-center border-2 border-ink bg-yellow shadow-[4px_4px_0_0_var(--ink)] transition-transform duration-150 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5">
             <Play size={30} strokeWidth={2} fill="currentColor" aria-hidden />
           </span>

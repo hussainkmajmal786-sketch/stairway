@@ -12,9 +12,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ShareButtons } from "@/components/ui/ShareButtons";
 import { GalleryArt } from "@/components/ui/GalleryArt";
 import { Github } from "@/components/ui/BrandIcons";
-import { speakerById } from "@/data/speakers";
-import { gallery } from "@/data/gallery";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import { SOCIETY_FILL } from "@/lib/events/colors";
+import { societyStairway } from "@/lib/events/status";
 import { daysUntil, longDate, pad2, registerHref, timeOf } from "@/lib/weekends";
 import { downloadIcs, googleCalendarUrl } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
@@ -30,16 +30,18 @@ function Block({ title, Icon, children, id, fill = "bg-paper-2" }: { title: stri
   );
 }
 
-const TRACK_FILL: Record<string, string> = { explorer: "bg-green", builder: "bg-blue", innovator: "bg-purple", summit: "bg-orange" };
-
 export function WeekendDetail({ slug }: { slug: string }) {
+  const { settings: event, speakers: allSpeakers, gallery } = useSiteData();
+  const speakerById = (id: string) => allSpeakers.find((s) => s.id === id);
   const { weekends, now } = useClock();
-  const idx = weekends.findIndex((w) => w.slug === slug);
-  const w = weekends[idx];
-  const prev = weekends[idx - 1];
-  const next = weekends[idx + 1];
+  const w = weekends.find((e) => e.slug === slug)!;
+  // prev / next walk this event's own society stairway
+  const stairway = societyStairway(weekends, w.society.slug);
+  const idx = stairway.findIndex((e) => e.slug === slug);
+  const prev = stairway[idx - 1];
+  const next = stairway[idx + 1];
   const speakers = w.speakerIds.map(speakerById).filter(Boolean);
-  const photos = gallery.filter((g) => w.gallery?.includes(g.id));
+  const photos = gallery.filter((g) => g.eventSlug === w.slug);
   const done = w.status === "completed";
   const days = daysUntil(w.start, now);
 
@@ -53,7 +55,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
             <span className="text-ink" aria-current="page">Step {pad2(w.step)}</span>
           </nav>
           <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-end">
-            <div className={cn("grid h-36 w-36 place-items-center border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] md:h-44 md:w-44", done ? "bg-paper-3" : TRACK_FILL[w.track])}>
+            <div className={cn("grid h-36 w-36 place-items-center border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] md:h-44 md:w-44", done ? "bg-paper-3" : SOCIETY_FILL[w.society.color])}>
               <span className="text-center font-mono font-bold">
                 <span className="mono block">Step</span>
                 <span className="block text-6xl md:text-7xl">{pad2(w.step)}</span>
@@ -146,7 +148,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
             </Block>
           )}
 
-          {done && w.resources && (
+          {done && Object.keys(w.resources).length > 0 && (
             <Block title="Resources" Icon={FileText} id="resources" fill="bg-green">
               <div className="flex flex-wrap gap-3">
                 {w.resources.slides && <a className="btn btn-sm btn-ghost" href={w.resources.slides} target="_blank" rel="noopener noreferrer"><FileText size={16} strokeWidth={2} /> Slides</a>}
@@ -162,7 +164,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
             </Block>
           )}
 
-          {done && w.winners && (
+          {done && w.winners.length > 0 && (
             <Block title="Winners" Icon={Trophy} fill="bg-orange">
               <ul className="space-y-3">
                 {w.winners.map((x, i) => (
@@ -220,10 +222,10 @@ export function WeekendDetail({ slug }: { slug: string }) {
                   Claim your step <ArrowRight size={18} strokeWidth={2} />
                 </Button>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <a href={googleCalendarUrl(w)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
+                  <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
                     <CalendarPlus size={16} strokeWidth={2} /> Google
                   </a>
-                  <button onClick={() => downloadIcs(w)} className="btn btn-sm btn-ghost !px-2">
+                  <button onClick={() => downloadIcs(w, event)} className="btn btn-sm btn-ghost !px-2">
                     <Download size={16} strokeWidth={2} /> .ics
                   </button>
                 </div>

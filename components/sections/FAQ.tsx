@@ -2,8 +2,8 @@
 
 import { useId, useState } from "react";
 import { HelpCircle, Mail, Plus } from "lucide-react";
-import { faqs, type Faq } from "@/data/faq";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import type { FaqView as Faq } from "@/lib/site/types";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +40,7 @@ function Item({ f, open, onToggle }: { f: Faq; open: boolean; onToggle: () => vo
 }
 
 export function FAQ() {
+  const { settings: event, faqs } = useSiteData();
   const [open, setOpen] = useState<number | null>(0);
   const half = Math.ceil(faqs.length / 2);
   const cols = [faqs.slice(0, half), faqs.slice(half)];

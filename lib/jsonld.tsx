@@ -1,8 +1,8 @@
-import { event } from "@/data/event";
-import type { Weekend } from "@/data/types";
+import type { EventView } from "@/lib/events/types";
+import type { Settings } from "@/lib/site/schema";
 
 /** schema.org Event for one weekend. */
-export function eventJsonLd(w: Weekend) {
+export function eventJsonLd(w: EventView, settings: Settings) {
   const ended = new Date(w.end).getTime() < Date.now();
   return {
     "@context": "https://schema.org",
@@ -13,24 +13,24 @@ export function eventJsonLd(w: Weekend) {
     endDate: w.end,
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    url: `${event.siteUrl}/weekend/${w.slug}`,
-    image: [`${event.siteUrl}/weekend/${w.slug}/opengraph-image`],
+    url: `${settings.siteUrl}/weekend/${w.slug}`,
+    image: [`${settings.siteUrl}/weekend/${w.slug}/opengraph-image`],
     location: {
       "@type": "Place",
-      name: event.venue.name,
+      name: settings.venue.name,
       address: {
         "@type": "PostalAddress",
-        streetAddress: event.venue.address,
-        addressLocality: event.venue.city,
-        addressRegion: event.venue.region,
-        postalCode: event.venue.postalCode,
-        addressCountry: event.venue.country,
+        streetAddress: settings.venue.address,
+        addressLocality: settings.venue.city,
+        addressRegion: settings.venue.region,
+        postalCode: settings.venue.postalCode,
+        addressCountry: settings.venue.country,
       },
     },
-    organizer: { "@type": "Organization", name: event.organizer.name, url: event.organizer.url },
+    organizer: { "@type": "Organization", name: settings.organizer.name, url: settings.organizer.url },
     offers: {
       "@type": "Offer",
-      url: `${event.siteUrl}/register?step=${w.slug}`,
+      url: `${settings.siteUrl}/register?step=${w.slug}`,
       price: "0",
       priceCurrency: "INR",
       availability: ended || w.seatsFilled >= w.seatsTotal ? "https://schema.org/SoldOut" : "https://schema.org/InStock",

@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowRight, CalendarPlus, Check, Loader2 } from "lucide-react";
 import { useClock } from "@/components/providers/ClockProvider";
 import { Whatsapp } from "@/components/ui/BrandIcons";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { pad2, shortDate } from "@/lib/weekends";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { track } from "@/lib/analytics";
@@ -71,6 +71,7 @@ function Field({ id, label, error, children, hint, required = true }: { id: stri
 }
 
 export function RegisterForm() {
+  const { settings: event } = useSiteData();
   const params = useSearchParams();
   const { weekends, next } = useClock();
   const open = weekends.filter((w) => w.status !== "completed");
@@ -141,11 +142,11 @@ export function RegisterForm() {
         </p>
         {demo && (
           <p className="mx-auto mt-4 max-w-md border-2 border-ink bg-yellow p-3 text-sm">
-            Demo mode — no registration endpoint is connected yet, so nothing was sent. Set <code>registration.endpoint</code> in <code>data/event.ts</code>.
+            Demo mode — no registration endpoint is connected yet, so nothing was sent. Set <code>registration.endpoint</code> in the site settings.
           </p>
         )}
         <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href={googleCalendarUrl(first)} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+          <a href={googleCalendarUrl(first, event)} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
             <CalendarPlus size={18} strokeWidth={2} /> Add to calendar
           </a>
           <a href={event.social.whatsapp} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">

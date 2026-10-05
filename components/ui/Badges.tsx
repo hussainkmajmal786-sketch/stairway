@@ -1,5 +1,5 @@
 import { Check, Lock } from "lucide-react";
-import type { WeekendStatus } from "@/data/types";
+import type { EventStatus as WeekendStatus } from "@/lib/events/types";
 import { seatsTone } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
 

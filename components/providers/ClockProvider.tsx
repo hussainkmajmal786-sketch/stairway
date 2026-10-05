@@ -1,26 +1,29 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { withStatus, getNext, type WeekendWithStatus } from "@/lib/weekends";
+import { useSiteData } from "./SiteDataProvider";
+import { nextOverall, withStatus } from "@/lib/events/status";
+import type { EventWithStatus } from "@/lib/events/types";
 
 interface Clock {
   now: number;
-  weekends: WeekendWithStatus[];
-  next: WeekendWithStatus;
+  /** All published events with per-society status. */
+  weekends: EventWithStatus[];
+  /** The soonest "next up" session across all societies. */
+  next: EventWithStatus;
 }
 
 const ClockContext = createContext<Clock | null>(null);
 
 /**
- * Server renders with the build/request time; the client switches to the
- * real clock after hydration and re-checks every minute, so statuses and the
- * countdown target always reflect today's date without hydration mismatches.
+ * Server renders with the request time; the client switches to the real clock
+ * after hydration and re-checks every minute.
  */
 export function ClockProvider({ initialNow, children }: { initialNow: number; children: React.ReactNode }) {
+  const { events } = useSiteData();
   const [now, setNow] = useState(initialNow);
 
   useEffect(() => {
-    // Sync to the real clock after hydration, then every minute.
     const tick = () => setNow(Date.now());
     const raf = requestAnimationFrame(tick);
     const id = setInterval(tick, 60_000);
@@ -31,9 +34,10 @@ export function ClockProvider({ initialNow, children }: { initialNow: number; ch
   }, []);
 
   const value = useMemo(() => {
-    const weekends = withStatus(now);
-    return { now, weekends, next: getNext(weekends) };
-  }, [now]);
+    const weekends = withStatus(events, now);
+    const next = nextOverall(weekends) ?? weekends[weekends.length - 1];
+    return { now, weekends, next };
+  }, [events, now]);
 
   return <ClockContext.Provider value={value}>{children}</ClockContext.Provider>;
 }

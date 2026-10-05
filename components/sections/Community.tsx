@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { ArrowRight, Bell, Check, Loader2 } from "lucide-react";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { Instagram, Linkedin, Whatsapp } from "@/components/ui/BrandIcons";
 import { Heading } from "@/components/ui/Heading";
 import { track } from "@/lib/analytics";
 
 export function Community() {
+  const { settings: event } = useSiteData();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
@@ -31,7 +32,7 @@ export function Community() {
         setMsg("You're on the list. We'll ping you before every step.");
       } else {
         await new Promise((r) => setTimeout(r, 500));
-        setMsg("Demo mode: no newsletter endpoint is connected yet (see data/event.ts).");
+        setMsg("Demo mode: no newsletter endpoint is connected yet (set newsletter.endpoint in the site settings).");
       }
       track("newsletter_signup");
       setState("done");

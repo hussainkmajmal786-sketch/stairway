@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Every page is pre-rendered, so the site ships as plain static files in /out.
-  // That lets it run on any static host — Cloudflare Pages, Vercel, Netlify, GitHub Pages.
-  output: "export",
-  // Static hosts have no image-optimisation server; images are served as-is.
+  // Content now loads from Supabase at request time, so the site is no longer a
+  // static export. Task 8 finalises the Cloudflare deployment config.
+  // Images are still served as-is (no image-optimisation server on the host).
   images: { unoptimized: true },
 };
 

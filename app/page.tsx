@@ -17,22 +17,22 @@ import { AboutIEEE } from "@/components/sections/AboutIEEE";
 import { FAQ } from "@/components/sections/FAQ";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 import { Community } from "@/components/sections/Community";
-import { weekends } from "@/data/weekends";
-import { event } from "@/data/event";
+import { getSiteData } from "@/lib/site/load";
 import { eventJsonLd, JsonLd } from "@/lib/jsonld";
 
-export default function Home() {
+export default async function Home() {
+  const { settings: event, events } = await getSiteData();
   return (
     <>
       <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "EventSeries",
-          name: "st(AI)rway",
+          name: event.name,
           description: event.description,
           url: event.siteUrl,
           organizer: { "@type": "Organization", name: event.organizer.name, url: event.organizer.url },
-          subEvent: weekends.map(eventJsonLd),
+          subEvent: events.map((w) => eventJsonLd(w, event)),
         }}
       />
       <Hero />

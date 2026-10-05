@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { UsersRound } from "lucide-react";
-import { team, teamGroups } from "@/data/team";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Avatar } from "@/components/ui/Avatar";
 import { Github, Instagram, Linkedin } from "@/components/ui/BrandIcons";
 
 export function Team() {
-  const [group, setGroup] = useState<(typeof teamGroups)[number]>("All");
+  const { team } = useSiteData();
+  const teamGroups = ["All", ...Array.from(new Set(team.map((m) => m.group)))] as const;
+  const [group, setGroup] = useState<string>("All");
   const list = team.filter((m) => group === "All" || m.group === group);
   const icon = "grid h-11 w-11 place-items-center border-2 border-ink bg-paper-2 hover:bg-yellow";
 

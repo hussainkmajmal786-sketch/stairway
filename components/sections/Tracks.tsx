@@ -11,6 +11,14 @@ import { cn } from "@/lib/utils";
 
 const FILL: Record<string, string> = { green: "bg-green", cyan: "bg-blue", violet: "bg-purple", pink: "bg-orange" };
 
+/** Events no longer carry a learning-track id, so group them by level (finale → Summit). */
+function learningTrack(w: { isFinale: boolean; level: string }) {
+  if (w.isFinale) return "summit";
+  if (w.level === "Beginner") return "explorer";
+  if (w.level === "Intermediate") return "builder";
+  return "innovator";
+}
+
 function Quiz() {
   const { weekends } = useClock();
   const [i, setI] = useState(0);
@@ -88,7 +96,7 @@ export function Tracks() {
         />
         <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {tracks.map((t, i) => {
-            const steps = weekends.filter((w) => w.track === t.id);
+            const steps = weekends.filter((w) => learningTrack(w) === t.id);
             return (
               <li key={t.id} data-reveal style={{ ["--d" as string]: i }} className="box flex flex-col shadow-hard">
                 <div className={cn("flex items-center justify-between border-b-2 border-ink px-5 py-3", FILL[t.color])}>
