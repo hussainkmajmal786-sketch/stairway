@@ -42,3 +42,10 @@ next-env.d.ts
 
 # local Claude Code settings
 .claude/
+
+!.env.example
+
+# OpenNext / Wrangler
+.open-next
+.wrangler
+.dev.vars

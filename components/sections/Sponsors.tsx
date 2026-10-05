@@ -1,9 +1,11 @@
 import Image from "next/image";
 import { Download, Handshake, Mail } from "lucide-react";
-import { sponsorTiers, type Sponsor } from "@/data/sponsors";
-import { event } from "@/data/event";
+import { getSiteData } from "@/lib/site/load";
+import type { SponsorTierView } from "@/lib/site/types";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { cn } from "@/lib/utils";
+
+type Sponsor = SponsorTierView["sponsors"][number];
 
 const sizeCls = {
   xl: "h-36 md:h-44 text-4xl md:text-6xl",
@@ -25,7 +27,8 @@ function Logo({ s, size }: { s: Sponsor; size: keyof typeof sizeCls }) {
   );
 }
 
-export function Sponsors() {
+export async function Sponsors() {
+  const { settings: event, sponsors: sponsorTiers } = await getSiteData();
   const partners = sponsorTiers.filter((t) => t.size === "sm").flatMap((t) => t.sponsors);
   const main = sponsorTiers.filter((t) => t.size !== "sm");
 

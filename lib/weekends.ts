@@ -1,33 +1,3 @@
-import { weekends } from "@/data/weekends";
-import type { Weekend, WeekendStatus } from "@/data/types";
-import { event } from "@/data/event";
-
-export interface WeekendWithStatus extends Weekend {
-  status: WeekendStatus;
-  seatsLeft: number;
-}
-
-/** Computes completed / next / upcoming for every weekend at time `now`. */
-export function withStatus(now: number): WeekendWithStatus[] {
-  const sorted = [...weekends].sort((a, b) => a.step - b.step);
-  let nextAssigned = false;
-  return sorted.map((w) => {
-    let status: WeekendStatus;
-    if (w.statusOverride) status = w.statusOverride;
-    else if (new Date(w.end).getTime() < now) status = "completed";
-    else if (!nextAssigned) status = "next";
-    else status = "upcoming";
-    if (status === "next") nextAssigned = true;
-    return { ...w, status, seatsLeft: Math.max(0, w.seatsTotal - w.seatsFilled) };
-  });
-}
-
-export function getNext(list: WeekendWithStatus[]) {
-  return list.find((w) => w.status === "next") ?? list[list.length - 1];
-}
-
-export const getWeekend = (slug: string) => weekends.find((w) => w.slug === slug);
-
 export const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const TZ = "Asia/Kolkata";
@@ -49,7 +19,6 @@ export function daysUntil(iso: string, now: number) {
 }
 
 export function registerHref(slug?: string) {
-  if (event.registration.mode === "external") return event.registration.googleFormUrl;
   return slug ? `/register?step=${slug}` : "/register";
 }
 

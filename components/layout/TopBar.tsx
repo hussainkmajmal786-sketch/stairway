@@ -19,8 +19,9 @@ export function TopBar() {
             <StairMark size={28} />
             <Wordmark />
           </Link>
+          {next && (
           <Link
-            href={`/weekend/${next.slug}`}
+            href={`/events/${next.slug}`}
             className="btn btn-sm btn-ghost !px-3 !shadow-[3px_3px_0_0_var(--ink)]"
             aria-label={`Next: Step ${next.step}, ${next.title}, ${formatDate(next.start, { day: "numeric", month: "long" })}`}
           >
@@ -28,6 +29,7 @@ export function TopBar() {
             <span className="hidden sm:inline">Next ·</span> Step {pad2(next.step)}
             <span className="hidden md:inline">· {formatDate(next.start, { day: "2-digit", month: "short" })}</span>
           </Link>
+          )}
         </div>
       </div>
     </header>

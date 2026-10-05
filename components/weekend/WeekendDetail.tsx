@@ -12,9 +12,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ShareButtons } from "@/components/ui/ShareButtons";
 import { GalleryArt } from "@/components/ui/GalleryArt";
 import { Github } from "@/components/ui/BrandIcons";
-import { speakerById } from "@/data/speakers";
-import { gallery } from "@/data/gallery";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import { SOCIETY_FILL } from "@/lib/events/colors";
+import { societyStairway } from "@/lib/events/status";
 import { daysUntil, longDate, pad2, registerHref, timeOf } from "@/lib/weekends";
 import { downloadIcs, googleCalendarUrl } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
@@ -30,16 +30,18 @@ function Block({ title, Icon, children, id, fill = "bg-paper-2" }: { title: stri
   );
 }
 
-const TRACK_FILL: Record<string, string> = { explorer: "bg-green", builder: "bg-blue", innovator: "bg-purple", summit: "bg-orange" };
-
 export function WeekendDetail({ slug }: { slug: string }) {
+  const { settings: event, speakers: allSpeakers, gallery } = useSiteData();
+  const speakerById = (id: string) => allSpeakers.find((s) => s.id === id);
   const { weekends, now } = useClock();
-  const idx = weekends.findIndex((w) => w.slug === slug);
-  const w = weekends[idx];
-  const prev = weekends[idx - 1];
-  const next = weekends[idx + 1];
+  const w = weekends.find((e) => e.slug === slug)!;
+  // prev / next walk this event's own society stairway
+  const stairway = societyStairway(weekends, w.society.slug);
+  const idx = stairway.findIndex((e) => e.slug === slug);
+  const prev = stairway[idx - 1];
+  const next = stairway[idx + 1];
   const speakers = w.speakerIds.map(speakerById).filter(Boolean);
-  const photos = gallery.filter((g) => w.gallery?.includes(g.id));
+  const photos = gallery.filter((g) => g.eventSlug === w.slug);
   const done = w.status === "completed";
   const days = daysUntil(w.start, now);
 
@@ -49,14 +51,15 @@ export function WeekendDetail({ slug }: { slug: string }) {
         <div className="wrap">
           <nav aria-label="Breadcrumb" className="mono mb-8 font-bold text-ink-3">
             <Link href="/" className="underline-offset-4 hover:underline">Home</Link> <span aria-hidden>/</span>{" "}
-            <Link href="/#stairway" className="underline-offset-4 hover:underline">Stairway</Link> <span aria-hidden>/</span>{" "}
+            <Link href={`/s/${w.society.slug}`} className="underline-offset-4 hover:underline">{w.society.shortName}</Link> <span aria-hidden>/</span>{" "}
             <span className="text-ink" aria-current="page">Step {pad2(w.step)}</span>
           </nav>
           <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-end">
-            <div className={cn("grid h-36 w-36 place-items-center border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] md:h-44 md:w-44", done ? "bg-paper-3" : TRACK_FILL[w.track])}>
+            <div className={cn("grid h-36 w-36 place-items-center border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] md:h-44 md:w-44", done ? "bg-paper-3" : SOCIETY_FILL[w.society.color])}>
               <span className="text-center font-mono font-bold">
-                <span className="mono block">Step</span>
+                <span className="mono block">{w.society.shortName} · Step</span>
                 <span className="block text-6xl md:text-7xl">{pad2(w.step)}</span>
+                <span className="mono block text-ink-3">/ {pad2(stairway.length)}</span>
               </span>
             </div>
             <div>
@@ -146,7 +149,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
             </Block>
           )}
 
-          {done && w.resources && (
+          {done && Object.keys(w.resources).length > 0 && (
             <Block title="Resources" Icon={FileText} id="resources" fill="bg-green">
               <div className="flex flex-wrap gap-3">
                 {w.resources.slides && <a className="btn btn-sm btn-ghost" href={w.resources.slides} target="_blank" rel="noopener noreferrer"><FileText size={16} strokeWidth={2} /> Slides</a>}
@@ -162,7 +165,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
             </Block>
           )}
 
-          {done && w.winners && (
+          {done && w.winners.length > 0 && (
             <Block title="Winners" Icon={Trophy} fill="bg-orange">
               <ul className="space-y-3">
                 {w.winners.map((x, i) => (
@@ -204,7 +207,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
                 <p className="mono font-bold text-green-ink">Climbed ✓</p>
                 <p className="mt-2 text-ink-2">This step is complete. Grab the resources, then claim the next one.</p>
                 {next && (
-                  <Button href={next.status === "completed" ? `/weekend/${next.slug}` : registerHref(next.slug)} className="mt-6 w-full">
+                  <Button href={next.status === "completed" ? `/events/${next.slug}` : registerHref(next.slug)} className="mt-6 w-full">
                     Step {pad2(next.step)}: {next.title} <ArrowRight size={16} strokeWidth={2} />
                   </Button>
                 )}
@@ -220,10 +223,10 @@ export function WeekendDetail({ slug }: { slug: string }) {
                   Claim your step <ArrowRight size={18} strokeWidth={2} />
                 </Button>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <a href={googleCalendarUrl(w)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
+                  <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
                     <CalendarPlus size={16} strokeWidth={2} /> Google
                   </a>
-                  <button onClick={() => downloadIcs(w)} className="btn btn-sm btn-ghost !px-2">
+                  <button onClick={() => downloadIcs(w, event)} className="btn btn-sm btn-ghost !px-2">
                     <Download size={16} strokeWidth={2} /> .ics
                   </button>
                 </div>
@@ -232,7 +235,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
           </div>
           <div className="box p-6 shadow-hard" data-reveal>
             <p className="mono mb-3 font-bold">Share this step</p>
-            <ShareButtons path={`/weekend/${w.slug}`} text={`st(AI)rway Step ${pad2(w.step)}: ${w.title} — ${w.topic}`} />
+            <ShareButtons path={`/events/${w.slug}`} text={`st(AI)rway Step ${pad2(w.step)}: ${w.title} — ${w.topic}`} />
           </div>
         </aside>
       </div>
@@ -240,13 +243,13 @@ export function WeekendDetail({ slug }: { slug: string }) {
       <nav aria-label="Step navigation" className="border-t-2 border-ink bg-paper-2">
         <div className="wrap grid grid-cols-2">
           {prev ? (
-            <Link href={`/weekend/${prev.slug}`} className="group flex flex-col gap-1 py-8 pr-4">
+            <Link href={`/events/${prev.slug}`} className="group flex flex-col gap-1 py-8 pr-4">
               <span className="mono inline-flex items-center gap-2 font-bold text-ink-3"><ArrowLeft size={14} strokeWidth={2} aria-hidden /> Step {pad2(prev.step)}</span>
               <span className="text-lg font-semibold underline-offset-4 group-hover:underline md:text-2xl">{prev.title}</span>
             </Link>
           ) : <span />}
           {next ? (
-            <Link href={`/weekend/${next.slug}`} className="group flex flex-col items-end gap-1 border-l-2 border-ink py-8 pl-4 text-right">
+            <Link href={`/events/${next.slug}`} className="group flex flex-col items-end gap-1 border-l-2 border-ink py-8 pl-4 text-right">
               <span className="mono inline-flex items-center gap-2 font-bold text-ink-3">Step {pad2(next.step)} <ArrowRight size={14} strokeWidth={2} aria-hidden /></span>
               <span className="text-lg font-semibold underline-offset-4 group-hover:underline md:text-2xl">{next.title}</span>
             </Link>

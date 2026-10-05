@@ -5,8 +5,7 @@ import { ArrowDown, ArrowRight, Hourglass, MapPin } from "lucide-react";
 import { Countdown } from "@/components/ui/Countdown";
 import { Button } from "@/components/ui/Button";
 import { useClock } from "@/components/providers/ClockProvider";
-import { event } from "@/data/event";
-import { stats } from "@/data/stats";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { pad2, registerHref, shortDate, timeOf } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +13,7 @@ import { cn } from "@/lib/utils";
 const STAT_COLORS = ["text-blue-ink", "text-green-ink", "text-red-ink", "text-purple-ink", "text-amber-ink"];
 
 export function Hero() {
+  const { settings: event, stats } = useSiteData();
   const { next } = useClock();
 
   return (
@@ -36,15 +36,16 @@ export function Hero() {
         </p>
 
         <div className="fade-up mt-9 flex flex-col gap-3 sm:flex-row" style={{ ["--d" as string]: 3 }}>
-          <Button href={registerHref(next.slug)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
+          <Button href={registerHref(next?.slug)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
             Claim your step <ArrowRight size={18} strokeWidth={2} />
           </Button>
-          <Button href="#stairway" variant="ghost" size="lg">
-            <ArrowDown size={18} strokeWidth={2} /> Explore the stairway
+          <Button href="#societies" variant="ghost" size="lg">
+            <ArrowDown size={18} strokeWidth={2} /> Explore the societies
           </Button>
         </div>
 
         {/* next step panel */}
+        {next && (
         <div className="fade-up mt-12 max-w-3xl border-2 border-ink bg-paper-2 shadow-[4px_4px_0_0_var(--ink)]" style={{ ["--d" as string]: 4 }}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink px-5 py-3">
             <span className="flex items-center gap-2">
@@ -57,7 +58,7 @@ export function Hero() {
           </div>
           <div className="flex flex-col gap-6 p-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <Link href={`/weekend/${next.slug}`} className="text-2xl font-semibold underline-offset-4 hover:underline md:text-3xl">
+              <Link href={`/events/${next.slug}`} className="text-2xl font-semibold underline-offset-4 hover:underline md:text-3xl">
                 {next.title}
               </Link>
               <p className="mono mt-1 text-ink-3">{next.topic}</p>
@@ -65,6 +66,7 @@ export function Hero() {
             <Countdown target={next.start} size="sm" />
           </div>
         </div>
+        )}
       </div>
 
       {/* stats strip */}

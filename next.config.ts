@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
-  // Every page is pre-rendered, so the site ships as plain static files in /out.
-  // That lets it run on any static host — Cloudflare Pages, Vercel, Netlify, GitHub Pages.
-  output: "export",
-  // Static hosts have no image-optimisation server; images are served as-is.
+  // Cloudflare Workers has no image-optimisation server here; images are served as-is.
   images: { unoptimized: true },
+  async redirects() {
+    return [{ source: "/weekend/:slug", destination: "/events/:slug", permanent: true }];
+  },
 };
 
 export default nextConfig;
+
+initOpenNextCloudflareForDev();

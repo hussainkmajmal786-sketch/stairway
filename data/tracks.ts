@@ -1,25 +1,5 @@
-import type { TrackId } from "./types";
-
-// Learning tracks. Steps belong to a track via `track` in weekends.ts.
-
-export interface Track {
-  id: TrackId;
-  name: string;
-  level: string;
-  tagline: string;
-  skills: string[];
-  color: "green" | "cyan" | "violet" | "pink";
-}
-
-export const tracks: Track[] = [
-  { id: "explorer", name: "Explorer", level: "Beginner", tagline: "Find your footing.", skills: ["AI literacy", "Python & data", "Your first model"], color: "green" },
-  { id: "builder", name: "Builder", level: "Intermediate", tagline: "Make things that learn.", skills: ["Classical ML", "Computer vision", "PyTorch", "NLP"], color: "cyan" },
-  { id: "innovator", name: "Innovator", level: "Advanced", tagline: "Push past the tutorial.", skills: ["LLMs", "AI agents", "Generative AI", "Edge AI", "Responsible AI"], color: "violet" },
-  { id: "summit", name: "Summit", level: "Hackathon", tagline: "Ship it in 24 hours.", skills: ["Teamwork", "Rapid prototyping", "Pitching"], color: "pink" },
-];
-
 // "Which step should you start from?" quiz. Each answer adds points;
-// the total picks a starting step via `quizResult`.
+// the total picks a level via `quizLevel`.
 export const quiz = [
   {
     q: "Have you written Python before?",
@@ -55,10 +35,8 @@ export const quiz = [
   },
 ];
 
-export function quizResult(total: number): number {
-  if (total <= 1) return 1;
-  if (total <= 3) return 2;
-  if (total <= 5) return 3;
-  if (total <= 7) return 5;
-  return 7;
+export function quizLevel(total: number): "Beginner" | "Intermediate" | "Advanced" {
+  if (total <= 3) return "Beginner";
+  if (total <= 7) return "Intermediate";
+  return "Advanced";
 }

@@ -9,6 +9,20 @@ import { pad2, registerHref } from "@/lib/weekends";
 
 export function FinalCTA() {
   const { next } = useClock();
+  if (!next) {
+    return (
+      <section id="register" aria-labelledby="cta-title" className="border-y-2 border-ink bg-yellow">
+        <div className="wrap py-[clamp(72px,10vw,128px)]">
+          <h2 id="cta-title" className="text-[clamp(2.2rem,6vw,4.5rem)] font-medium leading-[0.95] tracking-[-0.04em]" data-reveal>
+            Sessions will be announced soon.
+          </h2>
+          <Button href="#societies" variant="ink" size="lg" className="mt-8">
+            Explore the societies <ArrowUpRight size={20} strokeWidth={2} />
+          </Button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id="register" aria-labelledby="cta-title" className="border-y-2 border-ink bg-yellow">
       <div className="wrap grid gap-12 py-[clamp(72px,10vw,128px)] lg:grid-cols-[1.2fr_1fr] lg:items-end">

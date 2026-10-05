@@ -1,5 +1,5 @@
 import { ArrowUpRight, Globe2, Lightbulb, Users2 } from "lucide-react";
-import { event } from "@/data/event";
+import { getSiteData } from "@/lib/site/load";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 
 const FACTS = [
@@ -8,7 +8,8 @@ const FACTS = [
   { Icon: Lightbulb, k: "60+", v: "Events run by IEEE SB CEK", c: "text-purple-ink" },
 ];
 
-export function AboutIEEE() {
+export async function AboutIEEE() {
+  const { settings: event } = await getSiteData();
   return (
     <section id="ieee" aria-labelledby="ieee-title" className="section">
       <div className="wrap grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:items-center">

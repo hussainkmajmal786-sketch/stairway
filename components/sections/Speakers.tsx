@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowUpRight, Globe, Mic2, Plus } from "lucide-react";
-import { speakers } from "@/data/speakers";
-import type { Speaker } from "@/data/types";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import type { SpeakerView as Speaker } from "@/lib/site/types";
 import { useClock } from "@/components/providers/ClockProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Avatar } from "@/components/ui/Avatar";
@@ -32,6 +31,7 @@ function SocialLinks({ s }: { s: Speaker }) {
 }
 
 export function Speakers() {
+  const { settings: event, speakers } = useSiteData();
   const { weekends, next } = useClock();
   const [open, setOpen] = useState<Speaker | null>(null);
   const sessionsOf = (id: string) => weekends.filter((w) => w.speakerIds.includes(id));
@@ -83,6 +83,7 @@ export function Speakers() {
         </ul>
 
         {/* event pattern: a register prompt right after speaker credibility */}
+        {next && (
         <div className="mt-12 flex flex-col items-start justify-between gap-5 border-2 border-ink bg-yellow p-6 shadow-hard sm:flex-row sm:items-center md:p-8" data-reveal>
           <div>
             <p className="mono font-bold">Step {pad2(next.step)} · {shortDate(next.start)}</p>
@@ -93,6 +94,7 @@ export function Speakers() {
             Claim your step <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>
+        )}
       </div>
 
       <Modal open={!!open} onClose={() => setOpen(null)} label={open ? `${open.name} — speaker profile` : "Speaker"}>
@@ -113,7 +115,7 @@ export function Speakers() {
               <ul className="space-y-2">
                 {sessionsOf(open.id).map((w) => (
                   <li key={w.slug}>
-                    <Link href={`/weekend/${w.slug}`} className="flex items-center justify-between gap-4 border-2 border-ink bg-paper-2 p-4 hover:bg-yellow" onClick={() => setOpen(null)}>
+                    <Link href={`/events/${w.slug}`} className="flex items-center justify-between gap-4 border-2 border-ink bg-paper-2 p-4 hover:bg-yellow" onClick={() => setOpen(null)}>
                       <span>
                         <span className="font-mono text-xs font-bold">Step {pad2(w.step)}</span>
                         <span className="block font-semibold">{w.title}</span>

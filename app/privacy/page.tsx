@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/ui/PageHero";
 import { Prose } from "@/components/ui/Prose";
-import { event } from "@/data/event";
+import { getSiteData } from "@/lib/site/load";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -9,7 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-export default function Privacy() {
+export default async function Privacy() {
+  const { settings: event } = await getSiteData();
   return (
     <>
       <PageHero eyebrow="Privacy policy" title="Your data, [[handled simply.]]" lead="Last updated: October 2026." />

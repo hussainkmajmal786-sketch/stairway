@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, X } from "lucide-react";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { useClock } from "@/components/providers/ClockProvider";
 import { pad2, registerHref } from "@/lib/weekends";
 import { readStorage, useClientValue } from "@/lib/hooks";
@@ -11,12 +11,13 @@ import { readStorage, useClientValue } from "@/lib/hooks";
 const KEY = "stairway-announce-dismissed";
 
 export function AnnouncementBar() {
+  const { settings: event } = useSiteData();
   const { next } = useClock();
   const [dismissed, setDismissed] = useState(false);
-  const id = `${KEY}-${next.slug}`;
+  const id = `${KEY}-${next?.slug ?? "none"}`;
   const stored = useClientValue(() => !!readStorage(id), false);
 
-  if (!event.announcement.enabled || dismissed || stored || next.status !== "next") return null;
+  if (!event.announcement.enabled || dismissed || stored || !next || next.status !== "next") return null;
   const text = event.announcement.text.replace("{step}", pad2(next.step)).replace("{title}", next.title);
 
   return (

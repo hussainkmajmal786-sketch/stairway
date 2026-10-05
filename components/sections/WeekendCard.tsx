@@ -2,24 +2,19 @@
 
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Clock, FolderOpen, Hourglass, MapPin, Mountain, Users } from "lucide-react";
-import type { WeekendWithStatus } from "@/lib/weekends";
+import type { EventWithStatus as WeekendWithStatus } from "@/lib/events/types";
 import { daysUntil, pad2, registerHref, shortDate, timeOf } from "@/lib/weekends";
 import { FormatChip, LevelChip, SeatsBar, StatusChip } from "@/components/ui/Badges";
 import { useClock } from "@/components/providers/ClockProvider";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
+import { SOCIETY_FILL } from "@/lib/events/colors";
 import { cn } from "@/lib/utils";
-
-const STEP_FILL: Record<string, string> = {
-  explorer: "bg-green",
-  builder: "bg-blue",
-  innovator: "bg-purple",
-  summit: "bg-orange",
-};
 
 /** One step of the stairway, laid out like an event listing. */
 export function WeekendRow({ w }: { w: WeekendWithStatus }) {
+  const { settings: event } = useSiteData();
   const { now } = useClock();
-  const summit = w.track === "summit";
+  const summit = w.isFinale;
   const days = daysUntil(w.start, now);
   const done = w.status === "completed";
 
@@ -36,7 +31,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
       <div
         className={cn(
           "flex items-center justify-between gap-3 border-ink px-4 py-3 max-sm:border-b-2 sm:flex-col sm:items-start sm:justify-between sm:border-r-2 sm:p-4",
-          done ? "bg-paper-3" : STEP_FILL[w.track],
+          done ? "bg-paper-3" : SOCIETY_FILL[w.society.color],
         )}
       >
         <span className="mono font-bold">Step</span>
@@ -46,6 +41,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
 
       <div className="p-5 md:p-6">
         <div className="flex flex-wrap gap-2">
+          <span className="tag tag-ink">{w.society.shortName}</span>
           <LevelChip level={w.level} />
           {w.formats.map((f) => (
             <FormatChip key={f} format={f} />
@@ -62,11 +58,12 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
         </div>
 
         <h3 id={`wk-${w.slug}`} className="mt-4 text-2xl font-semibold leading-tight md:text-[1.75rem]">
-          <Link href={`/weekend/${w.slug}`} className="underline-offset-4 hover:underline">
+          <Link href={`/events/${w.slug}`} className="underline-offset-4 hover:underline">
             {w.title}
           </Link>
         </h3>
         <p className="mono mt-1 font-bold text-ink-3">{w.topic}</p>
+        {w.trackName && <p className="mono mt-1 text-ink-4">{w.trackName}</p>}
         <p className="mt-3 max-w-2xl text-ink-2">{w.summary}</p>
 
         <dl className="mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-3">
@@ -88,7 +85,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
 
         <div className="mt-5 flex flex-wrap gap-3">
           {done ? (
-            <Link href={`/weekend/${w.slug}#resources`} className="btn btn-sm btn-ghost">
+            <Link href={`/events/${w.slug}#resources`} className="btn btn-sm btn-ghost">
               <FolderOpen size={16} strokeWidth={2} aria-hidden /> Resources
             </Link>
           ) : (
@@ -96,7 +93,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
               {w.status === "next" ? "Claim your step" : "Register"} <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
             </Link>
           )}
-          <Link href={`/weekend/${w.slug}`} className="btn btn-sm btn-ghost">
+          <Link href={`/events/${w.slug}`} className="btn btn-sm btn-ghost">
             <Clock size={16} strokeWidth={2} aria-hidden /> Details
           </Link>
         </div>

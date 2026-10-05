@@ -1,4 +1,4 @@
-// Shared content types for everything in /data.
+// Shared content types for the seed-only content files in supabase/seed-data.
 
 export type Level = "Beginner" | "Intermediate" | "Advanced" | "Expert" | "All levels";
 export type Format =

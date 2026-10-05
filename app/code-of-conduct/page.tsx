@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/ui/PageHero";
 import { Prose } from "@/components/ui/Prose";
-import { event } from "@/data/event";
+import { getSiteData } from "@/lib/site/load";
 
 export const metadata: Metadata = {
   title: "Code of Conduct",
@@ -9,7 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/code-of-conduct" },
 };
 
-export default function CodeOfConduct() {
+export default async function CodeOfConduct() {
+  const { settings: event } = await getSiteData();
   return (
     <>
       <PageHero eyebrow="Code of Conduct" title="Everyone climbs [[together.]]" lead="st(AI)rway is for every student. These rules keep it that way." />

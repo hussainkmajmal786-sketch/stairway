@@ -6,6 +6,8 @@ The website for **st(AI)rway**, a weekend AI series by the IEEE Student Branch, 
 
 Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Lucide icons. The look is "paper brutalism": cream graph paper, ink outlines, hard shadows and flat colour blocks (see `design-system/MASTER.md`).
 
+**Architecture.** The site is Next.js running as a Cloudflare Worker through OpenNext (`@opennextjs/cloudflare`). Supabase provides the data (Postgres with row-level security), auth and storage. Every page is rendered per request from the database, so content edits show up without a rebuild.
+
 ---
 
 ## 1. Run it locally
@@ -16,137 +18,93 @@ You need **Node.js 20.9+**.
 npm install
 ```
 
-```bash
-npm run dev
-```
-
-Open http://localhost:3000. For a production check, build the static site and serve `out/`:
+Copy `.env.example` to `.env.local` and fill in the Supabase URL and publishable key.
 
 ```bash
-npm run build
+npm run dev      # http://localhost:3000
+npm test         # unit tests + anonymous RLS checks against the live database
 ```
 
-```bash
-npm start
-```
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be present at **build time** as well as at runtime, because `lib/env.ts` validates them on import. Locally they come from `.env.local`; on Cloudflare Workers Builds, set them as build variables. The RLS tests in `tests/rls/` skip themselves when these are missing.
 
 ---
 
-## 2. Edit the content (no component changes needed)
+## 2. Edit the content
 
-Everything on the site comes from `/data`:
+Content lives in Supabase. Until the admin dashboard ships, edit rows in the Supabase Table Editor (events, site blocks such as `settings`, and so on).
 
-| File | What it controls |
-|---|---|
-| `data/event.ts` | Name, taglines, site URL, venue + map, registration mode/links, socials, contacts, announcement bar, analytics ID |
-| `data/weekends.ts` | The 12 steps: dates, topic, level, format, agenda, outcomes, seats, speakers, resources, winners |
-| `data/speakers.ts` | Speaker profiles |
-| `data/team.ts` | Organising committee (with fun facts for the flip cards) |
-| `data/sponsors.ts` | Sponsor tiers and partners |
-| `data/faq.ts` | FAQ questions and answers |
-| `data/testimonials.ts` | Participant quotes |
-| `data/leaderboard.ts` | Leaderboard, streak badges, featured projects |
-| `data/stats.ts` | The count-up numbers |
-| `data/gallery.ts` | Gallery photos and captions |
-| `data/tracks.ts` | Learning tracks + the "Which step should you start from?" quiz |
+`npm run seed:generate` regenerates `supabase/seed.sql` from `supabase/seed-data/`. **That script is a destructive bootstrap: it truncates the content tables.** Never run it against a database that holds real registrations.
 
-### Weekend status is automatic
-You never set "completed / next / upcoming" by hand. Each weekend's `start`/`end` is compared with today's date:
+Event status ("climbed", "next up", "unlocks soon") is computed from each event's dates at request time; you never set it by hand. Use India Standard Time offsets in dates, e.g. `2026-10-10T09:30:00+05:30`.
 
-- `end` in the past → **Climbed ✓** (shows resources)
-- first weekend not yet finished → **Next up** (pulses; the countdown, announcement bar and spotlight all target it)
-- the rest → **Unlocks soon**
-
-Use India Standard Time offsets in dates, e.g. `"2026-10-10T09:30:00+05:30"`. To force a status, set `statusOverride: "completed"`.
-
-### Example: add resources after a weekend
-```ts
-// data/weekends.ts → the weekend object
-resources: {
-  slides: "https://drive.google.com/…",
-  code: "https://github.com/ieeesbcek/stairway-step-04",
-  notebook: "https://colab.research.google.com/…",
-  recording: "https://www.youtube.com/embed/VIDEO_ID", // use the /embed/ URL
-},
-seatsFilled: 60,
-```
-
-### Example: update seats
-Change `seatsFilled`. Under 20% left turns the bar amber ("Only 12 seats left on this step"); 0 shows "Step full — join the waitlist".
+The leaderboard (`data/leaderboard.ts`) and the quiz (`data/tracks.ts`) are still static files.
 
 ---
 
 ## 3. Images, logos and the registration link
 
-- **Speaker / team photos:** put files in `public/speakers/` or `public/team/`, then set `photo: "/speakers/anjali.webp"`. Without a photo, a gradient monogram is shown.
-- **Gallery photos:** put files in `public/gallery/` and set `src: "/gallery/step-01-hall.webp"` (keep `alt` descriptive). Items without `src` show generated artwork.
-- **Sponsor logos:** `logo: "/sponsors/nimbus.svg"` in `data/sponsors.ts`. Without one, the name is shown as a wordmark.
-- **Favicon:** `app/icon.svg`. The app icon (`app/apple-icon.tsx`) and Open Graph images (`app/opengraph-image.tsx`, `app/weekend/[slug]/opengraph-image.tsx`) are generated automatically.
-- **Sponsorship deck:** put the PDF in `public/` and set `sponsorDeckUrl`. While it's empty, the button becomes "Request the deck" (email).
+- **Speaker / team photos:** put files in `public/speakers/` or `public/team/`, then reference the path (e.g. `/speakers/anjali.webp`) in the row's photo field. Without a photo, a gradient monogram is shown.
+- **Gallery photos:** put files in `public/gallery/` and reference the path in the gallery row (keep the alt text descriptive). Items without `src` show generated artwork.
+- **Sponsor logos:** `logo: "/sponsors/nimbus.svg"` in the sponsor content. Without one, the name is shown as a wordmark.
+- **Favicon:** `app/icon.svg`. The app icon (`app/apple-icon.tsx`) and Open Graph images (`app/opengraph-image.tsx`, `app/events/[slug]/opengraph-image.tsx`) are generated automatically.
+- **Sponsorship deck:** put the PDF in `public/` and set `sponsorDeckUrl` in the settings block. While it's empty, the button becomes "Request the deck" (email).
 
 Use WebP/AVIF where you can; `next/image` handles resizing and lazy loading.
 
 ### Registration
-In `data/event.ts → registration`:
+In the `registration` object in the `settings` site block:
 
 - `mode: "external"` sends every Register button straight to `googleFormUrl`.
-- `mode: "onsite"` (default) uses the built-in form at `/register`, with validation, a success screen, confetti, add-to-calendar and a WhatsApp button. Set `endpoint` to any service that accepts a JSON POST (Formspree, Getform, a Google Apps Script web app, etc.).
+- `mode: "onsite"` (default) uses the built-in form at `/register`, with validation, a success screen, confetti, add-to-calendar and a WhatsApp button. Set `registration.endpoint` to any service that accepts a JSON POST (Formspree, Getform, a Google Apps Script web app, etc.).
   **While `endpoint` is empty the form runs in demo mode:** it shows success but sends nothing, and says so on screen.
 
 The newsletter box works the same way via `newsletter.endpoint`.
 
 ### Analytics
-Set `gaId: "G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares, sign-ups and completed registrations are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
+Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares, sign-ups and completed registrations are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
 
 ---
 
-## 4. Deploy for free
+## 4. Deploy (Cloudflare Workers)
 
-The site is a **static export**: `npm run build` writes plain files to `out/`, so it runs on any static host.
-
-### Cloudflare Pages
-From your machine (log in once with `npx wrangler login`):
+The site is deployed as a Worker via OpenNext. Log in once with `npx wrangler login`.
 
 ```bash
-npm run deploy:cloudflare
+npm run preview   # build and run the Worker locally
+npm run deploy    # build and deploy to Cloudflare
 ```
 
-This builds and uploads `out/` to the Pages project `stairway`. The first run creates the project and prints your `*.pages.dev` URL.
+`npm run cf-typegen` regenerates `cloudflare-env.d.ts`. Run it whenever `wrangler.jsonc` changes.
 
-To deploy automatically on every push instead, go to Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**, pick this repo, and set:
-- Build command: `npm run build`
-- Build output directory: `out`
-- Environment variable `NODE_VERSION` = `20` (or newer)
+For automatic deploys on every push, connect the repo in the Cloudflare dashboard: **Workers & Pages -> `stairway` -> Settings -> Builds -> Connect**, branch `main`, with:
+- Build command: `npx opennextjs-cloudflare build`
+- Deploy command: `npx wrangler deploy`
+- Build variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (same values as `.env.local`) and `NODE_VERSION=22`
 
-`public/_headers` sets content types for the generated share images and long caching for build assets.
-
-### Vercel
-Import the repo at https://vercel.com/new. The defaults are correct, and every push to `main` redeploys.
-
-### Netlify
-Import the repo at https://app.netlify.com/start. Use build command `npm run build` and publish directory `out`.
-
-### Custom domain
-1. Cloudflare Pages: **your project → Custom domains → Set up a domain**. If the domain's DNS is on Cloudflare, the record is added for you. Otherwise add the `CNAME` it shows to `<project>.pages.dev`.
-2. Update `siteUrl` in `data/event.ts` so canonical URLs, the sitemap and share images use the new domain, then redeploy.
+Custom domain: add it under the Worker's **Settings -> Domains & Routes**, and update the site URL in the `settings` site block so canonical URLs, the sitemap and share images use it.
 
 ---
 
 ## 5. Project structure
 
 ```
-app/                 routes: /, /weekend/[slug], /gallery, /resources, /register,
+app/                 routes: /, /events/[slug], /s/[society], /gallery, /resources, /register,
                      /code-of-conduct, /privacy, 404, sitemap, robots, manifest, OG images
 components/
   layout/            top bar, bottom dock, announcement strip, footer, easter egg
-  sections/          every landing-page section (Hero, Stairway, Speakers, FAQ, …)
-  ui/                Button, Countdown, Modal, Badges, Heading, Avatar, Logo, …
-  weekend/           weekend detail page
+  sections/          every landing-page section (Hero, Stairway, Speakers, FAQ, ...)
+  ui/                Button, Countdown, Modal, Badges, Heading, Avatar, Logo, ...
+  weekend/           event detail page
   register/          registration form
-  providers/         ClockProvider (live status), MotionProvider (scroll reveals)
-data/                all editable content
-lib/                 dates/status, calendar (.ics + Google), JSON-LD, hooks
-design-system/       MASTER.md — tokens, motion and accessibility rules
+  providers/         ClockProvider (live status), SiteDataProvider, MotionProvider
+data/                static leaderboard and quiz data
+lib/
+  events/            event types, row mappers, status/colour helpers
+  site/              site-content schema (zod), types and loader
+  supabase/          browser, server and public clients, generated database types
+supabase/            migrations, seed-data and the generated seed.sql
+tests/               vitest unit tests; tests/rls checks anonymous access against Supabase
+design-system/       MASTER.md - tokens, motion and accessibility rules
 ```
 
 ---
@@ -157,8 +115,8 @@ design-system/       MASTER.md — tokens, motion and accessibility rules
 - **The stairway is still the idea.** The roadmap is a list of twelve steps; on wide screens each row sits a little further right than the last, so the column reads as a staircase. The stair mark, the favicon and the 404 page all reuse the shape. "(AI)" always sits on a yellow block.
 - **Colour carries meaning.** Green means climbed or beginner, blue intermediate, purple advanced, orange the Summit, red urgency ("In 06 days", errors, the active dock item), and yellow means "act here". Every tag has a text label, so colour is never the only signal.
 - **Dock-first navigation.** A floating bottom dock works the same on phones and desktops, keeping Register one tap away everywhere.
-- **Content lives in data, and time drives state.** Statuses, the countdown, the announcement strip and the spotlight all derive from dates, so the site stays correct week to week without anyone editing components.
-- **Light and fast.** There's no animation library, no canvas and no smooth-scroll library. Every page is statically pre-rendered and the only client JavaScript is the interactive pieces.
+- **Content lives in the database, and time drives state.** Statuses, the countdown, the announcement strip and the spotlight all derive from dates, so the site stays correct week to week without anyone editing components.
+- **Light and fast.** There's no animation library, no canvas and no smooth-scroll library. Pages are rendered on demand at the edge and the only client JavaScript is the interactive pieces.
 - **Accessibility is designed in.** There's a skip link, a 3px blue focus ring, focus-trapped modals, semantic accordions, 44px touch targets, labelled forms that focus the first error, AA contrast throughout, a polite minute-level countdown announcement, and a full reduced-motion mode.
 
 Easter egg: type **AI** anywhere on the page.

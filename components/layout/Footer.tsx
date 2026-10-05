@@ -2,23 +2,23 @@
 
 import Link from "next/link";
 import { ArrowUp, Mail, MapPin, Phone } from "lucide-react";
-import { event } from "@/data/event";
-import { weekends } from "@/data/weekends";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { StairMark, Wordmark } from "@/components/ui/Logo";
 import { Instagram, Linkedin, Whatsapp, Youtube, Github } from "@/components/ui/BrandIcons";
-import { pad2 } from "@/lib/weekends";
 
-const socials = [
-  { href: event.social.instagram, Icon: Instagram, label: "Instagram" },
-  { href: event.social.linkedin, Icon: Linkedin, label: "LinkedIn" },
-  { href: event.social.whatsapp, Icon: Whatsapp, label: "WhatsApp" },
-  { href: event.social.youtube, Icon: Youtube, label: "YouTube" },
-  { href: event.social.github, Icon: Github, label: "GitHub" },
-];
+const SOCIALS = [
+  { key: "instagram", Icon: Instagram, label: "Instagram" },
+  { key: "linkedin", Icon: Linkedin, label: "LinkedIn" },
+  { key: "whatsapp", Icon: Whatsapp, label: "WhatsApp" },
+  { key: "youtube", Icon: Youtube, label: "YouTube" },
+  { key: "github", Icon: Github, label: "GitHub" },
+] as const;
 
 const link = "inline-flex min-h-11 items-center underline-offset-4 hover:underline lg:min-h-9";
 
 export function Footer() {
+  const { settings: event, societies } = useSiteData();
+  const socials = SOCIALS.map(({ key, Icon, label }) => ({ href: event.social[key], Icon, label }));
   return (
     // extra bottom padding keeps content clear of the floating dock
     <footer className="border-t-2 border-ink bg-paper-2 pb-[calc(var(--dock-h)+48px)] pt-16">
@@ -53,7 +53,7 @@ export function Footer() {
             <ul>
               {[
                 ["/#about", "About"],
-                ["/#stairway", "The Stairway"],
+                ["/#societies", "Societies"],
                 ["/#speakers", "Speakers"],
                 ["/gallery", "Gallery"],
                 ["/resources", "Resources"],
@@ -66,14 +66,14 @@ export function Footer() {
             </ul>
           </nav>
 
-          <nav aria-label="Weekends">
-            <h2 className="mono mb-4 font-bold">Weekends</h2>
+          <nav aria-label="Societies">
+            <h2 className="mono mb-4 font-bold">Societies</h2>
             <ul className="grid grid-cols-2 gap-x-4 text-sm lg:grid-cols-1">
-              {weekends.map((w) => (
-                <li key={w.slug} className="min-w-0">
-                  <Link href={`/weekend/${w.slug}`} className="flex min-h-11 w-full min-w-0 items-center gap-2 underline-offset-4 hover:underline lg:min-h-9">
-                    <span className="font-mono font-bold">{pad2(w.step)}</span>
-                    <span className="truncate">{w.title}</span>
+              {societies.map((s) => (
+                <li key={s.slug} className="min-w-0">
+                  <Link href={`/s/${s.slug}`} className="flex min-h-11 w-full min-w-0 items-center gap-2 underline-offset-4 hover:underline lg:min-h-9">
+                    <span className="font-mono font-bold">{s.shortName}</span>
+                    <span className="truncate">— {s.name}</span>
                   </Link>
                 </li>
               ))}

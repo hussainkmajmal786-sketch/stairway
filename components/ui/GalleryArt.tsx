@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { GalleryItem } from "@/data/gallery";
+import type { GalleryItemView as GalleryItem } from "@/lib/site/types";
 import { cn } from "@/lib/utils";
 
 const FILLS = ["#FFB200", "#2A8CFF", "#1BE349", "#FF5A5A", "#C07CFF", "#FF5C38"];
@@ -18,7 +18,7 @@ export function GalleryArt({ item, className, sizes = "(max-width: 768px) 100vw,
         ))}
       </svg>
       <span className="absolute left-3 top-3 border-2 border-ink bg-paper px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em]">
-        Photo · Step {String(item.step).padStart(2, "0")}
+        {`Photo · Step ${String(item.step ?? 0).padStart(2, "0")}`}
       </span>
     </div>
   );

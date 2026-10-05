@@ -16,7 +16,7 @@ interface Item {
 
 const ITEMS: Item[] = [
   { id: "top", label: "Home", Icon: Home },
-  { id: "stairway", label: "Stairway", Icon: Footprints },
+  { id: "societies", label: "Societies", Icon: Footprints },
   { id: "speakers", label: "Speakers", Icon: Mic2 },
   { id: "gallery", label: "Gallery", Icon: Images },
   { id: "faq", label: "FAQ", Icon: HelpCircle },
@@ -49,8 +49,8 @@ export function Dock() {
 
   const active = isHome
     ? spy
-    : pathname.startsWith("/weekend")
-      ? "stairway"
+    : pathname.startsWith("/events") || pathname.startsWith("/s/")
+      ? "societies"
       : pathname.startsWith("/gallery")
         ? "gallery"
         : pathname.startsWith("/register")
@@ -89,7 +89,7 @@ export function Dock() {
         })}
         <li>
           <Link
-            href={registerHref(next.slug)}
+            href={registerHref(next?.slug)}
             aria-label="Register"
             aria-current={active === "register" ? "page" : undefined}
             className="flex h-12 min-w-12 items-center justify-center gap-2 border-2 border-ink bg-yellow px-3 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-transform duration-150 hover:-translate-y-0.5"

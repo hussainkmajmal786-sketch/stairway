@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/Button";
 import { FormatChip, LevelChip, SeatsBar } from "@/components/ui/Badges";
 import { Avatar } from "@/components/ui/Avatar";
 import { ShareButtons } from "@/components/ui/ShareButtons";
-import { speakerById } from "@/data/speakers";
-import { event } from "@/data/event";
+import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { longDate, pad2, registerHref, timeOf } from "@/lib/weekends";
 
 /** Featured block for the next step — a "poster" on the left, details on a yellow panel. */
 export function NextWeekend() {
-  const { next } = useClock();
+  const { settings: event, speakers: allSpeakers } = useSiteData();
+  const speakerById = (id: string) => allSpeakers.find((s) => s.id === id);
+  const { next, weekends } = useClock();
+  if (!next) return null;
+  const stairwayLength = weekends.filter((e) => e.society.slug === next.society.slug).length;
   const speakers = next.speakerIds.map(speakerById).filter(Boolean);
 
   return (
@@ -31,7 +34,7 @@ export function NextWeekend() {
                 <rect key={i} x={i * 16.66} y={86 - i * 13} width="16.66" height={14 + i * 13} fill={i === 5 ? "#FFB200" : i % 2 ? "#E2D8C8" : "#ECE4D7"} stroke="#100F0D" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
               ))}
             </svg>
-            <span className="relative tag tag-ink self-start">Step {pad2(next.step)} / 12</span>
+            <span className="relative tag tag-ink self-start">Step {pad2(next.step)} / {stairwayLength}</span>
             <div className="relative">
               <p className="font-mono text-[clamp(5rem,14vw,9rem)] font-bold leading-none">{pad2(next.step)}</p>
               <p className="mt-2 max-w-[14ch] text-2xl font-semibold">{next.title}</p>
@@ -86,12 +89,12 @@ export function NextWeekend() {
               <Button href={registerHref(next.slug)} variant="ink" trackAs="register_click" trackProps={{ from: "spotlight", step: next.step }}>
                 Claim your step <ArrowRight size={16} strokeWidth={2} />
               </Button>
-              <Link href={`/weekend/${next.slug}`} className="btn btn-ghost">Find out more</Link>
+              <Link href={`/events/${next.slug}`} className="btn btn-ghost">Find out more</Link>
             </div>
 
             <div className="mt-6 border-t-2 border-ink pt-5">
               <p className="mono mb-3 font-bold">Share with a friend</p>
-              <ShareButtons path={`/weekend/${next.slug}`} text={`Join me at st(AI)rway Step ${pad2(next.step)}: ${next.title}`} />
+              <ShareButtons path={`/events/${next.slug}`} text={`Join me at st(AI)rway Step ${pad2(next.step)}: ${next.title}`} />
             </div>
           </div>
         </div>
