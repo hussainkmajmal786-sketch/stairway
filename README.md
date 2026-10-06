@@ -89,6 +89,8 @@ npm run deploy    # build and deploy to Cloudflare
 
 `npm run cf-typegen` regenerates `cloudflare-env.d.ts`. Run it whenever `wrangler.jsonc` changes.
 
+Every build prints Next 16's "middleware is deprecated, use proxy" warning. **Ignore it and do not run the `middleware` → `proxy` codemod**: `proxy.ts` runs on the Node runtime, which OpenNext on Cloudflare does not support, so the session refresh would stop working. Keep `middleware.ts` (edge) as it is.
+
 For automatic deploys on every push, connect the repo in the Cloudflare dashboard: **Workers & Pages -> `stairway` -> Settings -> Builds -> Connect**, branch `main`, with:
 - Build command: `npx opennextjs-cloudflare build`
 - Deploy command: `npx wrangler deploy`
