@@ -75,4 +75,19 @@ describe.skipIf(!live)("RLS as an anonymous visitor", () => {
     const { data } = await db.from("admin_roles").select("*");
     expect(data ?? []).toHaveLength(0);
   });
+
+  it("cannot read registrations or the attendee list", async () => {
+    const regs = await db.from("registrations").select("id").limit(1);
+    expect(regs.error?.code).toBe("42501"); // permission denied: anon has no grant at all
+    const att = await db.from("event_attendees").select("handle").limit(1);
+    expect(att.error?.code).toBe("42501");
+  });
+
+  it("can read seat counts (numbers only)", async () => {
+    const { data, error } = await db.from("event_seat_counts").select("event_id, seats_taken, waitlisted").limit(1);
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    expect(typeof data![0].seats_taken).toBe("number");
+    expect(typeof data![0].waitlisted).toBe("number");
+  });
 });

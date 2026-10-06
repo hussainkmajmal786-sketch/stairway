@@ -135,7 +135,7 @@ do $$ declare n int; begin
   reset role;
 end $$;
 
--- column guards (20261006101500_profiles_column_guards)
+-- column guards (20261006142506_profiles_column_guards)
 do $$ declare n int; big jsonb; begin
   perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
   set local role authenticated;
