@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProfileForm, type ProfileFormValues } from "@/components/profile/ProfileForm";
 import { ProjectsEditor } from "@/components/profile/ProjectsEditor";
 import { ExperienceEditor } from "@/components/profile/ExperienceEditor";
-import { experienceFromDb, linksFromDb } from "@/lib/profile/editor";
+import { dedupeSkills, experienceFromDb, linksFromDb } from "@/lib/profile/editor";
 
 export const metadata: Metadata = { title: "Edit profile", robots: { index: false } };
 
@@ -19,10 +19,25 @@ export default async function EditProfilePage() {
     db.from("profile_experience").select("id, title, organization, start_date, end_date, description").eq("user_id", user.id)
       .order("start_date", { ascending: false }).order("created_at"),
   ]);
+  if (!p) {
+    // requireOnboarded saw the profile, so a miss here is a transient read failure: don't render an empty form
+    // that would overwrite the real profile on save.
+    return (
+      <div className="grid gap-6">
+        <h1 className="text-3xl font-semibold md:text-4xl">Your profile</h1>
+        <div role="alert" className="box-2 p-5">
+          <p className="font-semibold">We couldn&apos;t load your profile right now.</p>
+          <p className="mt-1 text-ink-2">Nothing was changed. Reload the page to try again.</p>
+          {/* Plain <a>: a full reload re-runs the read. */}
+          <a href="/me/profile" className="btn btn-sm btn-ghost mt-4">Try again</a>
+        </div>
+      </div>
+    );
+  }
   const initial: ProfileFormValues = {
-    fullName: p?.full_name ?? profile.fullName, headline: p?.headline ?? "", bio: p?.bio ?? "", college: p?.college ?? "",
-    branch: p?.branch ?? "", year: p?.year ?? "", skills: p?.skills ?? [], avatarUrl: p?.avatar_url ?? null,
-    links: linksFromDb(p?.links),
+    fullName: p.full_name, headline: p.headline, bio: p.bio, college: p.college,
+    branch: p.branch, year: p.year, skills: dedupeSkills(p.skills), avatarUrl: p.avatar_url,
+    links: linksFromDb(p.links),
   };
   return (
     <div className="grid gap-8">

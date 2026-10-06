@@ -3,7 +3,8 @@ import { BRANCHES, YEARS } from "./options";
 import { HANDLE_RE } from "./handle";
 
 const httpUrl = z.url({ protocol: /^https?$/, message: "Enter a full link starting with https://" });
-const optionalUrl = z.union([z.literal(""), httpUrl]);
+// Trimmed first, so a pasted link with trailing spaces still validates (and is stored trimmed).
+const optionalUrl = z.string().trim().pipe(z.union([z.literal(""), httpUrl]));
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")

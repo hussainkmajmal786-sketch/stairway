@@ -37,7 +37,8 @@ export function ExperienceEditor({ userId, initial }: { userId: string; initial:
       }}
       remove={async (id) => {
         const { data, error } = await createClient().from("profile_experience").delete().eq("id", id).eq("user_id", userId).select("id");
-        if (error || !data?.length) throw error ?? new Error("delete failed");
+        if (error) throw error;
+        return data.length > 0;
       }}
       label={(r) => `${r.title} at ${r.organization}`}
       summary={(r) => (

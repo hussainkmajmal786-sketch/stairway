@@ -26,6 +26,10 @@ describe("ProfileDetailsSchema", () => {
   it("rejects non-http links and too many skills", () => {
     expect(ProfileDetailsSchema.safeParse({ ...base, links: { ...base.links, github: "javascript:alert(1)" } }).success).toBe(false);
     expect(ProfileDetailsSchema.safeParse({ ...base, links: { ...base.links, github: "https://github.com/ada" } }).success).toBe(true);
+    const padded = ProfileDetailsSchema.safeParse({ ...base, links: { ...base.links, github: "  https://github.com/ada  " } });
+    expect(padded.success && padded.data.links.github).toBe("https://github.com/ada");
+    expect(ProjectSchema.safeParse({ title: "Bus tracker", description: "", url: "https://x.dev " }).success).toBe(true);
+    expect(ProfileDetailsSchema.safeParse({ ...base, links: { ...base.links, x: "   " } }).success).toBe(true);
     expect(ProfileDetailsSchema.safeParse({ ...base, skills: Array.from({ length: 31 }, (_, i) => `s${i}`) }).success).toBe(false);
   });
 });

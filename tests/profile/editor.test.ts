@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { experienceFromDb, linksFromDb, linksToDb } from "@/lib/profile/editor";
+import { dedupeSkills, experienceFromDb, linksFromDb, linksToDb, mergeSaved, skillDraftError } from "@/lib/profile/editor";
 
 describe("experienceFromDb", () => {
   it("maps snake_case columns and turns a null end date into an empty string", () => {
@@ -33,5 +33,30 @@ describe("linksToDb", () => {
     expect(linksToDb({ linkedin: "", github: "https://github.com/a", x: "", instagram: "", website: "https://a.dev" })).toEqual({
       github: "https://github.com/a", website: "https://a.dev",
     });
+  });
+});
+
+describe("skill helpers", () => {
+  it("skillDraftError flags too-long drafts and a full list, but not duplicates or blanks", () => {
+    expect(skillDraftError("   ", [])).toBeNull();
+    expect(skillDraftError("x".repeat(31), [])).toMatch(/30 characters/);
+    const full = Array.from({ length: 30 }, (_, i) => `s${i}`);
+    expect(skillDraftError("new", full)).toMatch(/Up to 30/);
+    expect(skillDraftError("S1", full)).toBeNull();
+    expect(skillDraftError("  React  ", ["Go"])).toBeNull();
+  });
+  it("dedupeSkills normalises, drops blanks and case-insensitive duplicates", () => {
+    expect(dedupeSkills(["React", " react ", "", "Machine   Learning", "GO", "go"])).toEqual(["React", "Machine Learning", "GO"]);
+    expect(dedupeSkills(null)).toEqual([]);
+  });
+});
+
+describe("mergeSaved", () => {
+  it("applies saved values only to fields unchanged since submit", () => {
+    const links = { a: " https://x " };
+    const sent = { name: " Ada ", bio: "old", links };
+    const current = { ...sent, bio: "typed during save" };
+    const merged = mergeSaved(current, sent, { name: "Ada", bio: "old", links: { a: "https://x" } });
+    expect(merged).toEqual({ name: "Ada", bio: "typed during save", links: { a: "https://x" } });
   });
 });

@@ -6,7 +6,7 @@ import { Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 import { ProfileDetailsSchema, fieldErrors } from "@/lib/profile/schema";
 import { BRANCHES, SOCIAL_KEYS, SOCIAL_LABELS, YEARS, type SocialKey } from "@/lib/profile/options";
-import { linksToDb } from "@/lib/profile/editor";
+import { MAX_SKILLS, MAX_SKILL_LEN, linksToDb, mergeSaved, normaliseSkill, skillDraftError } from "@/lib/profile/editor";
 import { Field, inputCls, textareaCls } from "@/components/ui/Field";
 import { cn } from "@/lib/utils";
 import { AvatarUploader } from "./AvatarUploader";
@@ -15,9 +15,6 @@ export interface ProfileFormValues {
   fullName: string; headline: string; bio: string; college: string; branch: string; year: string;
   skills: string[]; links: Record<SocialKey, string>; avatarUrl: string | null;
 }
-
-const MAX_SKILLS = 30;
-const MAX_SKILL_LEN = 30;
 
 export function ProfileForm({ userId, initial }: { userId: string; initial: ProfileFormValues }) {
   const router = useRouter();
@@ -38,11 +35,11 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
     });
 
   const addSkill = () => {
-    const s = skillDraft.trim().replace(/\s+/g, " ");
+    const s = normaliseSkill(skillDraft);
     if (!s) return setSkillDraft("");
-    if (s.length > MAX_SKILL_LEN) return setSkillError(`Keep each skill under ${MAX_SKILL_LEN} characters.`);
+    const err = skillDraftError(s, d.skills);
+    if (err) return setSkillError(err);
     if (d.skills.some((x) => x.toLowerCase() === s.toLowerCase())) return setSkillDraft("");
-    if (d.skills.length >= MAX_SKILLS) return setSkillError(`Up to ${MAX_SKILLS} skills.`);
     setD((x) => ({ ...x, skills: [...x.skills, s] }));
     setSkillDraft("");
     setSkillError(null);
@@ -51,12 +48,16 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (inFlight.current) return;
-    const parsed = ProfileDetailsSchema.safeParse(d);
-    if (!parsed.success) {
-      const errs = fieldErrors(parsed.error);
+    const sent = d;
+    const parsed = ProfileDetailsSchema.safeParse(sent);
+    // Text left in the skill box couldn't be added (too long / too many): block the save rather than drop it.
+    const draftErr = skillDraftError(skillDraft, sent.skills);
+    if (!parsed.success || draftErr) {
+      const errs = parsed.success ? {} : fieldErrors(parsed.error);
       // Per-item skill issues come back as "skills.3"; show them on the skills field.
       const skillKey = Object.keys(errs).find((k) => k.startsWith("skills."));
       if (skillKey && !errs.skills) errs.skills = "Each skill must be 1–30 characters.";
+      if (draftErr && !errs.skills) errs.skills = draftErr;
       setErrors(errs);
       setStatus({ ok: false, text: "A few fields need a look." });
       return;
@@ -71,7 +72,7 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
         .from("profiles")
         .update({
           full_name: v.fullName, headline: v.headline, bio: v.bio, college: v.college, branch: v.branch, year: v.year,
-          skills: v.skills, links: linksToDb(v.links), avatar_url: d.avatarUrl,
+          skills: v.skills, links: linksToDb(v.links), avatar_url: sent.avatarUrl,
         })
         .eq("id", userId)
         .select("id");
@@ -80,7 +81,8 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
         setStatus({ ok: false, text: "Couldn't save. Please try again." });
         return;
       }
-      setD((x) => ({ ...x, ...v }));
+      // Write back the normalised values, but not over fields the user edited while the save was running.
+      setD((x) => mergeSaved(x, sent, v));
       setStatus({ ok: true, text: "Profile saved." });
       router.refresh();
     } catch {
