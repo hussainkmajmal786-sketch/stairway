@@ -83,6 +83,16 @@ describe.skipIf(!live)("RLS as an anonymous visitor", () => {
     expect(att.error?.code).toBe("42501");
   });
 
+  it("cannot call the registration RPCs", async () => {
+    const reg = await db.rpc("register_for_event", { p_event_id: crypto.randomUUID(), p_answers: {} });
+    expect(reg.error).not.toBeNull();
+    // 42501 = permission denied; PGRST202 = PostgREST hides functions the role cannot execute. Both mean "not executed".
+    expect(["42501", "PGRST202"]).toContain(reg.error!.code);
+    const cancel = await db.rpc("cancel_registration", { p_registration_id: crypto.randomUUID() });
+    expect(cancel.error).not.toBeNull();
+    expect(["42501", "PGRST202"]).toContain(cancel.error!.code);
+  });
+
   it("can read seat counts (numbers only)", async () => {
     const { data, error } = await db.from("event_seat_counts").select("event_id, seats_taken, waitlisted").limit(1);
     expect(error).toBeNull();

@@ -820,7 +820,14 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      cancel_registration: {
+        Args: { p_registration_id: string }
+        Returns: Json
+      }
+      register_for_event: {
+        Args: { p_answers?: Json; p_event_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       admin_role: "super_admin" | "society_admin"
