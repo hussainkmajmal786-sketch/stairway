@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((to: string) => {
+    throw Object.assign(new Error("NEXT_REDIRECT"), { digest: `NEXT_REDIRECT;replace;${to};307;` });
+  }),
+}));
 vi.mock("@/lib/auth/session", () => ({ getAuthState: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getAuthState } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { cancelRegistration, registerForEvent } from "@/lib/registration/actions";
@@ -261,17 +267,38 @@ describe("cancelRegistration", () => {
     expect(createClient).not.toHaveBeenCalled();
   });
 
-  it("cancels through the RPC and revalidates the event and /me", async () => {
+  it("cancels through the RPC, revalidates, then redirects to the fixed My tickets path", async () => {
     signedIn();
     const { log, rpcCalls } = fakeDb(
       { registrations: { data: { event: { slug: "seeing-machines" } }, error: null } },
       { cancel_registration: { data: { registration_id: RID, event_id: EID, promoted: 1 }, error: null } },
     );
-    expect(await cancelRegistration(RID)).toEqual({ ok: true, promoted: 1 });
+    // The redirect error must escape the action (not be swallowed into a typed error).
+    await expect(cancelRegistration(RID)).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/me/tickets?cancelled=1");
     expect(log[0].calls).toContainEqual(["eq", "user_id", UID]);
     expect(rpcCalls).toEqual([["cancel_registration", { p_registration_id: RID }]]);
     expect(revalidatePath).toHaveBeenCalledWith("/events/seeing-machines");
-    expect(revalidatePath).toHaveBeenCalledWith("/me", "layout");
+    expect(revalidatePath).toHaveBeenCalledWith("/me/tickets");
+    // Never the ticket route itself (it 404s once cancelled), nor the whole /me layout.
+    expect(revalidatePath).not.toHaveBeenCalledWith("/me", "layout");
+    expect(vi.mocked(revalidatePath).mock.calls.every(([p]) => !String(p).startsWith("/me/tickets/"))).toBe(true);
+    // Revalidation runs before the redirect.
+    const lastRevalidate = Math.max(...vi.mocked(revalidatePath).mock.invocationCallOrder);
+    expect(lastRevalidate).toBeLessThan(vi.mocked(redirect).mock.invocationCallOrder[0]);
+  });
+
+  it("still redirects when the RPC result shape is unexpected (the cancel committed)", async () => {
+    signedIn();
+    fakeDb({ registrations: { data: null, error: null } }, { cancel_registration: { data: { nope: true }, error: null } });
+    await expect(cancelRegistration(RID)).rejects.toThrow("NEXT_REDIRECT");
+  });
+
+  it("returns a typed error and does not redirect when the call throws", async () => {
+    signedIn();
+    vi.mocked(createClient).mockRejectedValue(new Error("fetch failed"));
+    expect(await cancelRegistration(RID)).toMatchObject({ ok: false, error: { code: "network" } });
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it("maps RPC errors (someone else's registration looks not-found)", async () => {
@@ -281,5 +308,6 @@ describe("cancelRegistration", () => {
     fakeDb({ registrations: { data: null, error: null } }, { cancel_registration: { data: null, error: { code: "P0001", message: "event_started" } } });
     expect(await cancelRegistration(RID)).toMatchObject({ ok: false, error: { code: "event_started" } });
     expect(revalidatePath).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
   });
 });

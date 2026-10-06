@@ -5,12 +5,20 @@ import { Hourglass, PartyPopper } from "lucide-react";
 
 /**
  * Shown once after registering (`?new=1`). States plainly whether the seat is confirmed or waitlisted: a race can
- * waitlist someone who saw free seats on the form. Takes focus so screen readers hear the outcome first.
+ * waitlist someone who saw free seats on the form. Takes focus so screen readers hear the outcome first, then
+ * removes the query from the address bar.
  */
 export function NewTicketBanner({ confirmed, position }: { confirmed: boolean; position: number | null }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     ref.current?.focus();
+    // Drop `?new=1` so a reload or Back doesn't show the banner again. Native replaceState updates the URL in sync
+    // with the Next router without a server round trip, so this banner (and its focus) stay put.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("new")) {
+      url.searchParams.delete("new");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
   }, []);
 
   return (

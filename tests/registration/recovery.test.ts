@@ -37,6 +37,10 @@ describe("recovery actions", () => {
       { kind: "link", label: "Sign in", href: "/login?next=%2Fevents%2Fseeing-machines%2Fregister", primary: true },
     ]);
     expect(recoveryActions("onboarding", bare)[0]).toMatchObject({ href: "/onboarding?next=%2Fme%2Ftickets" });
+    const ticket = { ...bare, here: "/me/tickets/33333333-3333-4333-8333-333333333333" };
+    expect(recoveryActions("sign_in", ticket)[0]).toMatchObject({
+      href: "/login?next=%2Fme%2Ftickets%2F33333333-3333-4333-8333-333333333333",
+    });
     expect(recoveryActions("event", form)[0]).toMatchObject({ href: "/events/seeing-machines" });
     expect(recoveryActions("event", bare)[0]).toMatchObject({ href: SCHEDULE_HREF });
     for (const r of RECOVERIES) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 import { cancelRegistration } from "@/lib/registration/actions";
 import { registrationError, type RegistrationError } from "@/lib/registration/errors";
@@ -9,19 +9,32 @@ import { ErrorPanel } from "@/components/registration/ErrorPanel";
 
 type Phase = "idle" | "confirming" | "busy" | "done";
 
+/** True for Next's redirect / not-found control-flow errors (a successful cancel redirects from the server). */
+function isNavigation(e: unknown): boolean {
+  try {
+    unstable_rethrow(e);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 /**
- * Two-step cancel for free registrations. Focus moves to "Yes, cancel" on open, back to the opener on "Keep", to the
- * error panel on failure and to the status line on success. `blocked` is the reason the server would refuse (checked
- * in, started, paid, pending payment): the button is then disabled and the reason is shown instead.
+ * Two-step cancel for free registrations. On success the server action redirects to My tickets (a fixed path), so
+ * the cancelled ticket route is never re-rendered into a 404. Focus moves to "Yes" on open, back to the opener on
+ * "Keep", stays on "Yes" while working (aria-disabled, not disabled, so focus isn't dropped), goes to the error
+ * panel on failure and to the status line on success. `blocked` is the reason the server would refuse (checked in,
+ * started, paid, pending payment): the button is then aria-disabled (still focusable) and described by the reason.
  */
 export function CancelRegistration({
-  registrationId, waitlisted, blocked,
+  registrationId, waitlisted, blocked, here,
 }: {
   registrationId: string;
   waitlisted: boolean;
   blocked: string | null;
+  /** This ticket's path, so "Sign in" after an expired session comes back here. */
+  here: string;
 }) {
-  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
   const [restoreFocus, setRestoreFocus] = useState(false);
   const [error, setError] = useState<RegistrationError | null>(null);
@@ -38,8 +51,7 @@ export function CancelRegistration({
     if (phase === "confirming" && justOpened.current) {
       justOpened.current = false;
       yesRef.current?.focus();
-    }
-    else if (phase === "done") doneRef.current?.focus();
+    } else if (phase === "done") doneRef.current?.focus();
     else if (phase === "idle" && restoreFocus) openRef.current?.focus();
   }, [phase, restoreFocus]);
 
@@ -49,13 +61,13 @@ export function CancelRegistration({
     setError(null);
     try {
       const res = await cancelRegistration(registrationId);
-      if (res.ok) {
+      // Only failures come back; success redirects (the promise rejects with Next's redirect error).
+      setError(res?.error ?? registrationError("unknown"));
+    } catch (e) {
+      if (isNavigation(e)) {
         setPhase("done");
-        router.replace("/me/tickets?cancelled=1");
         return;
       }
-      setError(res.error);
-    } catch {
       setError(registrationError("network"));
     }
     setPhase("confirming");
@@ -64,7 +76,12 @@ export function CancelRegistration({
   if (blocked) {
     return (
       <div className="grid gap-2">
-        <button type="button" className="btn btn-sm btn-ghost justify-self-start" disabled aria-describedby={reasonId}>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost justify-self-start"
+          aria-disabled="true"
+          aria-describedby={reasonId}
+        >
           <X size={16} strokeWidth={2} aria-hidden /> {label}
         </button>
         <p id={reasonId} className="text-sm text-ink-2">{blocked}</p>
@@ -106,7 +123,14 @@ export function CancelRegistration({
           : "Cancel your registration? Your seat goes to the next person on the waitlist, and you may not get it back."}
       </p>
       <div className="flex flex-wrap gap-2">
-        <button ref={yesRef} type="button" className="btn btn-sm btn-ink" onClick={cancel} disabled={busy} aria-busy={busy}>
+        <button
+          ref={yesRef}
+          type="button"
+          className="btn btn-sm btn-ink"
+          onClick={cancel}
+          aria-disabled={busy || undefined}
+          aria-busy={busy || undefined}
+        >
           {busy && <Loader2 size={16} className="animate-spin" aria-hidden />}
           {waitlisted ? "Yes, leave the waitlist" : "Yes, cancel"}
         </button>
@@ -124,7 +148,18 @@ export function CancelRegistration({
         </button>
       </div>
       <p role="status" aria-live="polite" className="sr-only">{busy ? "Cancelling…" : ""}</p>
-      {error && <ErrorPanel error={error} fallbackUrl={null} onRetry={cancel} />}
+      {error && (
+        <ErrorPanel
+          error={error}
+          here={here}
+          fallbackUrl={null}
+          onRetry={() => {
+            // The panel unmounts on retry: park focus on "Yes" first so it isn't dropped to <body>.
+            yesRef.current?.focus();
+            void cancel();
+          }}
+        />
+      )}
     </div>
   );
 }

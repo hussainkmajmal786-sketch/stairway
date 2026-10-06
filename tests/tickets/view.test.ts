@@ -4,7 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { TicketCard, type TicketCardData } from "@/components/tickets/TicketCard";
 import { qrRows } from "@/lib/tickets/qr";
 import { qrLayout, wrapText } from "@/lib/tickets/png";
-import { cancelBlock, doorPass, QUIET_ZONE, ticketFilename } from "@/lib/tickets/view";
+import { cancelBlock, doorPass, QUIET_ZONE, ticketFilename, ticketView } from "@/lib/tickets/view";
+import type { TicketDetail } from "@/lib/registration/tickets";
+import { analyticsPath, gaBootstrap } from "@/lib/analytics";
 
 const CODE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const NOW = Date.parse("2026-10-07T00:00:00Z");
@@ -97,5 +99,105 @@ describe("TicketCard", () => {
     const out = html(card({ pass: { kind: "token", token: "RAS-01-0042" }, token: "RAS-01-0042", qrRows: null, code: null }));
     expect(out).not.toContain("<svg");
     expect(out).toContain("RAS-01-0042");
+  });
+});
+
+describe("ticketView (the page's only source of what to render)", () => {
+  const settings = { venue: { name: "CEK", hall: "Main Hall", address: "", city: "", region: "", country: "", postalCode: "", mapEmbed: "", mapLink: "" } };
+  // A real code and token on every input: ticketView itself must withhold them unless the seat is confirmed.
+  const base: TicketDetail = {
+    id: "33333333-3333-4333-8333-333333333333", status: "confirmed", waitlistPosition: null, token: "RAS-01-0007",
+    ticketType: "qr", ticketCode: CODE, checkedInAt: null,
+    event: {
+      id: "e1", slug: "seeing-machines", title: "Seeing Machines", topic: "CV", step: 1, start: future,
+      end: "2026-10-20T11:00:00Z", pricePaise: 0, societyShort: "RAS", societyColor: "green",
+    },
+  };
+  const view = (over: Partial<TicketDetail>) => ticketView({ ...base, ...over }, "Asha", settings, { venue: "Lab 2" }, NOW);
+
+  it("gives a confirmed QR seat its rows, code and PNG", () => {
+    const v = view({});
+    expect(v.heading).toBe("Your ticket");
+    expect(v.card.qrRows).toEqual(qrRows(CODE));
+    expect(v.card.code).toBe(CODE);
+    expect(v.png).toMatchObject({ code: CODE, token: "RAS-01-0007", venue: "Lab 2, CEK" });
+    expect(v.cancelBlocked).toBeNull();
+    expect(v.upcoming).toBe(true);
+  });
+
+  it("gives a confirmed token seat the token and no code", () => {
+    const v = view({ ticketType: "token" });
+    expect(v.card.pass).toEqual({ kind: "token", token: "RAS-01-0007" });
+    expect(v.card.qrRows).toBeNull();
+    expect(v.card.code).toBeNull();
+    expect(v.png).toMatchObject({ qrRows: null, code: null, token: "RAS-01-0007" });
+    expect(JSON.stringify(v)).not.toContain(CODE);
+  });
+
+  for (const status of ["waitlisted", "pending_payment", "cancelled", "refunded", "refund_needed"] as const) {
+    it(`withholds the code, token, QR and PNG when ${status}`, () => {
+      for (const ticketType of ["qr", "token"] as const) {
+        const v = view({ status, ticketType, waitlistPosition: status === "waitlisted" ? 2 : null });
+        expect(v.card.pass).toEqual({ kind: "none" });
+        expect(v.card.qrRows).toBeNull();
+        expect(v.card.code).toBeNull();
+        expect(v.card.token).toBeNull();
+        expect(v.png).toBeNull();
+        const out = JSON.stringify(v) + renderToStaticMarkup(createElement(TicketCard, { t: v.card }));
+        expect(out).not.toContain(CODE);
+        expect(out).not.toContain("RAS-01-0007");
+        expect(out).not.toContain("<svg");
+      }
+    });
+  }
+
+  it("titles the waitlist state and explains blocked cancels", () => {
+    expect(view({ status: "waitlisted", waitlistPosition: 2 }).heading).toBe("Your waitlist place");
+    expect(view({ checkedInAt: "2026-10-06T00:00:00Z" }).cancelBlocked).toMatch(/checked in/);
+    expect(view({ event: { ...base.event, start: past, end: past } }).upcoming).toBe(false);
+  });
+});
+
+describe("TicketCard defence in depth", () => {
+  const leaky: TicketCardData = {
+    eyebrow: "RAS · Step 01", title: "Seeing Machines", when: "Tue", venue: "Hall", name: "Asha",
+    status: "waitlisted", waitlistPosition: 2, pass: { kind: "none" }, token: "RAS-01-0007", qrRows: qrRows(CODE),
+    code: CODE, checkedInAt: null,
+  };
+  const html = (t: TicketCardData) => renderToStaticMarkup(createElement(TicketCard, { t }));
+
+  it("renders no QR or code without a door pass, even when given rows and a code", () => {
+    const out = html(leaky);
+    expect(out).not.toContain("<svg");
+    expect(out).not.toContain(CODE);
+    expect(out).not.toContain("RAS-01-0007");
+  });
+
+  it("renders no QR or token for a non-confirmed status even with a pass", () => {
+    for (const pass of [{ kind: "qr" } as const, { kind: "token", token: "RAS-01-0007" } as const]) {
+      const out = html({ ...leaky, pass });
+      expect(out).not.toContain("<svg");
+      expect(out).not.toContain(CODE);
+      expect(out).not.toContain("RAS-01-0007");
+    }
+  });
+
+  it("token card never contains the code", () => {
+    const out = html({ ...leaky, status: "confirmed", pass: { kind: "token", token: "RAS-01-0007" } });
+    expect(out).toContain("RAS-01-0007");
+    expect(out).not.toContain(CODE);
+    expect(out).not.toContain("<svg");
+  });
+});
+
+describe("analytics never sees ids", () => {
+  it("scrubs id segments", () => {
+    expect(analyticsPath("/me/tickets/33333333-3333-4333-8333-333333333333")).toBe("/me/tickets/:id");
+    expect(analyticsPath("/events/seeing-machines")).toBe("/events/seeing-machines");
+  });
+  it("bootstrap disables the automatic page_view and escapes the id", () => {
+    const js = gaBootstrap("G-1</script><script>alert(1)");
+    expect(js).toContain("send_page_view:false");
+    expect(js).not.toContain("</script>");
   });
 });

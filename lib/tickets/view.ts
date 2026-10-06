@@ -1,7 +1,12 @@
+import type { EventView } from "@/lib/events/types";
 import type { TicketDetail } from "@/lib/registration/tickets";
+import type { RegistrationStatus } from "@/lib/registration/types";
+import type { Settings } from "@/lib/site/schema";
+import { longDate, pad2, timeOf } from "@/lib/weekends";
+import type { TicketPngData } from "./png";
+import { qrRows } from "./qr";
 
-/** QR quiet zone in modules (ISO/IEC 18004 asks for 4); qrRows() has none, so every renderer adds it. */
-export const QUIET_ZONE = 4;
+export { QUIET_ZONE } from "./layout";
 
 /** What the ticket page shows as the door pass. Only confirmed seats get one (waitlisted/pending rows carry a code too). */
 export type DoorPass = { kind: "qr" } | { kind: "token"; token: string } | { kind: "none" };
@@ -39,4 +44,70 @@ export function cancelBlock(
 export function ticketFilename(slug: string): string {
   const safe = slug.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   return `stairway-${safe || "session"}-ticket.png`;
+}
+
+/** Page title / h1 for the ticket's state. */
+export function ticketHeading(status: RegistrationStatus): string {
+  return status === "confirmed" ? "Your ticket" : status === "waitlisted" ? "Your waitlist place" : "Your registration";
+}
+
+export interface TicketCardData {
+  eyebrow: string;
+  title: string;
+  when: string;
+  venue: string;
+  name: string;
+  status: RegistrationStatus;
+  waitlistPosition: number | null;
+  pass: DoorPass;
+  /** Door token of a confirmed seat (shown next to the QR when the event also numbers seats). */
+  token: string | null;
+  /** QR matrix (confirmed QR tickets only) and the human-readable code printed beneath it. */
+  qrRows: string[] | null;
+  code: string | null;
+  checkedInAt: string | null;
+}
+
+export interface TicketView {
+  heading: string;
+  card: TicketCardData;
+  /** Null unless there is a door pass (confirmed). */
+  png: TicketPngData | null;
+  /** Reason the cancel is refused (shown instead of the action), or null. */
+  cancelBlocked: string | null;
+  /** The session hasn't ended yet. */
+  upcoming: boolean;
+}
+
+/**
+ * Everything the ticket page renders, derived in one place. The ticket code (a bearer secret for the door) and the
+ * door token leave this function only for a confirmed seat; every other status gets nulls.
+ */
+export function ticketView(
+  ticket: TicketDetail,
+  name: string,
+  settings: Pick<Settings, "venue">,
+  ev: Pick<EventView, "venue"> | null,
+  now: number,
+): TicketView {
+  const pass = doorPass(ticket);
+  const confirmed = ticket.status === "confirmed";
+  const rows = pass.kind === "qr" ? qrRows(ticket.ticketCode) : null;
+  const code = pass.kind === "qr" ? ticket.ticketCode : null;
+  const token = confirmed ? ticket.token : null;
+  const e = ticket.event;
+  const eyebrow = `${e.societyShort} · Step ${pad2(e.step)}`;
+  const when = `${longDate(e.start)} · ${timeOf(e.start)} – ${timeOf(e.end)} IST`;
+  const venue = [ev?.venue || settings.venue.hall, settings.venue.name].filter(Boolean).join(", ");
+  const block = cancelBlock(ticket, now);
+  return {
+    heading: ticketHeading(ticket.status),
+    card: {
+      eyebrow, title: e.title, when, venue, name, status: ticket.status, waitlistPosition: ticket.waitlistPosition,
+      pass, token, qrRows: rows, code, checkedInAt: ticket.checkedInAt,
+    },
+    png: pass.kind === "none" ? null : { eyebrow, title: e.title, when, venue, name, token, qrRows: rows, code },
+    cancelBlocked: block ? CANCEL_BLOCK_COPY[block] : null,
+    upcoming: !(Date.parse(e.end) < now),
+  };
 }

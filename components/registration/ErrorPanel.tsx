@@ -13,10 +13,12 @@ function assertNever(x: never): never {
 
 /** Typed registration error with its recovery actions. Takes focus so screen readers and keyboards land on it. */
 export function ErrorPanel({
-  error, slug, fallbackUrl, onRetry, onFixFields, autoFocus = true,
+  error, slug, here, fallbackUrl, onRetry, onFixFields, autoFocus = true,
 }: {
   error: RegistrationError;
   slug?: string;
+  /** Internal path to return to after signing in (defaults to the register page or My tickets). */
+  here?: string;
   fallbackUrl: string | null;
   onRetry?: () => void;
   onFixFields?: () => void;
@@ -28,7 +30,7 @@ export function ErrorPanel({
   }, [error, autoFocus]);
 
   const actions = recoveryActions(error.recovery, {
-    slug, fallbackUrl, canRetry: !!onRetry, canFixFields: !!onFixFields,
+    slug, here, fallbackUrl, canRetry: !!onRetry, canFixFields: !!onFixFields,
   });
 
   const render = (a: RecoveryAction) => {

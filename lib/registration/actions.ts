@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAuthState } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { registrationWindow } from "./cta";
+import { CANCELLED_PATH, registrationWindow } from "./cta";
 import { errorFromDb, JWT_ERROR_CODES, registrationError, type RegistrationError, type RegistrationErrorCode } from "./errors";
 import { parseQuestions, type Question } from "./questions";
 import { registrationFieldErrors, registrationSchema } from "./schema";
@@ -17,7 +18,8 @@ export type RegisterResult =
   | { ok: true; registrationId: string; status: "confirmed" | "waitlisted" }
   | { ok: false; error: RegistrationError; fieldErrors?: Record<string, string> };
 
-export type CancelResult = { ok: true; promoted: number } | { ok: false; error: RegistrationError };
+/** Only failures come back: a successful cancel redirects to this fixed path (never a client-supplied URL). */
+export type CancelResult = { ok: false; error: RegistrationError };
 
 /** Same rule as the events.slug CHECK. */
 const SlugSchema = z.string().regex(/^[a-z0-9-]{2,80}$/);
@@ -130,8 +132,20 @@ export async function registerForEvent(slug: string, values: unknown): Promise<R
   }
 }
 
-/** Cancels the user's own free registration (the RPC checks ownership and promotes the waitlist head). */
+/**
+ * Cancels the user's own free registration (the RPC checks ownership and promotes the waitlist head), then redirects
+ * to My tickets. The redirect matters: revalidating would otherwise re-render the current ticket route, which now 404s.
+ */
 export async function cancelRegistration(registrationId: string): Promise<CancelResult> {
+  const res = await cancelOwnRegistration(registrationId);
+  // Outside every try/catch: redirect() throws a control-flow error that must reach Next.
+  if (res.ok) redirect(CANCELLED_PATH);
+  return res;
+}
+
+async function cancelOwnRegistration(
+  registrationId: string,
+): Promise<{ ok: true; promoted: number } | CancelResult> {
   try {
     const idOk = IdSchema.safeParse(registrationId);
     if (!idOk.success) return fail("registration_not_found");
@@ -152,7 +166,14 @@ export async function cancelRegistration(registrationId: string): Promise<Cancel
     const res = CancelRpcResult.safeParse(data);
 
     const ev = own?.event as { slug?: unknown } | null | undefined;
-    revalidateEvent(typeof ev?.slug === "string" && SlugSchema.safeParse(ev.slug).success ? ev.slug : null);
+    const slug = typeof ev?.slug === "string" && SlugSchema.safeParse(ev.slug).success ? ev.slug : null;
+    // Only what shows this registration: the event's seat count / CTA and the /me pages (not the ticket itself).
+    if (slug) {
+      revalidatePath(`/events/${slug}`);
+      revalidatePath(`/events/${slug}/register`);
+    }
+    revalidatePath("/me");
+    revalidatePath("/me/tickets");
     // The cancellation committed; only the promotion count is unknown if the shape is unexpected.
     return { ok: true, promoted: res.success ? res.data.promoted : 0 };
   } catch (e) {

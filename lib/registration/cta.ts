@@ -4,6 +4,8 @@ import { isActiveStatus, type MyRegistration } from "./types";
 /** Internal paths; dynamic segments are percent-encoded so a stray "/" or "?" can never change the route. */
 export const registerPath = (slug: string) => `/events/${encodeURIComponent(slug)}/register`;
 export const ticketPath = (id: string) => `/me/tickets/${encodeURIComponent(id)}`;
+/** Where a successful cancel lands (My tickets shows the confirmation). Fixed: never built from input. */
+export const CANCELLED_PATH = "/me/tickets?cancelled=1";
 export const loginPath = (next: string) => `/login?next=${encodeURIComponent(next)}`;
 
 export interface CtaEvent {

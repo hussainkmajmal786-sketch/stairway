@@ -1,6 +1,6 @@
 // Client-only: draws the ticket on a canvas (DOM APIs only, no Node, no server imports). Never import from server code.
 
-import { QUIET_ZONE } from "./view";
+import { QUIET_ZONE } from "./layout";
 
 export interface TicketPngData {
   eyebrow: string;

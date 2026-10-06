@@ -1,23 +1,7 @@
 import { qrPath } from "@/lib/tickets/qr";
-import { QUIET_ZONE, type DoorPass } from "@/lib/tickets/view";
-import type { RegistrationStatus } from "@/lib/registration/types";
+import { QUIET_ZONE, type TicketCardData } from "@/lib/tickets/view";
 
-export interface TicketCardData {
-  eyebrow: string;
-  title: string;
-  when: string;
-  venue: string;
-  name: string;
-  status: RegistrationStatus;
-  waitlistPosition: number | null;
-  pass: DoorPass;
-  /** Door token of a confirmed seat (shown next to the QR when the event also numbers seats). */
-  token: string | null;
-  /** QR matrix (confirmed QR tickets only) and the human-readable code printed beneath it. */
-  qrRows: string[] | null;
-  code: string | null;
-  checkedInAt: string | null;
-}
+export type { TicketCardData };
 
 function QrSvg({ rows, title }: { rows: string[]; title: string }) {
   const n = rows.length;
@@ -40,6 +24,8 @@ function QrSvg({ rows, title }: { rows: string[]; title: string }) {
 
 /** The ticket itself (server-rendered). The QR encodes only the opaque ticket code (no personal data). */
 export function TicketCard({ t }: { t: TicketCardData }) {
+  // Defence in depth: whatever the caller passes, only a confirmed seat ever shows a QR, code or token.
+  const confirmed = t.status === "confirmed";
   return (
     <article className="box mx-auto w-full max-w-md shadow-[6px_6px_0_0_var(--ink)]" aria-labelledby="ticket-title">
       <header className="border-b-2 border-ink bg-yellow px-5 py-3">
@@ -55,7 +41,7 @@ export function TicketCard({ t }: { t: TicketCardData }) {
           <div><dt className="mono text-ink-3">Where</dt><dd>{t.venue}</dd></div>
           <div><dt className="mono text-ink-3">Name</dt><dd className="break-words font-semibold">{t.name}</dd></div>
         </dl>
-        {t.pass.kind === "qr" && t.qrRows ? (
+        {confirmed && t.pass.kind === "qr" && t.qrRows ? (
           <figure className="grid justify-items-center gap-2">
             <QrSvg rows={t.qrRows} title={t.title} />
             <figcaption className="grid justify-items-center gap-1 text-center">
@@ -68,7 +54,7 @@ export function TicketCard({ t }: { t: TicketCardData }) {
               )}
             </figcaption>
           </figure>
-        ) : t.pass.kind === "token" ? (
+        ) : confirmed && t.pass.kind === "token" ? (
           <div className="border-2 border-ink bg-white p-5 text-center">
             <p className="mono text-ink-3">Your token</p>
             <p className="mt-2 break-all font-mono text-4xl font-bold tabular">{t.pass.token}</p>

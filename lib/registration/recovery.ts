@@ -15,6 +15,8 @@ export type RecoveryAction =
 export interface RecoveryContext {
   /** Event slug when the error happened on (or about) one event. */
   slug?: string;
+  /** Internal path (built with the cta.ts helpers) to come back to after signing in, e.g. a ticket page. */
+  here?: string;
   /** https Google Form offered as a fallback when on-site registration keeps failing. */
   fallbackUrl: string | null;
   /** The caller can re-run the failed action (otherwise "retry" reloads the page). */
@@ -50,6 +52,7 @@ export const RECOVERY_ACTIONS: { readonly [R in Recovery]: (c: RecoveryContext) 
 };
 
 function here(c: RecoveryContext) {
+  if (c.here) return c.here;
   return c.slug ? registerPath(c.slug) : "/me/tickets";
 }
 
