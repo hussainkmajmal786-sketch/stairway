@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // Local scope: sign out this browser only, not every device the user is signed in on.
+  await supabase.auth.signOut({ scope: "local" });
   return NextResponse.redirect(new URL("/", request.url), { status: 303 });
 }

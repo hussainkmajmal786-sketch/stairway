@@ -28,7 +28,7 @@ export default async function MePage() {
   return (
     <div className="grid gap-8">
       <header className="flex items-center gap-5">
-        <Avatar name={profile.fullName} photo={profile.avatarUrl ?? undefined} size={72} />
+        <Avatar name={profile.fullName} photo={profile.avatarUrl ?? undefined} size={72} referrerPolicy="no-referrer" />
         <div className="min-w-0">
           <p className="mono font-bold text-ink-3">Welcome back</p>
           <h1 className="break-words text-3xl font-semibold md:text-4xl">{profile.fullName}</h1>

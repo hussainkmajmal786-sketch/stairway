@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/browser";
 import { ProjectSchema, fieldErrors } from "@/lib/profile/schema";
+import { isHttpUrl } from "@/lib/profile/view";
 import { Field, inputCls, textareaCls } from "@/components/ui/Field";
 import { RowList, rowAria } from "./RowList";
 
@@ -41,7 +42,7 @@ export function ProjectsEditor({ userId, initial }: { userId: string; initial: P
         <>
           <p className="font-semibold">{r.title}</p>
           {r.description && <p className="mt-1 whitespace-pre-line text-sm text-ink-2">{r.description}</p>}
-          {r.url && (
+          {isHttpUrl(r.url) && (
             <a href={r.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block break-all text-sm font-semibold text-blue-ink underline">
               {r.url}
             </a>

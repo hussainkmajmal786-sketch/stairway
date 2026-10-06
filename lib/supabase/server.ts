@@ -13,8 +13,8 @@ export async function createClient() {
         try {
           list.forEach(({ name, value, options }) => store.set(name, value, options));
         } catch {
-          // Called from a Server Component: cookies are read-only there. The browser
-          // client refreshes the session instead (no proxy on OpenNext).
+          // Called from a Server Component: cookies are read-only there. The edge
+          // middleware (middleware.ts) refreshes the session cookies before the page renders.
         }
       },
     },
