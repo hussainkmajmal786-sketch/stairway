@@ -65,6 +65,19 @@ Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4
 
 ---
 
+## 3b. Accounts & profiles
+
+Sign-in is **Google only** for now. The email-code form is built but hidden: flip `EMAIL_LOGIN_ENABLED` in `lib/auth/config.ts` once a sending domain and custom SMTP are set up in Supabase (its built-in email only reaches project team members).
+
+- `/login` signs in; new users go to `/onboarding` (name and photo prefilled from Google) and then `/me`.
+- `/me` is the dashboard (Overview, Profile, Settings). `/me/profile` edits the public profile; `/me/settings` holds private details (phone, IEEE ID) and sign-out.
+- `/u/[handle]` is a public-style profile page, but **visible to signed-in users only**; anonymous visitors are redirected to `/login`.
+- `middleware.ts` refreshes the Supabase session on the edge. It only does work when a Supabase auth cookie is present, so anonymous traffic pays nothing.
+- Row-level security is covered by two SQL assertion scripts in `supabase/tests/` (`profiles-rls.sql`, `security-hardening.sql`). Run each as a single query in the Supabase SQL editor or through the Supabase MCP `execute_sql`; they roll back and leave no data behind.
+- Account deletion: users email the team for now.
+
+---
+
 ## 4. Deploy (Cloudflare Workers)
 
 The site is deployed as a Worker via OpenNext. Log in once with `npx wrangler login`.
@@ -89,8 +102,14 @@ Custom domain: add it under the Worker's **Settings -> Domains & Routes**, and u
 
 ```
 app/                 routes: /, /events/[slug], /s/[society], /gallery, /resources, /register,
-                     /code-of-conduct, /privacy, 404, sitemap, robots, manifest, OG images
+                     /login, /onboarding, /me (+ /me/profile, /me/settings), /u/[handle],
+                     /auth/{callback,continue,signout}, /code-of-conduct, /privacy, 404, sitemap,
+                     robots, manifest, OG images
+middleware.ts        edge middleware: refreshes the Supabase session cookie
 components/
+  auth/              login panel, email-code form (hidden)
+  dashboard/         sidebar shell for /me
+  profile/           onboarding, profile and settings forms, avatar uploader, public profile view
   layout/            top bar, bottom dock, announcement strip, footer, easter egg
   sections/          every landing-page section (Hero, Stairway, Speakers, FAQ, ...)
   ui/                Button, Countdown, Modal, Badges, Heading, Avatar, Logo, ...
@@ -101,9 +120,11 @@ data/                static leaderboard and quiz data
 lib/
   events/            event types, row mappers, status/colour helpers
   site/              site-content schema (zod), types and loader
-  supabase/          browser, server and public clients, generated database types
-supabase/            migrations, seed-data and the generated seed.sql
-tests/               vitest unit tests; tests/rls checks anonymous access against Supabase
+  auth/              session lookup, auth config flag, safe `next` redirects, cookie helpers
+  profile/           profile schema (zod), handle rules, form options, avatar crop, view mappers
+  supabase/          browser, server, public and middleware clients, generated database types
+supabase/            migrations, seed-data, the generated seed.sql and tests/ (SQL assertion scripts)
+tests/               vitest unit tests (auth, profile, events, site); tests/rls checks anonymous access against Supabase
 design-system/       MASTER.md - tokens, motion and accessibility rules
 ```
 

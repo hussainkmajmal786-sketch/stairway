@@ -14,6 +14,8 @@ Sections alternate `paper` / `paper-2` bands with 2px ink rules between them.
 - Slim sticky top bar: brand + "Next · Step 04" button. Optional ink announcement strip above it.
 - **Floating bottom dock on every screen size** (Home, Societies, Speakers, Gallery, FAQ + yellow Register). Active item is red with its label; others are icon squares, with labels from 768px. Footer reserves `--dock-h` of bottom padding.
 
+- **Dashboards** (`/me`): sidebar with a back button at the top; on mobile it collapses to a horizontal tab strip.
+
 ## Colour tokens (`app/globals.css`)
 | Token | Hex | Use |
 |---|---|---|
@@ -40,7 +42,7 @@ Square corners only. Borders 2px ink. Shadows are hard offsets: 3–4px for cont
 - Touch targets ≥ 44px below 1024px; 8px+ gaps. `cursor: pointer` on every clickable.
 - Focus ring: 3px `blue-ink` outline, 3px offset.
 - Modals: focus trap, Esc, restore focus, 55% ink scrim. Accordions: `aria-expanded`, `inert` when closed.
-- Forms: visible mono labels, red `*` + `aria-required`, validate on blur, errors under fields, focus first invalid on submit.
+- Forms: use `components/ui/Field.tsx`. Visible mono labels, red `*` + `aria-required`, validate on blur, errors under fields, focus first invalid on submit.
 - After client navigation, focus moves to `#main`.
 
 ## z-index scale
