@@ -9,7 +9,8 @@ export type RegistrationErrorCode = (typeof REGISTRATION_ERROR_CODES)[number];
  * What the UI offers next. "event" links back to the (published) event page; "events" links to the schedule (used when
  * the event itself may be gone, so we never link to a 404); "reload" reloads the page to pick up changed questions.
  */
-export type Recovery = "retry" | "reload" | "sign_in" | "onboarding" | "tickets" | "event" | "events" | "fix_fields";
+export const RECOVERIES = ["retry", "reload", "sign_in", "onboarding", "tickets", "event", "events", "fix_fields"] as const;
+export type Recovery = (typeof RECOVERIES)[number];
 
 export interface RegistrationError {
   code: RegistrationErrorCode;
@@ -60,8 +61,10 @@ const DB_CODES: ReadonlySet<string> = new Set<RegistrationErrorCode>([
 
 /** Contention on the event row lock: lock_timeout (55P03), statement_timeout (57014), serialization/deadlock (40xxx). */
 const BUSY_SQLSTATES: ReadonlySet<string> = new Set(["55P03", "57014", "40001", "40P01"]);
-/** PostgREST JWT errors (expired / invalid / missing claims). */
-const AUTH_CODES: ReadonlySet<string> = new Set(["42501", "PGRST301", "PGRST302", "PGRST303"]);
+/** PostgREST JWT errors (expired / invalid / missing claims): the session really is gone. */
+export const JWT_ERROR_CODES: ReadonlySet<string> = new Set(["PGRST301", "PGRST302", "PGRST303"]);
+/** JWT errors plus insufficient_privilege (an RPC call without a usable session). */
+const AUTH_CODES: ReadonlySet<string> = new Set(["42501", ...JWT_ERROR_CODES]);
 const NETWORK_RE = /fetch failed|failed to fetch|networkerror|network request failed|load failed/i;
 
 export function errorFromDb(err: { message?: string | null; code?: string | null } | null | undefined): RegistrationError {

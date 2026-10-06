@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getAuthState } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { registrationWindow } from "./cta";
-import { errorFromDb, registrationError, type RegistrationError, type RegistrationErrorCode } from "./errors";
+import { errorFromDb, JWT_ERROR_CODES, registrationError, type RegistrationError, type RegistrationErrorCode } from "./errors";
 import { parseQuestions, type Question } from "./questions";
 import { registrationFieldErrors, registrationSchema } from "./schema";
 
@@ -28,7 +28,8 @@ const RegisterRpcResult = z.object({
   waitlist_position: z.number().int().nullable(),
 });
 const CancelRpcResult = z.object({ promoted: z.number().int().nonnegative() });
-const PASS_THROUGH: ReadonlySet<RegistrationErrorCode> = new Set(["busy", "network", "not_signed_in"]);
+/** Profile write errors worth showing as-is; everything else (incl. 42501 from a grant/RLS bug) is a save failure. */
+const PASS_THROUGH: ReadonlySet<RegistrationErrorCode> = new Set(["busy", "network"]);
 
 type Failure = { ok: false; error: RegistrationError; fieldErrors?: Record<string, string> };
 
@@ -109,8 +110,10 @@ export async function registerForEvent(slug: string, values: unknown): Promise<R
         .select("user_id"),
     ]);
     if (pub.error || !pub.data?.length || priv.error || !priv.data?.length) {
-      // Keep the more useful busy / network / session-expired messages; anything else is a save failure.
+      // Keep the more useful busy / network messages, and "session ended" only for a real JWT error: the session
+      // was verified a moment ago, so a 42501 here is a grant/RLS problem, and "sign in again" would loop.
       const writeErr = pub.error ?? priv.error;
+      if (writeErr && JWT_ERROR_CODES.has(writeErr.code ?? "")) return fail("not_signed_in");
       const mapped = writeErr ? errorFromDb(writeErr) : null;
       return mapped && PASS_THROUGH.has(mapped.code) ? { ok: false, error: mapped } : fail("profile_save_failed");
     }

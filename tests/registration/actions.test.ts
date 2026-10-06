@@ -186,6 +186,34 @@ describe("registerForEvent", () => {
     expect(await registerForEvent("seeing-machines", values)).toMatchObject({ ok: false, error: { code: "busy" } });
   });
 
+  it("never turns a privilege error on the profile write into a sign-in loop", async () => {
+    signedIn();
+    for (const table of ["profiles:update", "profile_private:update"]) {
+      const { rpcCalls } = fakeDb({
+        events: openEvent(), ...savedOk,
+        [table]: { data: null, error: { code: "42501", message: "permission denied for table profiles" } },
+      });
+      const res = await registerForEvent("seeing-machines", values);
+      expect(res).toMatchObject({ ok: false, error: { code: "profile_save_failed", recovery: "retry" } });
+      expect(JSON.stringify(res)).not.toContain("permission");
+      expect(rpcCalls).toHaveLength(0);
+    }
+  });
+
+  it("reports an expired session (PostgREST JWT error) on the profile write as signed out", async () => {
+    signedIn();
+    for (const code of ["PGRST301", "PGRST302", "PGRST303"]) {
+      fakeDb({ events: openEvent(), ...savedOk, "profiles:update": { data: null, error: { code, message: "JWT expired" } } });
+      expect(await registerForEvent("seeing-machines", values)).toMatchObject({ ok: false, error: { code: "not_signed_in", recovery: "sign_in" } });
+    }
+  });
+
+  it("passes network errors through from the profile write", async () => {
+    signedIn();
+    fakeDb({ events: openEvent(), ...savedOk, "profile_private:update": { data: null, error: { code: "", message: "TypeError: fetch failed" } } });
+    expect(await registerForEvent("seeing-machines", values)).toMatchObject({ ok: false, error: { code: "network" } });
+  });
+
   it("maps RPC errors without leaking their text", async () => {
     signedIn();
     const cases: [Res["error"], string, string][] = [
