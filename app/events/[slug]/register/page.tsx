@@ -16,10 +16,16 @@ import { ErrorPanel } from "@/components/registration/ErrorPanel";
 import { RegistrationForm } from "@/components/registration/RegistrationForm";
 import { RegistrationUnavailable } from "@/components/registration/RegistrationUnavailable";
 
-export const metadata: Metadata = { title: "Register", robots: { index: false } };
-
 /** Same rule as the events.slug CHECK. */
 const SLUG_RE = /^[a-z0-9-]{2,80}$/;
+
+export async function generateMetadata({ params }: PageProps<"/events/[slug]/register">): Promise<Metadata> {
+  const { slug } = await params;
+  const robots = { index: false, follow: false };
+  // Public, request-cached site data only (no session): the title says nothing a visitor can't see on the event page.
+  const ev = SLUG_RE.test(slug) ? (await getSiteData()).events.find((e) => e.slug === slug) : undefined;
+  return { title: ev ? `Register: ${ev.title}` : "Register", robots };
+}
 // Request-time clock (the root layout is force-dynamic); a helper so render stays lint-pure.
 const requestNow = () => Date.now();
 const oneOf = (list: readonly string[], v: string | undefined) => (v && list.includes(v) ? v : "");

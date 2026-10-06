@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
-import { Field, inputCls, textareaCls } from "@/components/ui/Field";
+import { Field, fieldDescribedBy, inputCls, textareaCls } from "@/components/ui/Field";
 import { TEXT_MAX, TEXTAREA_MAX, type AnswerValue, type Question } from "@/lib/registration/questions";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export function QuestionField({
 
   if (q.type === "text" || q.type === "textarea") {
     const v = typeof value === "string" ? value : "";
-    const a11y = { "aria-required": q.required, "aria-invalid": !!error, "aria-describedby": error ? `${id}-err` : undefined };
+    const a11y = { "aria-required": q.required, "aria-invalid": !!error, "aria-describedby": fieldDescribedBy(id, { error, hint: q.help }) };
     return (
       <Field id={id} label={q.label} required={q.required} error={error} hint={q.help}>
         {q.type === "text" ? (

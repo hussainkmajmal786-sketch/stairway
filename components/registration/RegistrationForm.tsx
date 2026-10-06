@@ -4,17 +4,18 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
-import { Field, inputCls } from "@/components/ui/Field";
+import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
 import { BRANCHES, YEARS } from "@/lib/profile/options";
 import { emptyAnswers, type AnswerValue, type Answers, type Question } from "@/lib/registration/questions";
 import { registrationFieldErrors, registrationSchema, type Registrant } from "@/lib/registration/schema";
 import { registrationError, type RegistrationError } from "@/lib/registration/errors";
 import { registerForEvent, type RegisterResult } from "@/lib/registration/actions";
 import { ticketPath } from "@/lib/registration/cta";
+import { FORM_ERROR_ID, fieldOrder, firstInvalid, formLevelError, submitGate } from "@/lib/registration/form";
 import { QuestionField } from "./QuestionField";
 import { ErrorPanel } from "./ErrorPanel";
 
-const REGISTRANT_FIELDS = ["fullName", "college", "branch", "year", "phone", "ieeeMemberId"] as const;
+const HINTS: Partial<Record<string, string>> = { phone: "Only you and the organisers can see this.", ieeeMemberId: "Optional." };
 
 export function RegistrationForm({
   slug, questions, initial, waitlist, fallbackUrl,
@@ -24,7 +25,7 @@ export function RegistrationForm({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const schema = useMemo(() => registrationSchema(questions), [questions]);
-  const order = useMemo(() => [...REGISTRANT_FIELDS, ...questions.map((q) => `q-${q.id}`)], [questions]);
+  const order = useMemo(() => fieldOrder(questions.map((q) => q.id)), [questions]);
   const [registrant, setRegistrant] = useState<Registrant>(initial);
   const [answers, setAnswers] = useState<Answers>(() => emptyAnswers(questions));
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -59,20 +60,25 @@ export function RegistrationForm({
   const aria = (id: string, required = true) => ({
     "aria-required": required,
     "aria-invalid": !!errorFor(id),
-    "aria-describedby": errorFor(id) ? `${id}-err` : undefined,
+    "aria-describedby": fieldDescribedBy(id, { error: errorFor(id), hint: HINTS[id] }),
   });
-  const focusFirst = (errs: Record<string, string>) => {
-    const first = order.find((id) => errs[id]);
-    if (first) document.getElementById(first)?.focus();
-    return !!first;
+  const focusId = (id: string | null) => {
+    if (id) document.getElementById(id)?.focus();
   };
 
   function submit(e?: React.FormEvent) {
     e?.preventDefault();
     if (busy) return;
     setSubmitted(true);
-    setError(null);
-    if (focusFirst(clientErrors)) return;
+    const gate = submitGate(clientErrors, order);
+    if (!gate.submit) {
+      // Focus moves to the field, so the error panel (if any) can go.
+      setError(null);
+      focusId(gate.focusId);
+      return;
+    }
+    // The previous error panel stays mounted while busy (its "Try again" button may hold focus);
+    // it is replaced by the next error, or left behind by the navigation on success.
     startTransition(async () => {
       let res: RegisterResult;
       try {
@@ -89,12 +95,13 @@ export function RegistrationForm({
       setError(res.error);
       if (res.fieldErrors) {
         setServerErrors(res.fieldErrors);
-        focusFirst(res.fieldErrors);
+        focusId(firstInvalid(res.fieldErrors, order));
       }
     });
   }
 
   const invalidCount = Object.keys(clientErrors).length;
+  const formError = formLevelError(serverErrors, order) ?? (submitted ? formLevelError(clientErrors, order) : undefined);
 
   return (
     <form ref={formRef} onSubmit={submit} noValidate className="grid gap-10 lg:grid-cols-[1fr_340px]" aria-busy={busy}>
@@ -128,11 +135,11 @@ export function RegistrationForm({
               {YEARS.map((y) => <option key={y}>{y}</option>)}
             </select>
           </Field>
-          <Field id="phone" label="Phone (WhatsApp)" required error={errorFor("phone")} hint="Only you and the organisers can see this.">
+          <Field id="phone" label="Phone (WhatsApp)" required error={errorFor("phone")} hint={HINTS.phone}>
             <input id="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" className={inputCls}
               value={registrant.phone} onChange={(e) => setField("phone", e.target.value)} onBlur={blur("phone")} {...aria("phone")} />
           </Field>
-          <Field id="ieeeMemberId" label="IEEE membership ID" error={errorFor("ieeeMemberId")} hint="Optional.">
+          <Field id="ieeeMemberId" label="IEEE membership ID" error={errorFor("ieeeMemberId")} hint={HINTS.ieeeMemberId}>
             <input id="ieeeMemberId" inputMode="numeric" autoComplete="off" className={inputCls}
               value={registrant.ieeeMemberId} onChange={(e) => setField("ieeeMemberId", e.target.value)}
               onBlur={blur("ieeeMemberId")} {...aria("ieeeMemberId", false)} />
@@ -161,6 +168,11 @@ export function RegistrationForm({
               : "Your ticket appears in My tickets straight after you confirm."}{" "}
             We don&apos;t send a confirmation email.
           </p>
+          {formError && (
+            <p id={FORM_ERROR_ID} tabIndex={-1} role="alert" className="mt-4 text-sm font-semibold text-red-ink outline-none focus-visible:outline-3">
+              {formError}
+            </p>
+          )}
           <button type="submit" className="btn btn-primary btn-lg mt-6 w-full" disabled={busy}>
             {busy ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <ArrowRight size={18} strokeWidth={2} aria-hidden />}
             {busy ? "Saving…" : waitlist ? "Join the waitlist" : "Confirm registration"}
@@ -178,7 +190,7 @@ export function RegistrationForm({
           <ErrorPanel
             error={error} slug={slug} fallbackUrl={fallbackUrl}
             onRetry={() => formRef.current?.requestSubmit()}
-            onFixFields={() => focusFirst({ ...clientErrors, ...serverErrors })}
+            onFixFields={() => focusId(firstInvalid({ ...clientErrors, ...serverErrors }, order))}
             autoFocus={error.recovery !== "fix_fields"}
           />
         )}
