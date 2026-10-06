@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMonth, isHttpUrl, parseHandleParam, safeLinks } from "@/lib/profile/view";
+import { formatMonth, isHttpUrl, parseHandleParam, safeAvatarUrl, safeLinks } from "@/lib/profile/view";
 
 describe("isHttpUrl", () => {
   it("accepts http(s) URLs in any case", () => {
@@ -46,5 +46,25 @@ describe("formatMonth", () => {
   });
   it("returns empty for garbage", () => {
     expect(formatMonth("nope")).toBe("");
+  });
+});
+
+describe("safeAvatarUrl", () => {
+  const sb = "https://nfrdsdnrtsbttyrmfppy.supabase.co";
+  it("allows https URLs on the Supabase storage host and Google photos", () => {
+    const own = `${sb}/storage/v1/object/public/avatars/u1/a.webp`;
+    expect(safeAvatarUrl(own, sb)).toBe(own);
+    expect(safeAvatarUrl("https://lh3.googleusercontent.com/a/xyz=s96-c", sb)).toBe("https://lh3.googleusercontent.com/a/xyz=s96-c");
+  });
+  it("rejects http, other hosts, lookalikes, credentials and junk", () => {
+    for (const v of [
+      "http://nfrdsdnrtsbttyrmfppy.supabase.co/storage/v1/object/public/avatars/a.png",
+      "https://evil.com/a.png",
+      "https://nfrdsdnrtsbttyrmfppy.supabase.co.evil.com/a.png",
+      "https://other.supabase.co/storage/v1/object/public/avatars/a.png",
+      "https://x@lh3.googleusercontent.com/a",
+      "javascript:alert(1)", "data:image/png;base64,AAAA", "", null, 3,
+    ])
+      expect(safeAvatarUrl(v, sb)).toBeUndefined();
   });
 });

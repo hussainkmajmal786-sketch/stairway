@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileView, type ProfileViewData } from "@/components/profile/ProfileView";
@@ -23,7 +23,12 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
     .select("id, handle, full_name, avatar_url, headline, bio, college, branch, year, skills, links, onboarded")
     .eq("handle", handle)
     .maybeSingle();
-  if (!p || !p.onboarded) notFound();
+  if (!p) notFound();
+  if (!p.onboarded) {
+    // The owner gets sent to finish onboarding; anyone else sees a 404.
+    if (p.id === user.id) redirect(`/onboarding?next=${encodeURIComponent(`/u/${handle}`)}`);
+    notFound();
+  }
 
   const [{ data: projects }, { data: experience }] = await Promise.all([
     db.from("profile_projects").select("id, title, description, url").eq("user_id", p.id).order("sort_order").order("created_at"),

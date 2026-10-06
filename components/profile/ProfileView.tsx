@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ExternalLink, Pencil } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { SOCIAL_LABELS, type SocialKey } from "@/lib/profile/options";
-import { formatMonth, isHttpUrl } from "@/lib/profile/view";
+import { formatMonth, isHttpUrl, safeAvatarUrl } from "@/lib/profile/view";
 
 /** Public fields only: nothing from profile_private (email, phone, IEEE id) ever reaches this component. */
 export interface ProfileViewData {
@@ -24,7 +24,8 @@ export function ProfileView({ p }: { p: ProfileViewData }) {
   return (
     <article className="wrap grid gap-8 py-10 md:py-14">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-center">
-        <Avatar name={name} photo={isHttpUrl(p.avatarUrl) ? p.avatarUrl : undefined} size={128} />
+        {/* Decorative: the h1 right next to it carries the name. */}
+        <Avatar name={name} photo={safeAvatarUrl(p.avatarUrl)} size={128} decorative referrerPolicy="no-referrer" />
         <div className="min-w-0 flex-1">
           <p className="mono font-bold text-ink-3">@{p.handle}</p>
           <h1 className="mt-1 break-words text-4xl font-semibold leading-tight md:text-5xl">{name}</h1>
@@ -90,17 +91,19 @@ export function ProfileView({ p }: { p: ProfileViewData }) {
         <section aria-labelledby="exp-h">
           <h2 id="exp-h" className="mono mb-3 font-bold">Experience</h2>
           <ol className="grid gap-4">
-            {p.experience.map((x) => (
+            {p.experience.map((x) => {
+              const start = formatMonth(x.start_date);
+              const end = x.end_date ? formatMonth(x.end_date) : "Present";
+              return (
               <li key={x.id} className="box p-5 shadow-hard">
                 <h3 className="break-words text-lg font-semibold">
                   {x.title} <span className="font-normal text-ink-3">· {x.organization}</span>
                 </h3>
-                <p className="mono mt-1 text-[0.7rem] font-bold text-ink-3">
-                  {formatMonth(x.start_date)} – {x.end_date ? formatMonth(x.end_date) : "Present"}
-                </p>
+                {start && end && <p className="mono mt-1 text-[0.7rem] font-bold text-ink-3">{start} – {end}</p>}
                 {x.description && <p className="mt-2 whitespace-pre-line break-words text-ink-2">{x.description}</p>}
               </li>
-            ))}
+              );
+            })}
           </ol>
         </section>
       )}

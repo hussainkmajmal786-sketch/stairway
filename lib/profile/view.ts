@@ -1,3 +1,4 @@
+import { publicEnv } from "@/lib/env";
 import { HANDLE_RE } from "./handle";
 import { linksFromDb } from "./editor";
 import { SOCIAL_KEYS, type SocialKey } from "./options";
@@ -11,6 +12,32 @@ export function isHttpUrl(v: unknown): v is string {
   } catch {
     return false;
   }
+}
+
+/** Google account photos (OAuth sign-up seeds avatar_url from the provider). */
+const AVATAR_EXTRA_HOSTS = ["lh3.googleusercontent.com"];
+
+/**
+ * Avatar URL safe to render for another user's profile: https only, and only from our Supabase storage host
+ * or the Google photo host. Anything else returns undefined so the monogram is shown instead.
+ */
+export function safeAvatarUrl(v: unknown, supabaseUrl: string = publicEnv.supabaseUrl): string | undefined {
+  if (typeof v !== "string" || !/^https:\/\//i.test(v)) return undefined;
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return undefined;
+  }
+  if (u.protocol !== "https:" || u.username || u.password) return undefined;
+  let storageHost = "";
+  try {
+    storageHost = new URL(supabaseUrl).hostname;
+  } catch {
+    /* no storage host */
+  }
+  const host = u.hostname.toLowerCase();
+  return (storageHost && host === storageHost.toLowerCase()) || AVATAR_EXTRA_HOSTS.includes(host) ? v : undefined;
 }
 
 /**
