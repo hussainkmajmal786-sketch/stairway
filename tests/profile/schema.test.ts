@@ -44,6 +44,14 @@ describe("length limits match the database", () => {
     expect(pass({ headline: "a".repeat(121) })).toBe(false);
     expect(pass({ bio: "a".repeat(1500) })).toBe(true);
     expect(pass({ bio: "a".repeat(1501) })).toBe(false);
+    // 5 links x 300 chars stays under the 2 KB profiles_links_shape check.
+    const link = (n: number) => "https://a.dev/" + "a".repeat(n - "https://a.dev/".length);
+    expect(pass({ links: { ...base.links, website: link(300) } })).toBe(true);
+    expect(pass({ links: { ...base.links, website: link(301) } })).toBe(false);
+    const all = { linkedin: link(300), github: link(300), x: link(300), instagram: link(300), website: link(300) };
+    expect(JSON.stringify(all).length).toBeLessThanOrEqual(2048);
+    // 30 skills x 30 chars fits the 929-char profiles_skills_len check.
+    expect(pass({ skills: Array.from({ length: 30 }, (_, i) => String(i).padStart(30, "s")) })).toBe(true);
     expect(pass({ skills: Array.from({ length: 30 }, (_, i) => `s${i}`) })).toBe(true);
     expect(pass({ skills: Array.from({ length: 31 }, (_, i) => `s${i}`) })).toBe(false);
   });

@@ -135,6 +135,131 @@ do $$ declare n int; begin
   reset role;
 end $$;
 
+-- column guards (20261006101500_profiles_column_guards)
+do $$ declare n int; big jsonb; begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
+  set local role authenticated;
+
+  -- the exact column sets the client writes still work
+  begin
+    update public.profiles set onboarded = true where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'onboarded with blank college/branch/year accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set full_name = ' ', college = 'MIT', branch = 'Civil', year = '1st year', onboarded = true
+      where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'onboarded with blank full_name accepted';
+  exception when check_violation then null; end;
+  update public.profiles set full_name = 'Ada Lovelace', handle = 'ada-l', college = 'MIT', branch = 'Civil', year = '1st year',
+    avatar_url = 'https://example.supabase.co/storage/v1/object/public/avatars/x.webp', onboarded = true
+    where id = '00000000-0000-0000-0000-0000000000b1';
+  get diagnostics n = row_count;  assert n = 1, 'onboarding update (client column set) failed';
+  update public.profiles set full_name = 'Ada L', headline = 'h', bio = 'b', college = 'MIT', branch = 'Civil', year = '2nd year',
+    skills = array['SQL','Rust'], links = '{"github":"https://github.com/ada"}', avatar_url = null
+    where id = '00000000-0000-0000-0000-0000000000b1';
+  get diagnostics n = row_count;  assert n = 1, 'profile editor update (client column set) failed';
+  begin
+    update public.profiles set college = '' where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'onboarded profile could blank its college';
+  exception when check_violation then null; end;
+
+  -- read-only columns
+  begin
+    update public.profiles set created_at = now() - interval '1 year' where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'user changed profiles.created_at';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.profiles set updated_at = now() where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'user changed profiles.updated_at';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.profiles set id = '00000000-0000-0000-0000-0000000000c1' where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'user changed profiles.id';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.profile_private set email = 'spoof@evil.local' where user_id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'user changed profile_private.email';
+  exception when insufficient_privilege then null; end;
+  update public.profile_private set phone = '', ieee_member_id = '12345678' where user_id = '00000000-0000-0000-0000-0000000000b1';
+  get diagnostics n = row_count;  assert n = 1, 'settings update (client column set) failed';
+
+  -- value checks
+  select jsonb_build_object('website', 'https://example.com/' || repeat('a', 2100)) into big;
+  begin
+    update public.profiles set links = big where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'oversized links accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set links = '["https://x.com"]' where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'non-object links accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set avatar_url = 'http://example.com/a.png' where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'http avatar accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set avatar_url = 'https://example.com/' || repeat('a', 600) where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'over-long avatar accepted';
+  exception when check_violation then null; end;
+  update public.profiles set skills = array(select repeat('s', 29) || g from generate_series(0, 9) g union all
+                                             select repeat('t', 29) || g from generate_series(0, 9) g union all
+                                             select repeat('u', 29) || g from generate_series(0, 9) g)
+    where id = '00000000-0000-0000-0000-0000000000b1';
+  get diagnostics n = row_count;  assert n = 1, '30 skills x 30 chars rejected';
+  begin
+    update public.profiles set skills = array[repeat('x', 1000)] where id = '00000000-0000-0000-0000-0000000000b1';
+    assert false, 'oversized skills accepted';
+  exception when check_violation then null; end;
+
+  -- projects / experience: client payloads work, id/timestamps are not writable
+  insert into public.profile_projects (user_id, title, description, url)
+    values ('00000000-0000-0000-0000-0000000000b1', 'Guarded', '', 'https://x.dev');
+  update public.profile_projects set title = 'Guarded 2', description = 'd', url = '' where title = 'Guarded';
+  get diagnostics n = row_count;  assert n = 1, 'project update (client column set) failed';
+  begin
+    update public.profile_projects set created_at = now() where title = 'Guarded 2';
+    assert false, 'user changed profile_projects.created_at';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.profile_projects (id, user_id, title) values (gen_random_uuid(), '00000000-0000-0000-0000-0000000000b1', 'Forced id');
+    assert false, 'user chose profile_projects.id';
+  exception when insufficient_privilege then null; end;
+  update public.profile_experience set title = 'Intern 2', organization = 'Acme', start_date = '2026-01-01', end_date = null, description = ''
+    where title = 'Intern';
+  get diagnostics n = row_count;  assert n = 1, 'experience update (client column set) failed';
+  begin
+    update public.profile_experience set user_id = '00000000-0000-0000-0000-0000000000b2' where title = 'Intern 2';
+    assert false, 'user moved an experience row';
+  exception when insufficient_privilege then null; end;
+  reset role;
+end $$;
+
+-- private functions: no PUBLIC execute on trigger fns / generate_handle; RLS helpers still callable
+do $$ begin
+  assert not has_function_privilege('authenticated', 'private.generate_handle(text)', 'execute'), 'authenticated can execute generate_handle';
+  assert not has_function_privilege('anon', 'private.handle_new_user()', 'execute'), 'anon can execute handle_new_user';
+  assert not has_function_privilege('authenticated', 'private.guard_society_update()', 'execute'), 'PUBLIC execute left on guard_society_update';
+  assert has_function_privilege('authenticated', 'private.is_super_admin()', 'execute'), 'authenticated lost is_super_admin';
+  assert has_function_privilege('anon', 'private.is_any_admin()', 'execute'), 'anon lost is_any_admin';
+  assert has_function_privilege('authenticated', 'private.is_society_admin(uuid)', 'execute'), 'authenticated lost is_society_admin';
+  assert has_function_privilege('authenticated', 'private.can_manage_media(text)', 'execute'), 'authenticated lost can_manage_media';
+end $$;
+
+-- the signup trigger fires even for a role without EXECUTE on it (triggers skip the EXECUTE check):
+-- strip it from the owner too for this transaction; long provider avatars are dropped
+revoke execute on function private.handle_new_user() from postgres;
+do $$ begin
+  assert not has_function_privilege('postgres', 'private.handle_new_user()', 'execute'), 'revoke from owner did not apply';
+end $$;
+insert into auth.users (id, email, aud, role, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000d1', 'grace@test.local', 'authenticated', 'authenticated',
+   jsonb_build_object('name', 'Grace Hopper', 'picture', 'https://lh3.googleusercontent.com/' || repeat('a', 600)));
+do $$ begin
+  assert (select handle from public.profiles where id = '00000000-0000-0000-0000-0000000000d1') = 'grace', 'signup without EXECUTE missing profile';
+  assert (select avatar_url from public.profiles where id = '00000000-0000-0000-0000-0000000000d1') is null, 'over-long provider avatar kept';
+  assert (select email from public.profile_private where user_id = '00000000-0000-0000-0000-0000000000d1') = 'grace@test.local', 'signup without EXECUTE missing private row';
+end $$;
+
 -- B2 cannot list B1's avatar objects
 do $$ declare n int; begin
   perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b2","role":"authenticated"}', true);

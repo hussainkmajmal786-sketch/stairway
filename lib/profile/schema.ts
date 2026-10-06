@@ -5,6 +5,7 @@ import { HANDLE_RE } from "./handle";
 const httpUrl = z.url({ protocol: /^https?$/, message: "Enter a full link starting with https://" });
 // Trimmed first, so a pasted link with trailing spaces still validates (and is stored trimmed).
 const optionalUrl = z.string().trim().pipe(z.union([z.literal(""), httpUrl]));
+const socialUrl = z.string().trim().max(300, "Keep links under 300 characters.").pipe(z.union([z.literal(""), httpUrl]));
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
@@ -34,8 +35,9 @@ export const ProfileDetailsSchema = z.object({
   headline: z.string().trim().max(120, "Keep the headline under 120 characters."),
   bio: z.string().trim().max(1500, "Keep the bio under 1500 characters."),
   skills: z.array(z.string().trim().min(1).max(30)).max(30, "Up to 30 skills."),
+  // Each link capped at 300 chars so the stored object stays under the DB's 2 KB `profiles_links_shape` limit.
   links: z.object({
-    linkedin: optionalUrl, github: optionalUrl, x: optionalUrl, instagram: optionalUrl, website: optionalUrl,
+    linkedin: socialUrl, github: socialUrl, x: socialUrl, instagram: socialUrl, website: socialUrl,
   }),
 });
 

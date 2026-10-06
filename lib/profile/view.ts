@@ -41,7 +41,7 @@ export function safeAvatarUrl(v: unknown, supabaseUrl: string = publicEnv.supaba
 }
 
 /**
- * `profiles.links` has no DB constraint, so anything could be stored there.
+ * The DB only checks that `profiles.links` is a small jsonb object, so its values are still untrusted.
  * Returns the known social links in display order, keeping only http(s) URLs.
  */
 export function safeLinks(raw: unknown): { key: SocialKey; url: string }[] {
