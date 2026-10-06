@@ -6,6 +6,7 @@ const ev = (slug: string, society: string, step: number, start: string, end: str
   id: slug, slug, step, title: slug, topic: "", summary: "", description: "", start, end, venue: "", mode: "offline",
   posterUrl: null, videoUrl: null, level: "Beginner", formats: [], agenda: [], outcomes: [], prerequisites: [], bring: [],
   seatsTotal: 10, seatsFilled: 3, pricePaise: 0, ticketType: "qr", tokenPrefix: "", isFinale: false, speakerIds: [],
+  registrationOpensAt: null, registrationClosesAt: null,
   resources: {}, winners: [], trackName: null,
   society: { id: society, slug: society, name: society, shortName: society, color: "yellow" },
 });

@@ -57,6 +57,8 @@ export interface EventView {
   pricePaise: number;
   ticketType: "qr" | "token";
   tokenPrefix: string;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
   isFinale: boolean;
   speakerIds: string[];
   resources: EventResources;

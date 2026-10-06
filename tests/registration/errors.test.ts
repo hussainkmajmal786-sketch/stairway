@@ -19,6 +19,10 @@ describe("errorFromDb", () => {
       expect(errorFromDb({ message: c, code: "P0001" }).code).toBe(c);
     }
   });
+  it("never sends a possibly unpublished event to its own page, and offers a reload for stale questions", () => {
+    expect(errorFromDb({ message: "event_not_found", code: "P0001" }).recovery).toBe("events");
+    expect(errorFromDb({ message: "invalid_answers", code: "P0001" }).recovery).toBe("reload");
+  });
   it("maps unique violations and permission errors", () => {
     expect(errorFromDb({ code: "23505", message: "duplicate key value" }).code).toBe("already_registered");
     expect(errorFromDb({ code: "42501", message: "permission denied for function register_for_event" }).code).toBe("not_signed_in");

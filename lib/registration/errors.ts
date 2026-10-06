@@ -5,7 +5,11 @@ export const REGISTRATION_ERROR_CODES = [
 ] as const;
 export type RegistrationErrorCode = (typeof REGISTRATION_ERROR_CODES)[number];
 
-export type Recovery = "retry" | "sign_in" | "onboarding" | "tickets" | "event" | "fix_fields";
+/**
+ * What the UI offers next. "event" links back to the (published) event page; "events" links to the schedule (used when
+ * the event itself may be gone, so we never link to a 404); "reload" reloads the page to pick up changed questions.
+ */
+export type Recovery = "retry" | "reload" | "sign_in" | "onboarding" | "tickets" | "event" | "events" | "fix_fields";
 
 export interface RegistrationError {
   code: RegistrationErrorCode;
@@ -16,11 +20,15 @@ export interface RegistrationError {
 const COPY: Record<RegistrationErrorCode, { message: string; recovery: Recovery }> = {
   not_signed_in: { message: "Your session has ended. Sign in again to continue.", recovery: "sign_in" },
   not_onboarded: { message: "Finish setting up your profile before registering.", recovery: "onboarding" },
-  event_not_found: { message: "We couldn't find this session. It may have been unpublished.", recovery: "event" },
+  event_not_found: { message: "We couldn't find this session. It may have been unpublished.", recovery: "events" },
   paid_event: { message: "Paid registration isn't open yet for this session.", recovery: "event" },
   not_open_yet: { message: "Registration for this session hasn't opened yet.", recovery: "event" },
   registration_closed: { message: "Registration for this session has closed.", recovery: "event" },
-  invalid_answers: { message: "Some answers need a look. Check the highlighted questions.", recovery: "fix_fields" },
+  // Only the RPC raises this, after the server already accepted the answers: the questions changed meanwhile.
+  invalid_answers: {
+    message: "The questions for this session have changed. Reload the page to see the latest form.",
+    recovery: "reload",
+  },
   invalid_input: { message: "A few fields need a look before you can register.", recovery: "fix_fields" },
   already_registered: { message: "You're already registered for this session.", recovery: "tickets" },
   registration_not_found: { message: "We couldn't find that registration.", recovery: "tickets" },
