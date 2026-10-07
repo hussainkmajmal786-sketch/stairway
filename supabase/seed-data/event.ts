@@ -40,13 +40,10 @@ export const event = {
   },
 
   registration: {
-    // "onsite"  → Register buttons open the built-in /register form.
+    // "onsite"  → Register buttons open each session's own page, /events/<slug>/register.
     // "external" → Register buttons go straight to `googleFormUrl`.
     mode: "onsite" as "onsite" | "external",
     googleFormUrl: "https://forms.gle/your-form-id",
-    // POST endpoint for the on-site form (Formspree, Google Apps Script,
-    // Getform…). Leave empty to run the form in demo mode.
-    endpoint: "",
   },
 
   newsletter: {

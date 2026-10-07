@@ -14,7 +14,7 @@ const ev = (slug: string, start: string, end: string, p: Partial<EventView> = {}
   ...p,
 });
 
-const ONSITE = { mode: "onsite" as const, googleFormUrl: "https://forms.gle/abc123", endpoint: "" };
+const ONSITE = { mode: "onsite" as const, googleFormUrl: "https://forms.gle/abc123" };
 const EXTERNAL = { ...ONSITE, mode: "external" as const };
 const NOW = Date.parse("2026-10-07T12:00:00+05:30");
 const past = ev("past-step", "2026-09-01T09:00:00+05:30", "2026-09-01T16:00:00+05:30");

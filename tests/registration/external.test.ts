@@ -18,7 +18,7 @@ describe("safeFormUrl", () => {
 });
 
 describe("externalRegistrationUrl", () => {
-  const reg = { mode: "external" as const, googleFormUrl: "https://forms.gle/abc123", endpoint: "" };
+  const reg = { mode: "external" as const, googleFormUrl: "https://forms.gle/abc123" };
   it("is the form URL only in external mode", () => {
     expect(externalRegistrationUrl(reg)).toBe("https://forms.gle/abc123");
     expect(externalRegistrationUrl({ ...reg, mode: "onsite" })).toBeNull();
