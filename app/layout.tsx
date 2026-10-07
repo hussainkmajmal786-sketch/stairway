@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { Space_Mono, Urbanist } from "next/font/google";
 import "./globals.css";
 import { getSiteData } from "@/lib/site/load";
@@ -76,11 +77,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <EasterEgg />
         {data.settings.gaId && (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${data.settings.gaId}`} strategy="afterInteractive" />
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(data.settings.gaId)}`} strategy="afterInteractive" />
             <Script id="ga" strategy="afterInteractive">
               {gaBootstrap(data.settings.gaId)}
             </Script>
-            <GaPageViews />
+            {/* useSearchParams needs a Suspense boundary; it renders nothing either way. */}
+            <Suspense fallback={null}>
+              <GaPageViews />
+            </Suspense>
           </>
         )}
       </body>
