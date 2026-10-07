@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { unstable_rethrow } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 import { cancelRegistration } from "@/lib/registration/actions";
 import { registrationError, type RegistrationError } from "@/lib/registration/errors";
@@ -9,14 +8,12 @@ import { ErrorPanel } from "@/components/registration/ErrorPanel";
 
 type Phase = "idle" | "confirming" | "busy" | "done";
 
-/** True for Next's redirect / not-found control-flow errors (a successful cancel redirects from the server). */
+/**
+ * True only for Next's redirect error (a successful cancel redirects from the server; the router still navigates).
+ * notFound / forbidden / bailout errors are not a successful cancel, so they don't count.
+ */
 function isNavigation(e: unknown): boolean {
-  try {
-    unstable_rethrow(e);
-    return false;
-  } catch {
-    return true;
-  }
+  return typeof e === "object" && e !== null && "digest" in e && String(e.digest).startsWith("NEXT_REDIRECT");
 }
 
 /**
