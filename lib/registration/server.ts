@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ATTENDEES_SHOWN, rowToAttendee } from "./attending";
 import { ACTIVE_STATUSES, type Attendee, type MyRegistration } from "./types";
-import { rowToTicket, TICKET_SELECT, toSummary, type TicketDetail, type TicketRow, type TicketSummary } from "./tickets";
+import { rowToSummary, rowToTicket, TICKET_LIST_SELECT, TICKET_SELECT, type TicketDetail, type TicketListRow, type TicketRow, type TicketSummary } from "./tickets";
 
 // Ids are checked as 8-4-4-4-12 hex (z.guid: Postgres accepts any version) so junk never reaches a query.
 // Reads run as the signed-in user (RLS: registrations are own rows only; event_attendees is signed-in only).
@@ -49,19 +49,18 @@ export async function getMyTickets(userId: string): Promise<TicketSummary[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("registrations")
-    .select(TICKET_SELECT)
+    .select(TICKET_LIST_SELECT)
     .eq("user_id", userId)
     .in("status", [...ACTIVE_STATUSES]);
   // Server-side only (error boundaries never show this text to the browser in production).
   if (error || !data) throw new Error(`Failed to load tickets: ${error?.message ?? "no data"}`);
-  return (data as unknown as TicketRow[])
-    .map(rowToTicket)
-    .filter((t): t is TicketDetail => t !== null)
-    .map(toSummary)
+  return (data as unknown as TicketListRow[])
+    .map(rowToSummary)
+    .filter((t): t is TicketSummary => t !== null)
     .sort((a, b) => Date.parse(a.event.start) - Date.parse(b.event.start));
 }
 
-/** One active ticket of the user (with its code), or null (not theirs, not active, malformed id, or unreadable). */
+/** One active ticket of the user (with its code), or null when there is no such ticket (not theirs, not active, malformed id). Throws if the read fails. */
 export async function getTicket(id: string, userId: string): Promise<TicketDetail | null> {
   if (!isUuid(id) || !isUuid(userId)) return null;
   const db = await createClient();
@@ -72,6 +71,8 @@ export async function getTicket(id: string, userId: string): Promise<TicketDetai
     .eq("user_id", userId)
     .in("status", [...ACTIVE_STATUSES])
     .maybeSingle();
-  if (error || !data) return null;
+  // A failed read must reach app/me/tickets/error.tsx (retry), not look like a missing ticket (404).
+  if (error) throw new Error(`Failed to load ticket: ${error.message}`);
+  if (!data) return null;
   return rowToTicket(data as unknown as TicketRow);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextTicket, rowToTicket, splitTickets, toSummary, type TicketRow, type TicketSummary } from "@/lib/registration/tickets";
+import { rowToSummary, rowToTicket, splitTickets, TICKET_LIST_SELECT, TICKET_SELECT, toSummary, type TicketRow, type TicketSummary } from "@/lib/registration/tickets";
 
 const row: TicketRow = {
   id: "r1", status: "confirmed", waitlist_position: null, ticket_code: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", token_number: 7, checked_in_at: null,
@@ -42,7 +42,7 @@ describe("rowToTicket", () => {
   });
 });
 
-describe("splitTickets / nextTicket", () => {
+describe("splitTickets", () => {
   const base = toSummary(rowToTicket(row)!);
   const mk = (id: string, start: string, end: string): TicketSummary => ({ ...base, id, event: { ...base.event, start, end } });
   const NOW = Date.parse("2026-10-10T06:00:00Z");
@@ -64,9 +64,20 @@ describe("splitTickets / nextTicket", () => {
     splitTickets(list, NOW);
     expect(list).toEqual(copy);
   });
-  it("picks the next ticket", () => {
-    expect(nextTicket(list, NOW)?.id).toBe("live");
-    expect(nextTicket([list[1]], NOW)).toBeNull();
-    expect(nextTicket([], NOW)).toBeNull();
+});
+
+describe("list select", () => {
+  it("never selects the ticket code or check-in time for lists", () => {
+    expect(TICKET_SELECT).toContain("ticket_code");
+    expect(TICKET_LIST_SELECT).not.toContain("ticket_code");
+    expect(TICKET_LIST_SELECT).not.toContain("checked_in_at");
+    expect(TICKET_LIST_SELECT).toContain("token_number");
+  });
+  it("rowToSummary maps a code-free row, or null when the event is hidden", () => {
+    const listRow = { id: row.id, status: row.status, waitlist_position: row.waitlist_position, token_number: row.token_number, event: row.event };
+    const s = rowToSummary(listRow)!;
+    expect(s.token).toBe("RAS-01-0007");
+    expect("ticketCode" in s).toBe(false);
+    expect(rowToSummary({ ...listRow, event: null })).toBeNull();
   });
 });

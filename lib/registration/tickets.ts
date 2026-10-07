@@ -6,6 +6,9 @@ import type { RegistrationStatus } from "./types";
 export const TICKET_SELECT =
   "id, status, waitlist_position, ticket_code, token_number, checked_in_at, event:events(id, slug, title, topic, step_number, starts_at, ends_at, price_paise, ticket_type, token_prefix, society:societies(short_name, color))";
 
+/** Lists never select the ticket code (the QR secret). */
+export const TICKET_LIST_SELECT = TICKET_SELECT.replace("ticket_code, ", "").replace("checked_in_at, ", "");
+
 export interface TicketRow {
   id: string;
   status: RegistrationStatus;
@@ -27,6 +30,8 @@ export interface TicketRow {
     society: { short_name: string; color: string } | null;
   } | null;
 }
+
+export type TicketListRow = Omit<TicketRow, "ticket_code" | "checked_in_at">;
 
 export interface TicketSummary {
   id: string;
@@ -83,6 +88,12 @@ export function rowToTicket(r: TicketRow): TicketDetail | null {
   };
 }
 
+/** Maps a list row (selected without the ticket code) to a summary; null when RLS hides the event. */
+export function rowToSummary(r: TicketListRow): TicketSummary | null {
+  const t = rowToTicket({ ...r, ticket_code: "", checked_in_at: null });
+  return t && toSummary(t);
+}
+
 /** Drops the ticket code (and check-in time) so lists never carry the QR secret. */
 export function toSummary(t: TicketDetail): TicketSummary {
   return {
@@ -102,8 +113,4 @@ export function splitTickets<T extends TicketSummary>(list: readonly T[], now: n
   const upcoming = list.filter((t) => !(Date.parse(t.event.end) < now)).sort((a, b) => startOf(a) - startOf(b));
   const past = list.filter((t) => Date.parse(t.event.end) < now).sort((a, b) => startOf(b) - startOf(a));
   return { upcoming, past };
-}
-
-export function nextTicket<T extends TicketSummary>(list: readonly T[], now: number): T | null {
-  return splitTickets(list, now).upcoming[0] ?? null;
 }

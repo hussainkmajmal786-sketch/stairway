@@ -104,4 +104,16 @@ describe("server reads", () => {
     fakeDb({ data: null, error: null });
     expect(await getTicket(RID, UID)).toBeNull();
   });
+
+  it("getTicket throws on a DB error (retry boundary) instead of returning null (404)", async () => {
+    fakeDb({ data: null, error: { message: "boom" } });
+    await expect(getTicket(RID, UID)).rejects.toThrow();
+  });
+
+  it("getMyTickets does not select ticket_code", async () => {
+    const calls = fakeDb({ data: [ticketRow()], error: null });
+    await getMyTickets(UID);
+    const sel = calls.find((c) => c[0] === "select");
+    expect(String(sel?.[1])).not.toContain("ticket_code");
+  });
 });
