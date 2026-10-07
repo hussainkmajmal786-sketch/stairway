@@ -19,8 +19,12 @@ import { Community } from "@/components/sections/Community";
 import { getSiteData } from "@/lib/site/load";
 import { eventJsonLd, JsonLd } from "@/lib/jsonld";
 
+// Request-time clock (the root layout is force-dynamic); a helper so render stays lint-pure.
+const requestNow = () => Date.now();
+
 export default async function Home() {
   const { settings, events } = await getSiteData();
+  const now = requestNow();
   return (
     <>
       <JsonLd
@@ -31,7 +35,7 @@ export default async function Home() {
           description: settings.description,
           url: settings.siteUrl,
           organizer: { "@type": "Organization", name: settings.organizer.name, url: settings.organizer.url },
-          subEvent: events.map((e) => eventJsonLd(e, settings)),
+          subEvent: events.map((e) => eventJsonLd(e, settings, now)),
         }}
       />
       <Hero />
