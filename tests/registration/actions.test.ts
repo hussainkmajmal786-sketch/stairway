@@ -172,6 +172,22 @@ describe("registerForEvent", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/me", "layout");
   });
 
+  it("keeps a committed registration successful when revalidation throws", async () => {
+    signedIn();
+    fakeDb(
+      { events: openEvent(), ...savedOk },
+      { register_for_event: { data: { registration_id: RID, status: "confirmed", waitlist_position: null }, error: null } },
+    );
+    vi.mocked(revalidatePath).mockImplementation(() => {
+      throw new Error("cache down");
+    });
+    try {
+      expect(await registerForEvent("seeing-machines", values)).toEqual({ ok: true, registrationId: RID, status: "confirmed" });
+    } finally {
+      vi.mocked(revalidatePath).mockReset();
+    }
+  });
+
   it("treats a zero-row profile write as a failure and does not register", async () => {
     signedIn();
     for (const broken of [
@@ -287,6 +303,23 @@ describe("cancelRegistration", () => {
     // Revalidation runs before the redirect.
     const lastRevalidate = Math.max(...vi.mocked(revalidatePath).mock.invocationCallOrder);
     expect(lastRevalidate).toBeLessThan(vi.mocked(redirect).mock.invocationCallOrder[0]);
+  });
+
+  it("still redirects when revalidation throws (the cancel committed)", async () => {
+    signedIn();
+    fakeDb(
+      { registrations: { data: { event: { slug: "seeing-machines" } }, error: null } },
+      { cancel_registration: { data: { registration_id: RID, event_id: EID, promoted: 0 }, error: null } },
+    );
+    vi.mocked(revalidatePath).mockImplementation(() => {
+      throw new Error("cache down");
+    });
+    try {
+      await expect(cancelRegistration(RID)).rejects.toThrow("NEXT_REDIRECT");
+      expect(redirect).toHaveBeenCalledWith("/me/tickets?cancelled=1", "replace");
+    } finally {
+      vi.mocked(revalidatePath).mockReset();
+    }
   });
 
   it("still redirects when the RPC result shape is unexpected (the cancel committed)", async () => {

@@ -46,12 +46,23 @@ function fromThrown(e: unknown): RegistrationError {
     : registrationError("unknown");
 }
 
-function revalidateEvent(slug: string | null) {
-  if (slug) {
-    revalidatePath(`/events/${slug}`);
-    revalidatePath(`/events/${slug}/register`);
+/** Cache invalidation is best effort: it runs after the write committed, so a failure here must never change the result. */
+function bestEffort(revalidate: () => void) {
+  try {
+    revalidate();
+  } catch {
+    // Stale pages fix themselves on the next request (every page is rendered per request).
   }
-  revalidatePath("/me", "layout");
+}
+
+function revalidateEvent(slug: string | null) {
+  bestEffort(() => {
+    if (slug) {
+      revalidatePath(`/events/${slug}`);
+      revalidatePath(`/events/${slug}/register`);
+    }
+    revalidatePath("/me", "layout");
+  });
 }
 
 /**
@@ -169,12 +180,14 @@ async function cancelOwnRegistration(
     const ev = own?.event as { slug?: unknown } | null | undefined;
     const slug = typeof ev?.slug === "string" && SlugSchema.safeParse(ev.slug).success ? ev.slug : null;
     // Only what shows this registration: the event's seat count / CTA and the /me pages (not the ticket itself).
-    if (slug) {
-      revalidatePath(`/events/${slug}`);
-      revalidatePath(`/events/${slug}/register`);
-    }
-    revalidatePath("/me");
-    revalidatePath("/me/tickets");
+    bestEffort(() => {
+      if (slug) {
+        revalidatePath(`/events/${slug}`);
+        revalidatePath(`/events/${slug}/register`);
+      }
+      revalidatePath("/me");
+      revalidatePath("/me/tickets");
+    });
     // The cancellation committed; only the promotion count is unknown if the shape is unexpected.
     return { ok: true, promoted: res.success ? res.data.promoted : 0 };
   } catch (e) {
