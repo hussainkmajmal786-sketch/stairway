@@ -60,7 +60,7 @@ Registration is per session at `/events/<slug>/register` (signed-in, onboarded m
 The newsletter box posts to `newsletter.endpoint` (demo mode while it is empty).
 
 ### Analytics
-Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares, sign-ups and completed registrations are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
+Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares and sign-ups are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
 
 ---
 
@@ -79,7 +79,7 @@ Sign-in is **Google only** for now. The email-code form is built but hidden: fli
 
 ## 3c. Registration & tickets
 
-- Users never write the `registrations` table. Two RPCs do: `register_for_event(event_id, answers)` and `cancel_registration(registration_id)` (security definer). Each locks the event row, so capacity is never exceeded, token numbers stay unique and waitlist order is first-come-first-served.
+- Users never write the `registrations` table. Two RPCs do: `register_for_event(event_id, answers)` and `cancel_registration(registration_id)`. The public functions are security-invoker wrappers over security-definer bodies in the private schema. Each locks the event row, so capacity is never exceeded, token numbers stay unique and waitlist order is first-come-first-served.
 - Full sessions take a waitlist. When a confirmed attendee cancels, waitlist #1 is confirmed immediately inside the cancel RPC. **No emails are sent yet** (no sending domain); the ticket page and My tickets always show the current status.
 - Tickets: QR tickets encode only an opaque 26-character code (no personal data); token tickets show `PREFIX-0042`. `/me/tickets` lists upcoming and past tickets; each ticket can be downloaded as a PNG, added to a calendar, and cancelled (free sessions, before the start).
 - The event page has a "Who's going" panel with an "N attending" line. Signed-in members see names, photos and headlines for the first 24 attendees (from the `event_attendees` view); anonymous visitors only see the count.
