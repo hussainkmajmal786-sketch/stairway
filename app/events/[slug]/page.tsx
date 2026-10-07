@@ -5,9 +5,9 @@ import { pad2 } from "@/lib/weekends";
 import { WeekendDetail } from "@/components/weekend/WeekendDetail";
 import { eventJsonLd, JsonLd } from "@/lib/jsonld";
 import { getAuthState } from "@/lib/auth/session";
-import { ctaEvent, ctaState } from "@/lib/registration/cta";
+import { ctaEvent, ctaState, loginPath } from "@/lib/registration/cta";
 import { externalRegistrationUrl } from "@/lib/registration/external";
-import { getMyRegistration } from "@/lib/registration/server";
+import { getAttendees, getMyRegistration } from "@/lib/registration/server";
 
 const findEvent = async (slug: string) => {
   const data = await getSiteData();
@@ -41,7 +41,14 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
   const ended = Date.parse(ev.end) < now;
   // Own row only (RLS + user_id filter) and only id/status/waitlist position: no ticket code reaches this page.
   // A finished session shows its "Climbed" panel instead of a CTA, so it needs no lookup.
-  const registration = auth.user && !ended ? await getMyRegistration(ev.id, auth.user.id) : null;
+  // The attendee list is members-only: signed-out visitors trigger no query and get only the public seat count.
+  // A failed list read degrades to the count (null), never a broken page.
+  const [registration, attendees] = auth.user
+    ? await Promise.all([
+        ended ? null : getMyRegistration(ev.id, auth.user.id),
+        getAttendees(ev.id).catch(() => null),
+      ])
+    : [null, null];
   const cta = ctaState({
     now,
     event: ctaEvent(ev),
@@ -52,7 +59,17 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
   return (
     <>
       <JsonLd data={eventJsonLd(ev, data.settings, now)} />
-      <WeekendDetail slug={slug} cta={cta} />
+      <WeekendDetail
+        slug={slug}
+        cta={cta}
+        attending={{
+          count: ev.seatsFilled,
+          signedIn: !!auth.user,
+          attendees: auth.user ? attendees : null,
+          signInHref: loginPath(`/events/${ev.slug}`),
+          ended,
+        }}
+      />
     </>
   );
 }

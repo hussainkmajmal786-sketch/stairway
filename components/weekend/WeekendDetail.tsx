@@ -17,6 +17,7 @@ import { SOCIETY_FILL } from "@/lib/events/colors";
 import { societyStairway } from "@/lib/events/status";
 import { daysUntil, longDate, pad2, timeOf } from "@/lib/weekends";
 import { RegisterCta } from "@/components/registration/RegisterCta";
+import { AttendingPanel, type AttendingProps } from "@/components/registration/AttendingPanel";
 import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import type { CtaState } from "@/lib/registration/cta";
 import { downloadIcs, googleCalendarUrl } from "@/lib/calendar";
@@ -33,8 +34,11 @@ function Block({ title, Icon, children, id, fill = "bg-paper-2" }: { title: stri
   );
 }
 
-/** `cta` is computed on the server for this request (the viewer's own registration + public seat counts). */
-export function WeekendDetail({ slug, cta }: { slug: string; cta: CtaState }) {
+/**
+ * `cta` and `attending` are computed on the server for this request (the viewer's own registration, public seat
+ * counts, and, for signed-in members only, the confirmed attendee list).
+ */
+export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: CtaState; attending: AttendingProps }) {
   const { settings: event, speakers: allSpeakers, gallery } = useSiteData();
   const registerHref = useRegisterHref();
   const speakerById = (id: string) => allSpeakers.find((s) => s.id === id);
@@ -238,6 +242,7 @@ export function WeekendDetail({ slug, cta }: { slug: string; cta: CtaState }) {
               </>
             )}
           </div>
+          <AttendingPanel {...attending} />
           <div className="box p-6 shadow-hard" data-reveal>
             <p className="mono mb-3 font-bold">Share this step</p>
             <ShareButtons path={`/events/${w.slug}`} text={`st(AI)rway Step ${pad2(w.step)}: ${w.title} — ${w.topic}`} />
