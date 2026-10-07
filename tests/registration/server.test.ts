@@ -15,7 +15,7 @@ type Res = { data: unknown; error: unknown };
 function fakeDb(result: Res) {
   const calls: unknown[][] = [];
   const b: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "in", "order"]) {
+  for (const m of ["select", "eq", "in", "order", "limit"]) {
     b[m] = (...args: unknown[]) => {
       calls.push([m, ...args]);
       return b;
@@ -66,6 +66,13 @@ describe("server reads", () => {
       error: null,
     });
     expect(await getAttendees(EID)).toEqual([{ handle: "asha", fullName: "Asha", avatarUrl: undefined, headline: "" }]);
+    const calls = fakeDb({ data: [], error: null });
+    await getAttendees(EID, 500);
+    expect(calls).toContainEqual(["from", "event_attendees"]);
+    expect(calls).toContainEqual(["eq", "event_id", EID]);
+    // Deterministic order (handle is unique) and a hard cap however large the request.
+    expect(calls.filter((c) => c[0] === "order")).toEqual([["order", "full_name"], ["order", "handle"]]);
+    expect(calls).toContainEqual(["limit", 24]);
     fakeDb({ data: null, error: { message: "boom" } });
     expect(await getAttendees(EID)).toBeNull();
   });

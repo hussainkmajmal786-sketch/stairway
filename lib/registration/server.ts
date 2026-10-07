@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { safeAvatarUrl } from "@/lib/profile/view";
+import { ATTENDEES_SHOWN, rowToAttendee } from "./attending";
 import { ACTIVE_STATUSES, type Attendee, type MyRegistration } from "./types";
 import { rowToTicket, TICKET_SELECT, toSummary, type TicketDetail, type TicketRow, type TicketSummary } from "./tickets";
 
@@ -25,24 +25,22 @@ export async function getMyRegistration(eventId: string, userId: string): Promis
   return { id: data.id, status: data.status, waitlistPosition: data.waitlist_position };
 }
 
-/** Confirmed attendees (public profile fields only), by name. Null when the list could not be loaded. */
-export async function getAttendees(eventId: string): Promise<Attendee[] | null> {
+/**
+ * Confirmed attendees (public profile fields only), by name then handle (unique, so the order is stable),
+ * at most `limit` rows so a big event stays light. Null when the list could not be loaded.
+ */
+export async function getAttendees(eventId: string, limit: number = ATTENDEES_SHOWN): Promise<Attendee[] | null> {
   if (!isUuid(eventId)) return null;
   const db = await createClient();
   const { data, error } = await db
     .from("event_attendees")
     .select("handle, full_name, avatar_url, headline")
     .eq("event_id", eventId)
-    .order("full_name");
+    .order("full_name")
+    .order("handle")
+    .limit(Math.max(1, Math.min(limit, ATTENDEES_SHOWN)));
   if (error || !data) return null;
-  return data
-    .filter((a): a is typeof a & { handle: string } => typeof a.handle === "string" && a.handle.length > 0)
-    .map((a) => ({
-      handle: a.handle,
-      fullName: a.full_name ?? "",
-      avatarUrl: safeAvatarUrl(a.avatar_url),
-      headline: a.headline ?? "",
-    }));
+  return data.map((r) => rowToAttendee(r)).filter((a): a is Attendee => a !== null);
 }
 
 /** All active tickets of the user, without ticket codes, soonest first. Throws if they could not be loaded. */
