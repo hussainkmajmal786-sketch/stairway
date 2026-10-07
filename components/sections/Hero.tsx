@@ -6,7 +6,7 @@ import { Countdown } from "@/components/ui/Countdown";
 import { Button } from "@/components/ui/Button";
 import { useClock } from "@/components/providers/ClockProvider";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
-import { pad2, registerHref, shortDate, timeOf } from "@/lib/weekends";
+import { openSlug, pad2, registerHref, shortDate, timeOf } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
 
 // number colours cycle through the text-safe accents
@@ -36,7 +36,7 @@ export function Hero() {
         </p>
 
         <div className="fade-up mt-9 flex flex-col gap-3 sm:flex-row" style={{ ["--d" as string]: 3 }}>
-          <Button href={registerHref(next?.slug)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
+          <Button href={registerHref(openSlug(next), event.registration)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
             Claim your step <ArrowRight size={18} strokeWidth={2} />
           </Button>
           <Button href="#societies" variant="ghost" size="lg">

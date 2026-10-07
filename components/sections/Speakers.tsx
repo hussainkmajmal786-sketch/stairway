@@ -10,7 +10,7 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Linkedin, XLogo } from "@/components/ui/BrandIcons";
-import { pad2, registerHref, shortDate } from "@/lib/weekends";
+import { openSlug, pad2, registerHref, shortDate } from "@/lib/weekends";
 import { track } from "@/lib/analytics";
 
 function SocialLinks({ s }: { s: Speaker }) {
@@ -90,7 +90,7 @@ export function Speakers() {
             <p className="mt-1 text-2xl font-semibold">Learn from them this weekend.</p>
             <p className="mt-1 text-sm text-ink-2">{next.seatsLeft} of {next.seatsTotal} seats left for {next.title}.</p>
           </div>
-          <Link href={registerHref(next.slug)} className="btn btn-ink shrink-0" onClick={() => track("register_click", { from: "speakers" })}>
+          <Link href={registerHref(openSlug(next), event.registration)} className="btn btn-ink shrink-0" onClick={() => track("register_click", { from: "speakers" })}>
             Claim your step <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>

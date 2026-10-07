@@ -9,11 +9,13 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { nextForSociety } from "@/lib/events/status";
 import { SOCIETY_FILL } from "@/lib/events/colors";
 import { quiz, quizLevel } from "@/data/tracks";
-import { pad2, registerHref, shortDate } from "@/lib/weekends";
+import { pad2, shortDate } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
+import { useRegisterHref } from "@/components/registration/useRegisterHref";
 
 function Quiz() {
   const { weekends } = useClock();
+  const registerHref = useRegisterHref();
   const [i, setI] = useState(0);
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);

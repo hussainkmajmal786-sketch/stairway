@@ -5,10 +5,12 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { Countdown } from "@/components/ui/Countdown";
 import { Button } from "@/components/ui/Button";
 import { SeatsBar } from "@/components/ui/Badges";
-import { pad2, registerHref } from "@/lib/weekends";
+import { openSlug, pad2 } from "@/lib/weekends";
+import { useRegisterHref } from "@/components/registration/useRegisterHref";
 
 export function FinalCTA() {
   const { next } = useClock();
+  const registerHref = useRegisterHref();
   if (!next) {
     return (
       <section id="register" aria-labelledby="cta-title" className="border-y-2 border-ink bg-yellow">
@@ -36,7 +38,7 @@ export function FinalCTA() {
           <p className="mono mb-4 font-bold">Doors open in</p>
           <Countdown target={next.start} size="md" />
           <SeatsBar seatsLeft={next.seatsLeft} seatsTotal={next.seatsTotal} className="mt-6" />
-          <Button href={registerHref(next.slug)} variant="ink" size="lg" className="mt-6 w-full" trackAs="register_click" trackProps={{ from: "final_cta" }}>
+          <Button href={registerHref(openSlug(next))} variant="ink" size="lg" className="mt-6 w-full" trackAs="register_click" trackProps={{ from: "final_cta" }}>
             Register now <ArrowUpRight size={20} strokeWidth={2} />
           </Button>
         </div>

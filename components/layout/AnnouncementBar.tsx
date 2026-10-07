@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { useClock } from "@/components/providers/ClockProvider";
-import { pad2, registerHref } from "@/lib/weekends";
+import { openSlug, pad2, registerHref } from "@/lib/weekends";
 import { readStorage, useClientValue } from "@/lib/hooks";
 
 const KEY = "stairway-announce-dismissed";
@@ -23,7 +23,7 @@ export function AnnouncementBar() {
   return (
     <div className="relative border-b-2 border-ink bg-ink text-paper">
       <div className="wrap flex min-h-10 items-center justify-center py-1.5 pr-12 text-center">
-        <Link href={registerHref(next.slug)} className="mono inline-flex min-h-9 items-center gap-2 text-[0.7rem] font-bold hover:text-yellow">
+        <Link href={registerHref(openSlug(next), event.registration)} className="mono inline-flex min-h-9 items-center gap-2 text-[0.7rem] font-bold hover:text-yellow">
           <span className="tag tag-yellow !py-0.5">Open</span>
           {text}
           <ArrowRight size={14} strokeWidth={2} aria-hidden />

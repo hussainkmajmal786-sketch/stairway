@@ -89,7 +89,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
               <FolderOpen size={16} strokeWidth={2} aria-hidden /> Resources
             </Link>
           ) : (
-            <Link href={registerHref(w.slug)} className="btn btn-sm btn-primary">
+            <Link href={registerHref(w.slug, event.registration)} className="btn btn-sm btn-primary">
               {w.status === "next" ? "Claim your step" : "Register"} <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
             </Link>
           )}

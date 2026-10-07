@@ -55,10 +55,9 @@ Use WebP/AVIF where you can; `next/image` handles resizing and lazy loading.
 In the `registration` object in the `settings` site block:
 
 - `mode: "external"` sends every Register button straight to `googleFormUrl`.
-- `mode: "onsite"` (default) uses the built-in form at `/register`, with validation, a success screen, confetti, add-to-calendar and a WhatsApp button. Set `registration.endpoint` to any service that accepts a JSON POST (Formspree, Getform, a Google Apps Script web app, etc.).
-  **While `endpoint` is empty the form runs in demo mode:** it shows success but sends nothing, and says so on screen.
+- `mode: "onsite"` (default) uses each session's own registration page at `/events/<slug>/register` (sign-in required; tickets in `/me/tickets`). The old `/register` URL redirects to the next open session. `registration.endpoint` is no longer used.
 
-The newsletter box works the same way via `newsletter.endpoint`.
+The newsletter box posts to `newsletter.endpoint` (demo mode while it is empty).
 
 ### Analytics
 Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares, sign-ups and completed registrations are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
