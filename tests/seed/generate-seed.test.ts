@@ -114,3 +114,10 @@ describe("validateSeedInputs", () => {
   it("rejects gallery items with no matching event", () =>
     expect(() => run(ok, () => undefined)).toThrow(/does not resolve to an event/));
 });
+
+describe("committed supabase/seed.sql", () => {
+  it("is up to date with the generator (run `npm run seed:generate`)", () => {
+    const committed = readFileSync(path.resolve(process.cwd(), "supabase/seed.sql"), "utf8").replace(/\r\n/g, "\n");
+    expect(committed).toBe(buildSeedSql());
+  });
+});
