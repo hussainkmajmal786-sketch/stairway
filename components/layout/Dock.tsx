@@ -8,6 +8,7 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import { openSlug } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
+import { SmartLink } from "@/components/ui/SmartLink";
 
 interface Item {
   id: string;
@@ -93,7 +94,7 @@ export function Dock() {
           );
         })}
         <li>
-          <Link
+          <SmartLink
             href={registerHref(openSlug(next))}
             aria-label="Register"
             aria-current={active === "register" ? "page" : undefined}
@@ -101,7 +102,7 @@ export function Dock() {
           >
             <Ticket size={19} strokeWidth={2} aria-hidden />
             <span className="hidden sm:inline">Register</span>
-          </Link>
+          </SmartLink>
         </li>
       </ul>
     </nav>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EventView } from "@/lib/events/types";
 import { legacyRegisterTarget } from "@/lib/registration/legacy";
+import { isExternalHref } from "@/lib/registration/external";
 import { openSlug, registerHref, SESSIONS_HREF } from "@/lib/weekends";
 
 const ev = (slug: string, start: string, end: string, p: Partial<EventView> = {}): EventView => ({
@@ -69,4 +70,16 @@ describe("legacyRegisterTarget", () => {
   });
   it("uses the external form in external mode", () =>
     expect(legacyRegisterTarget({ ...base, step: "past-step", registration: EXTERNAL })).toBe("https://forms.gle/abc123"));
+});
+
+describe("isExternalHref", () => {
+  it("is true only for absolute http(s) URLs, so external Register links open in a new tab everywhere", () => {
+    expect(isExternalHref(registerHref("x", EXTERNAL))).toBe(true);
+    expect(isExternalHref(registerHref(null, EXTERNAL))).toBe(true);
+    expect(isExternalHref("HTTPS://forms.gle/abc")).toBe(true);
+    expect(isExternalHref(registerHref("x", ONSITE))).toBe(false);
+    expect(isExternalHref("/events/x/register")).toBe(false);
+    expect(isExternalHref("/#societies")).toBe(false);
+    expect(isExternalHref("//evil.example/x")).toBe(false);
+  });
 });

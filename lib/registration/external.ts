@@ -23,3 +23,8 @@ export function externalRegistrationUrl(reg: Settings["registration"]): string |
 export function fallbackFormUrl(reg: Settings["registration"]): string | null {
   return safeFormUrl(reg.googleFormUrl);
 }
+
+/** An absolute http(s) link. Register links that resolve to the external form must open in a new tab everywhere. */
+export function isExternalHref(href: string): boolean {
+  return /^https?:\/\//i.test(href);
+}

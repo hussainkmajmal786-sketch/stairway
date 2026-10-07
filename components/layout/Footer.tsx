@@ -8,6 +8,7 @@ import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import { openSlug } from "@/lib/weekends";
 import { StairMark, Wordmark } from "@/components/ui/Logo";
 import { Instagram, Linkedin, Whatsapp, Youtube, Github } from "@/components/ui/BrandIcons";
+import { SmartLink } from "@/components/ui/SmartLink";
 
 const SOCIALS = [
   { key: "instagram", Icon: Instagram, label: "Instagram" },
@@ -66,7 +67,7 @@ export function Footer() {
                 ["/#faq", "FAQ"],
                 [registerHref(openSlug(next)), "Register"],
               ].map(([href, label]) => (
-                <li key={label}><Link href={href} className={link}>{label}</Link></li>
+                <li key={label}><SmartLink href={href} className={link}>{label}</SmartLink></li>
               ))}
             </ul>
           </nav>
