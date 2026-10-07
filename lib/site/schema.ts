@@ -16,7 +16,8 @@ export const SettingsSchema = z.object({
   }),
   registration: z.object({ mode: z.enum(["onsite", "external"]), googleFormUrl: link, endpoint: z.string() }),
   newsletter: z.object({ endpoint: z.string() }),
-  gaId: z.string(),
+  // GA4 / Google tag / Ads / UA id, or "" (off). Anything else reads as "" so a typo disables GA instead of the site.
+  gaId: z.union([z.literal(""), z.string().regex(/^(G|GT|AW|UA)-[A-Z0-9-]+$/)]).catch(""),
   announcement: z.object({ enabled: z.boolean(), text: z.string() }),
   aftermovieUrl: link,
   sponsorDeckUrl: z.string(),
