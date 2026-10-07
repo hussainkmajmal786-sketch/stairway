@@ -47,7 +47,7 @@ export function eventJsonLd(w: EventView, settings: Settings, now: number) {
       price: (w.pricePaise / 100).toFixed(2).replace(/\.00$/, ""),
       priceCurrency: "INR",
       availability: offerAvailability(w, now),
-      validFrom: w.registrationOpensAt ?? "2026-08-01T00:00:00+05:30",
+      ...(w.registrationOpensAt ? { validFrom: w.registrationOpensAt } : {}),
     },
   };
 }
