@@ -6,7 +6,8 @@ const row: EventRow = {
   starts_at: "2026-10-10T04:00:00+00:00", ends_at: "2026-10-10T11:00:00+00:00", venue: "Hall A", mode: "offline",
   poster_url: null, video_url: "https://youtu.be/x", level: "Intermediate", formats: ["Lab"],
   agenda: [{ time: "09:30", title: "Check-in" }], outcomes: ["o"], prerequisites: [], bring: [],
-  capacity: 60, price_paise: 9900, ticket_type: "token", token_prefix: "RAS-01", is_finale: false,
+  capacity: 60, price_paise: 9900, ticket_type: "token", token_prefix: "RAS-01",
+  registration_opens_at: "2026-10-01T09:00:00+05:30", registration_closes_at: null, is_finale: false,
   resources: { slides: "https://x" }, winners: [],
   society: { id: "s1", slug: "ras", name: "IEEE RAS", short_name: "RAS", color: "green" },
   track: { name: "AI × Computer Vision" },
@@ -22,6 +23,8 @@ describe("rowToEventView", () => {
     expect(v.ticketType).toBe("token");
     expect(v.society).toEqual({ id: "s1", slug: "ras", name: "IEEE RAS", shortName: "RAS", color: "green" });
     expect(v.trackName).toBe("AI × Computer Vision");
+    expect(v.registrationOpensAt).toBe("2026-10-01T09:00:00+05:30");
+    expect(v.registrationClosesAt).toBeNull();
   });
   it("orders speakers and sets seat counts", () => {
     expect(v.speakerIds).toEqual(["a", "b"]);

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LayoutDashboard, LogOut, Settings, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, LogOut, Settings, Ticket, UserRound, type LucideIcon } from "lucide-react";
+import { isNavActive } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
 
 interface NavItem { href: string; label: string; Icon: LucideIcon; exact?: boolean }
@@ -13,6 +14,8 @@ const NAV = {
     title: "Your dashboard",
     items: [
       { href: "/me", label: "Overview", Icon: LayoutDashboard, exact: true },
+      // Not exact: a single ticket (/me/tickets/<id>) keeps "My tickets" active.
+      { href: "/me/tickets", label: "My tickets", Icon: Ticket },
       { href: "/me/profile", label: "Profile", Icon: UserRound },
       { href: "/me/settings", label: "Settings", Icon: Settings },
     ],
@@ -23,9 +26,6 @@ export type DashboardVariant = keyof typeof NAV;
 
 const itemCls =
   "flex h-12 shrink-0 items-center gap-2 border-2 border-ink px-4 font-mono text-xs font-bold uppercase tracking-[0.12em] transition-colors";
-
-const isActive = (pathname: string, href: string, exact?: boolean) =>
-  exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
 /** Sidebar layout for dashboards. The first control in the sidebar always closes the dashboard (back to the site home). */
 export function DashboardShell({ variant, children }: { variant: DashboardVariant; children: React.ReactNode }) {
@@ -41,7 +41,7 @@ export function DashboardShell({ variant, children }: { variant: DashboardVarian
         <p className="mono mb-3 hidden font-bold text-ink-3 lg:block">{title}</p>
         <nav aria-label={title} className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-col lg:overflow-visible">
           {items.map(({ href, label, Icon, exact }) => {
-            const active = isActive(pathname, href, exact);
+            const active = isNavActive(pathname, href, exact);
             return (
               <Link
                 key={href}

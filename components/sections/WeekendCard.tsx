@@ -9,6 +9,7 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { SOCIETY_FILL } from "@/lib/events/colors";
 import { cn } from "@/lib/utils";
+import { SmartLink } from "@/components/ui/SmartLink";
 
 /** One step of the stairway, laid out like an event listing. */
 export function WeekendRow({ w }: { w: WeekendWithStatus }) {
@@ -89,9 +90,9 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
               <FolderOpen size={16} strokeWidth={2} aria-hidden /> Resources
             </Link>
           ) : (
-            <Link href={registerHref(w.slug)} className="btn btn-sm btn-primary">
+            <SmartLink href={registerHref(w.slug, event.registration)} className="btn btn-sm btn-primary">
               {w.status === "next" ? "Claim your step" : "Register"} <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
-            </Link>
+            </SmartLink>
           )}
           <Link href={`/events/${w.slug}`} className="btn btn-sm btn-ghost">
             <Clock size={16} strokeWidth={2} aria-hidden /> Details

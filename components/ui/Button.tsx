@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode, MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
+import { isExternalHref } from "@/lib/registration/external";
 
 interface Props {
   href?: string;
@@ -43,7 +44,7 @@ export function Button({
   const cls = cn("btn", `btn-${variant}`, size !== "md" && `btn-${size}`, className);
 
   if (href) {
-    if (external ?? /^https?:/.test(href))
+    if (external ?? isExternalHref(href))
       return (
         <a href={href} target="_blank" rel="noopener noreferrer" className={cls} onClick={handleClick} aria-label={ariaLabel}>
           {children}

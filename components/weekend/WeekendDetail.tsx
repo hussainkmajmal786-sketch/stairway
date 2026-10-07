@@ -15,7 +15,11 @@ import { Github } from "@/components/ui/BrandIcons";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { SOCIETY_FILL } from "@/lib/events/colors";
 import { societyStairway } from "@/lib/events/status";
-import { daysUntil, longDate, pad2, registerHref, timeOf } from "@/lib/weekends";
+import { daysUntil, longDate, pad2, timeOf } from "@/lib/weekends";
+import { RegisterCta } from "@/components/registration/RegisterCta";
+import { AttendingPanel, type AttendingProps } from "@/components/registration/AttendingPanel";
+import { useRegisterHref } from "@/components/registration/useRegisterHref";
+import type { CtaState } from "@/lib/registration/cta";
 import { downloadIcs, googleCalendarUrl } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +34,13 @@ function Block({ title, Icon, children, id, fill = "bg-paper-2" }: { title: stri
   );
 }
 
-export function WeekendDetail({ slug }: { slug: string }) {
+/**
+ * `cta` and `attending` are computed on the server for this request (the viewer's own registration, public seat
+ * counts, and, for signed-in members only, the confirmed attendee list).
+ */
+export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: CtaState; attending: AttendingProps }) {
   const { settings: event, speakers: allSpeakers, gallery } = useSiteData();
+  const registerHref = useRegisterHref();
   const speakerById = (id: string) => allSpeakers.find((s) => s.id === id);
   const { weekends, now } = useClock();
   const w = weekends.find((e) => e.slug === slug)!;
@@ -219,9 +228,9 @@ export function WeekendDetail({ slug }: { slug: string }) {
                 <div className="mt-6 border-2 border-ink bg-paper p-3">
                   <SeatsBar seatsLeft={w.seatsLeft} seatsTotal={w.seatsTotal} />
                 </div>
-                <Button href={registerHref(w.slug)} variant="ink" size="lg" className="mt-6 w-full" trackAs="register_click" trackProps={{ from: "weekend_page", step: w.step }}>
-                  Claim your step <ArrowRight size={18} strokeWidth={2} />
-                </Button>
+                <div className="mt-6">
+                  <RegisterCta state={cta} step={w.step} />
+                </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
                     <CalendarPlus size={16} strokeWidth={2} /> Google
@@ -233,6 +242,7 @@ export function WeekendDetail({ slug }: { slug: string }) {
               </>
             )}
           </div>
+          <AttendingPanel {...attending} />
           <div className="box p-6 shadow-hard" data-reveal>
             <p className="mono mb-3 font-bold">Share this step</p>
             <ShareButtons path={`/events/${w.slug}`} text={`st(AI)rway Step ${pad2(w.step)}: ${w.title} — ${w.topic}`} />

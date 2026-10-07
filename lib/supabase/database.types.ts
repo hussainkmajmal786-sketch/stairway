@@ -67,13 +67,6 @@ export type Database = {
             foreignKeyName: "event_speakers_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_seat_counts"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_speakers_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -103,6 +96,7 @@ export type Database = {
           poster_url: string | null
           prerequisites: string[]
           price_paise: number
+          questions: Json
           registration_closes_at: string | null
           registration_opens_at: string | null
           resources: Json
@@ -138,6 +132,7 @@ export type Database = {
           poster_url?: string | null
           prerequisites?: string[]
           price_paise?: number
+          questions?: Json
           registration_closes_at?: string | null
           registration_opens_at?: string | null
           resources?: Json
@@ -173,6 +168,7 @@ export type Database = {
           poster_url?: string | null
           prerequisites?: string[]
           price_paise?: number
+          questions?: Json
           registration_closes_at?: string | null
           registration_opens_at?: string | null
           resources?: Json
@@ -274,13 +270,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "gallery_items_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_seat_counts"
-            referencedColumns: ["event_id"]
-          },
           {
             foreignKeyName: "gallery_items_event_id_fkey"
             columns: ["event_id"]
@@ -465,6 +454,84 @@ export type Database = {
           year?: string
         }
         Relationships: []
+      }
+      registrations: {
+        Row: {
+          amount_paise: number
+          answers: Json
+          cancelled_at: string | null
+          checked_in_at: string | null
+          checked_in_by: string | null
+          confirmed_at: string | null
+          created_at: string
+          event_id: string
+          hold_expires_at: string | null
+          id: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          ticket_code: string
+          token_number: number | null
+          updated_at: string
+          user_id: string
+          waitlist_position: number | null
+        }
+        Insert: {
+          amount_paise?: number
+          answers?: Json
+          cancelled_at?: string | null
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          event_id: string
+          hold_expires_at?: string | null
+          id?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          ticket_code: string
+          token_number?: number | null
+          updated_at?: string
+          user_id: string
+          waitlist_position?: number | null
+        }
+        Update: {
+          amount_paise?: number
+          answers?: Json
+          cancelled_at?: string | null
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          event_id?: string
+          hold_expires_at?: string | null
+          id?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          ticket_code?: string
+          token_number?: number | null
+          updated_at?: string
+          user_id?: string
+          waitlist_position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_blocks: {
         Row: {
@@ -733,29 +800,46 @@ export type Database = {
       }
     }
     Views: {
+      event_attendees: {
+        Row: {
+          avatar_url: string | null
+          event_id: string | null
+          full_name: string | null
+          handle: string | null
+          headline: string | null
+        }
+        Relationships: []
+      }
       event_seat_counts: {
         Row: {
           event_id: string | null
           seats_taken: number | null
-        }
-        Insert: {
-          event_id?: string | null
-          seats_taken?: never
-        }
-        Update: {
-          event_id?: string | null
-          seats_taken?: never
+          waitlisted: number | null
         }
         Relationships: []
       }
     }
     Functions: {
-      [_ in never]: never
+      cancel_registration: {
+        Args: { p_registration_id: string }
+        Returns: Json
+      }
+      register_for_event: {
+        Args: { p_answers?: Json; p_event_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       admin_role: "super_admin" | "society_admin"
       event_mode: "offline" | "online" | "hybrid"
       event_status: "draft" | "published" | "cancelled"
+      registration_status:
+        | "pending_payment"
+        | "confirmed"
+        | "waitlisted"
+        | "cancelled"
+        | "refunded"
+        | "refund_needed"
       ticket_type: "qr" | "token"
     }
     CompositeTypes: {
@@ -887,6 +971,14 @@ export const Constants = {
       admin_role: ["super_admin", "society_admin"],
       event_mode: ["offline", "online", "hybrid"],
       event_status: ["draft", "published", "cancelled"],
+      registration_status: [
+        "pending_payment",
+        "confirmed",
+        "waitlisted",
+        "cancelled",
+        "refunded",
+        "refund_needed",
+      ],
       ticket_type: ["qr", "token"],
     },
   },

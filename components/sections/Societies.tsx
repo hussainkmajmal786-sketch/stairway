@@ -9,11 +9,14 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { nextForSociety } from "@/lib/events/status";
 import { SOCIETY_FILL } from "@/lib/events/colors";
 import { quiz, quizLevel } from "@/data/tracks";
-import { pad2, registerHref, shortDate } from "@/lib/weekends";
+import { pad2, shortDate } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
+import { useRegisterHref } from "@/components/registration/useRegisterHref";
+import { SmartLink } from "@/components/ui/SmartLink";
 
 function Quiz() {
   const { weekends } = useClock();
+  const registerHref = useRegisterHref();
   const [i, setI] = useState(0);
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
@@ -51,7 +54,7 @@ function Quiz() {
             <p className="mt-3 text-3xl font-semibold"><span className="bg-yellow px-1">{rec.society.shortName} · Step {pad2(rec.step)}</span> — {rec.title}</p>
             <p className="mt-2 text-ink-3">{rec.topic}. {rec.summary}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href={registerHref(rec.slug)} className="btn btn-primary">Claim this step <ArrowRight size={16} strokeWidth={2} /></Link>
+              <SmartLink href={registerHref(rec.slug)} className="btn btn-primary">Claim this step <ArrowRight size={16} strokeWidth={2} /></SmartLink>
               <Link href={`/events/${rec.slug}`} className="btn btn-ghost">Details</Link>
               <button onClick={() => { setI(0); setScore(0); setDone(false); }} className="btn btn-ghost"><RotateCcw size={16} strokeWidth={2} /> Retake</button>
             </div>

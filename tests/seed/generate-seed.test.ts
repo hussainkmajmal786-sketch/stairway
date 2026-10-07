@@ -1,5 +1,7 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildSeedSql, sqlJson, sqlLiteral, validateSeedInputs } from "@/scripts/generate-seed";
+import { buildSeedSql, registrationConfigSql, sqlJson, sqlLiteral, validateSeedInputs } from "@/scripts/generate-seed";
 
 describe("sqlLiteral", () => {
   it("escapes single quotes and handles null", () => {
@@ -51,7 +53,7 @@ describe("buildSeedSql", () => {
     expect(eventInserts).toHaveLength(16);
     for (const st of eventInserts) {
       expect(st).toMatch(/\]'::jsonb, array\[/); // agenda then outcomes
-      expect(st).toMatch(/'published', (true|false), '\{.*\}'::jsonb, '\[.*\]'::jsonb\s+from public\.societies/);
+      expect(st).toMatch(/'published', (true|false), '\{.*\}'::jsonb, '\[.*\]'::jsonb, '\[.*\]'::jsonb, (null|'[^']+')\s+from public\.societies/);
     }
   });
 
@@ -69,6 +71,13 @@ describe("buildSeedSql", () => {
       expect(sql).toContain(`'${slug}'`);
   });
 
+  it("applies the Phase 3 registration config", () => {
+    expect(eventInsert("wie-ai-healthtech")).toContain(", 'token', 'WIE-01', ");
+    expect(eventInsert("seeing-machines")).toContain('"id":"laptop"');
+    expect(eventInsert("language-and-machines")).toContain("'2026-10-20T09:00:00+05:30'");
+    expect(eventInsert("ai-unlocked")).toContain(", 'qr', 'MAIN-01', ");
+  });
+
   it("is idempotent (truncates content tables first)", () => {
     const firstCode = sql.split("\n").find((l) => l.trim() !== "" && !l.startsWith("--"));
     expect(firstCode).toBe("begin;");
@@ -76,6 +85,18 @@ describe("buildSeedSql", () => {
     expect(sql).toMatch(/NEVER run it against a database holding real registrations/);
     expect(sql).toContain("truncate table public.event_speakers, public.gallery_items, public.events");
     expect(sql.trim().endsWith("commit;")).toBe(true);
+  });
+});
+
+describe("registrationConfigSql", () => {
+  it("is exactly the committed registration_seed_config migration", () => {
+    const dir = path.resolve(process.cwd(), "supabase/migrations");
+    const file = readdirSync(dir).find((f) => f.endsWith("_registration_seed_config.sql"));
+    expect(file).toBeDefined();
+    expect(readFileSync(path.join(dir, file!), "utf8").replace(/\r\n/g, "\n")).toBe(registrationConfigSql());
+  });
+  it("never truncates or inserts", () => {
+    expect(registrationConfigSql()).not.toMatch(/truncate|insert|delete/i);
   });
 });
 
@@ -92,4 +113,11 @@ describe("validateSeedInputs", () => {
     expect(() => run({ ...ok, speakerIds: ["zzz"] })).toThrow(/unknown speaker "zzz"/));
   it("rejects gallery items with no matching event", () =>
     expect(() => run(ok, () => undefined)).toThrow(/does not resolve to an event/));
+});
+
+describe("committed supabase/seed.sql", () => {
+  it("is up to date with the generator (run `npm run seed:generate`)", () => {
+    const committed = readFileSync(path.resolve(process.cwd(), "supabase/seed.sql"), "utf8").replace(/\r\n/g, "\n");
+    expect(committed).toBe(buildSeedSql());
+  });
 });

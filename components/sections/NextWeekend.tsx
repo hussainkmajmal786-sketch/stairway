@@ -9,7 +9,7 @@ import { FormatChip, LevelChip, SeatsBar } from "@/components/ui/Badges";
 import { Avatar } from "@/components/ui/Avatar";
 import { ShareButtons } from "@/components/ui/ShareButtons";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
-import { longDate, pad2, registerHref, timeOf } from "@/lib/weekends";
+import { longDate, openSlug, pad2, registerHref, timeOf } from "@/lib/weekends";
 
 /** Featured block for the next step — a "poster" on the left, details on a yellow panel. */
 export function NextWeekend() {
@@ -86,7 +86,7 @@ export function NextWeekend() {
             <SeatsBar seatsLeft={next.seatsLeft} seatsTotal={next.seatsTotal} className="mt-6" />
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button href={registerHref(next.slug)} variant="ink" trackAs="register_click" trackProps={{ from: "spotlight", step: next.step }}>
+              <Button href={registerHref(openSlug(next), event.registration)} variant="ink" trackAs="register_click" trackProps={{ from: "spotlight", step: next.step }}>
                 Claim your step <ArrowRight size={16} strokeWidth={2} />
               </Button>
               <Link href={`/events/${next.slug}`} className="btn btn-ghost">Find out more</Link>

@@ -25,6 +25,8 @@ export interface EventRow {
   price_paise: number;
   ticket_type: "qr" | "token";
   token_prefix: string;
+  registration_opens_at: string | null;
+  registration_closes_at: string | null;
   is_finale: boolean;
   resources: unknown;
   winners: unknown;
@@ -34,7 +36,7 @@ export interface EventRow {
 }
 
 export const EVENT_SELECT =
-  "id, slug, step_number, title, topic, summary, description, starts_at, ends_at, venue, mode, poster_url, video_url, level, formats, agenda, outcomes, prerequisites, bring, capacity, price_paise, ticket_type, token_prefix, is_finale, resources, winners, society:societies(id, slug, name, short_name, color), track:tracks(name), event_speakers(sort_order, speaker:speakers(slug))";
+  "id, slug, step_number, title, topic, summary, description, starts_at, ends_at, venue, mode, poster_url, video_url, level, formats, agenda, outcomes, prerequisites, bring, capacity, price_paise, ticket_type, token_prefix, registration_opens_at, registration_closes_at, is_finale, resources, winners, society:societies(id, slug, name, short_name, color), track:tracks(name), event_speakers(sort_order, speaker:speakers(slug))";
 
 export function rowToEventView(r: EventRow, seatsTaken: number): EventView {
   if (!r.society) throw new Error(`Event ${r.slug} has no society`);
@@ -63,6 +65,8 @@ export function rowToEventView(r: EventRow, seatsTaken: number): EventView {
     pricePaise: r.price_paise,
     ticketType: r.ticket_type,
     tokenPrefix: r.token_prefix,
+    registrationOpensAt: r.registration_opens_at,
+    registrationClosesAt: r.registration_closes_at,
     isFinale: r.is_finale,
     speakerIds: [...r.event_speakers]
       .sort((a, b) => a.sort_order - b.sort_order)

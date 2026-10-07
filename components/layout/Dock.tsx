@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Footprints, HelpCircle, Home, Images, Mic2, Ticket, type LucideIcon } from "lucide-react";
 import { useClock } from "@/components/providers/ClockProvider";
-import { registerHref } from "@/lib/weekends";
+import { useRegisterHref } from "@/components/registration/useRegisterHref";
+import { openSlug } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
+import { SmartLink } from "@/components/ui/SmartLink";
 
 interface Item {
   id: string;
@@ -22,6 +24,9 @@ const ITEMS: Item[] = [
   { id: "faq", label: "FAQ", Icon: HelpCircle },
 ];
 
+/** The per-session registration pages (/events/<slug>/register) highlight the dock's Register block. */
+const isRegisterPath = (p: string) => /^\/events\/[^/]+\/register\/?$/.test(p);
+
 /**
  * Floating bottom dock — the site's primary navigation on every screen size.
  * The active item expands with its label; the rest are icon squares (labels
@@ -31,6 +36,7 @@ export function Dock() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const { next } = useClock();
+  const registerHref = useRegisterHref();
   const [spy, setSpy] = useState("top");
 
   useEffect(() => {
@@ -49,12 +55,12 @@ export function Dock() {
 
   const active = isHome
     ? spy
-    : pathname.startsWith("/events") || pathname.startsWith("/s/")
-      ? "societies"
-      : pathname.startsWith("/gallery")
-        ? "gallery"
-        : pathname.startsWith("/register")
-          ? "register"
+    : isRegisterPath(pathname)
+      ? "register"
+      : pathname.startsWith("/events") || pathname.startsWith("/s/")
+        ? "societies"
+        : pathname.startsWith("/gallery")
+          ? "gallery"
           : "";
 
   const href = (id: string) => (id === "top" ? (isHome ? "#top" : "/") : isHome ? `#${id}` : `/#${id}`);
@@ -88,15 +94,15 @@ export function Dock() {
           );
         })}
         <li>
-          <Link
-            href={registerHref(next?.slug)}
+          <SmartLink
+            href={registerHref(openSlug(next))}
             aria-label="Register"
             aria-current={active === "register" ? "page" : undefined}
             className="flex h-12 min-w-12 items-center justify-center gap-2 border-2 border-ink bg-yellow px-3 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-transform duration-150 hover:-translate-y-0.5"
           >
             <Ticket size={19} strokeWidth={2} aria-hidden />
             <span className="hidden sm:inline">Register</span>
-          </Link>
+          </SmartLink>
         </li>
       </ul>
     </nav>

@@ -52,16 +52,15 @@ The leaderboard (`data/leaderboard.ts`) and the quiz (`data/tracks.ts`) are stil
 Use WebP/AVIF where you can; `next/image` handles resizing and lazy loading.
 
 ### Registration
-In the `registration` object in the `settings` site block:
+Registration is per session at `/events/<slug>/register` (signed-in, onboarded members). The old `/register` and `/register?step=<slug>` URLs are a 307 route handler (`app/register/route.ts`, never cached) that redirects to the right session, or to the Google Form in external mode.
 
-- `mode: "external"` sends every Register button straight to `googleFormUrl`.
-- `mode: "onsite"` (default) uses the built-in form at `/register`, with validation, a success screen, confetti, add-to-calendar and a WhatsApp button. Set `registration.endpoint` to any service that accepts a JSON POST (Formspree, Getform, a Google Apps Script web app, etc.).
-  **While `endpoint` is empty the form runs in demo mode:** it shows success but sends nothing, and says so on screen.
+- Each event row carries its own `capacity`, `price_paise` (0 = free; paid registration arrives with Razorpay in Phase 4), `ticket_type` (`qr` or `token`), `token_prefix` (e.g. `RAS-01`), `registration_opens_at` / `registration_closes_at` (empty = open until the session starts) and `questions` (custom questions, see `lib/registration/questions.ts`; types `text`, `textarea`, `single_choice`, `multi_choice`, `checkbox`).
+- In the `registration` object of the `settings` site block, `mode: "external"` sends every Register button to `googleFormUrl` (https only; it opens in a new tab). In the default `mode: "onsite"`, `googleFormUrl` is offered as a fallback when an on-site registration fails; the placeholder `your-form-id` is ignored.
 
-The newsletter box works the same way via `newsletter.endpoint`.
+The newsletter box posts to `newsletter.endpoint` (demo mode while it is empty).
 
 ### Analytics
-Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares, sign-ups and completed registrations are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
+Set `gaId` in the `settings` block to `"G-XXXXXXX"` to enable Google Analytics 4. Register clicks, shares and sign-ups are tracked through `lib/analytics.ts`, which also forwards to Vercel Analytics if you add it.
 
 ---
 
@@ -73,8 +72,19 @@ Sign-in is **Google only** for now. The email-code form is built but hidden: fli
 - `/me` is the dashboard (Overview, Profile, Settings). `/me/profile` edits the public profile; `/me/settings` holds private details (phone, IEEE ID) and sign-out.
 - `/u/[handle]` is a public-style profile page, but **visible to signed-in users only**; anonymous visitors are redirected to `/login`.
 - `middleware.ts` refreshes the Supabase session on the edge. It only does work when a Supabase auth cookie is present, so anonymous traffic pays nothing.
-- Row-level security is covered by two SQL assertion scripts in `supabase/tests/` (`profiles-rls.sql`, `security-hardening.sql`). Run each as a single query in the Supabase SQL editor or through the Supabase MCP `execute_sql`; they roll back and leave no data behind.
+- Row-level security is covered by SQL assertion scripts in `supabase/tests/` (`profiles-rls.sql`, `security-hardening.sql`, plus the registration scripts in section 3c). Run each as a single query in the Supabase SQL editor or through the Supabase MCP `execute_sql`; they roll back and leave no data behind.
 - Account deletion: users email the team for now.
+
+---
+
+## 3c. Registration & tickets
+
+- Users never write the `registrations` table. Two RPCs do: `register_for_event(event_id, answers)` and `cancel_registration(registration_id)`. The public functions are security-invoker wrappers over security-definer bodies in the private schema. Each locks the event row, so capacity is never exceeded, token numbers stay unique and waitlist order is first-come-first-served.
+- Full sessions take a waitlist. When a confirmed attendee cancels, waitlist #1 is confirmed immediately inside the cancel RPC. **No emails are sent yet** (no sending domain); the ticket page and My tickets always show the current status.
+- Tickets: QR tickets encode only an opaque 26-character code (no personal data); token tickets show `PREFIX-0042`. `/me/tickets` lists upcoming and past tickets; each ticket can be downloaded as a PNG, added to a calendar, and cancelled (free sessions, before the start).
+- The event page has a "Who's going" panel with an "N attending" line. Signed-in members see names, photos and headlines for the first 24 attendees (from the `event_attendees` view); anonymous visitors only see the count.
+- SQL assertion scripts: `supabase/tests/registrations-rls.sql` and `supabase/tests/registrations-rpc.sql` (run each as one query; they roll back).
+- Per-event registration settings for the seeded events live in `supabase/seed-data/registration.ts`. `npx tsx scripts/generate-seed.ts --registration-sql` prints the matching targeted-update migration; never run `supabase/seed.sql` against the live database.
 
 ---
 
@@ -103,7 +113,8 @@ Custom domain: add it under the Worker's **Settings -> Domains & Routes**, and u
 ## 5. Project structure
 
 ```
-app/                 routes: /, /events/[slug], /s/[society], /gallery, /resources, /register,
+app/                 routes: /, /events/[slug], /s/[society], /gallery, /resources,
+                     /register (redirect), /events/[slug]/register, /me/tickets (+ /me/tickets/[id]),
                      /login, /onboarding, /me (+ /me/profile, /me/settings), /u/[handle],
                      /auth/{callback,continue,signout}, /code-of-conduct, /privacy, 404, sitemap,
                      robots, manifest, OG images
@@ -116,17 +127,21 @@ components/
   sections/          every landing-page section (Hero, Stairway, Speakers, FAQ, ...)
   ui/                Button, Countdown, Modal, Badges, Heading, Avatar, Logo, ...
   weekend/           event detail page
-  register/          registration form
+  registration/      registration form, questions, CTA, attending panel
+  tickets/           ticket card, actions, list items
   providers/         ClockProvider (live status), SiteDataProvider, MotionProvider
 data/                static leaderboard and quiz data
 lib/
   events/            event types, row mappers, status/colour helpers
   site/              site-content schema (zod), types and loader
   auth/              session lookup, auth config flag, safe `next` redirects, cookie helpers
+  registration/      registration schemas, CTA states, errors, server reads and actions
+  tickets/           token format, QR matrix, PNG export
+  dashboard/         dashboard nav active-state helper
   profile/           profile schema (zod), handle rules, form options, avatar crop, view mappers
   supabase/          browser, server, public and middleware clients, generated database types
 supabase/            migrations, seed-data, the generated seed.sql and tests/ (SQL assertion scripts)
-tests/               vitest unit tests (auth, profile, events, site); tests/rls checks anonymous access against Supabase
+tests/               vitest unit tests (auth, profile, events, site, registration, tickets); tests/rls checks anonymous access against Supabase
 design-system/       MASTER.md - tokens, motion and accessibility rules
 ```
 

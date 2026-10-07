@@ -1,9 +1,21 @@
 import type { EventView } from "@/lib/events/types";
 import type { Settings } from "@/lib/site/schema";
+import { registrationWindow } from "@/lib/registration/cta";
+
+const SCHEMA = "https://schema.org/";
+
+/** schema.org availability from the registration window and the public seat count. */
+export function offerAvailability(w: EventView, now: number) {
+  const win = registrationWindow(w, now);
+  const left = Math.max(0, w.seatsTotal - w.seatsFilled);
+  if (win === "closed" || left === 0) return `${SCHEMA}SoldOut`;
+  if (win === "not_open") return `${SCHEMA}PreOrder`;
+  return left / Math.max(1, w.seatsTotal) < 0.2 ? `${SCHEMA}LimitedAvailability` : `${SCHEMA}InStock`;
+}
 
 /** schema.org Event for one weekend. */
-export function eventJsonLd(w: EventView, settings: Settings) {
-  const ended = new Date(w.end).getTime() < Date.now();
+export function eventJsonLd(w: EventView, settings: Settings, now: number) {
+  const eventUrl = `${settings.siteUrl}/events/${w.slug}`;
   return {
     "@context": "https://schema.org",
     "@type": "Event",
@@ -13,7 +25,7 @@ export function eventJsonLd(w: EventView, settings: Settings) {
     endDate: w.end,
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-    url: `${settings.siteUrl}/events/${w.slug}`,
+    url: eventUrl,
     image: [`${settings.siteUrl}/events/${w.slug}/opengraph-image`],
     location: {
       "@type": "Place",
@@ -30,11 +42,12 @@ export function eventJsonLd(w: EventView, settings: Settings) {
     organizer: { "@type": "Organization", name: settings.organizer.name, url: settings.organizer.url },
     offers: {
       "@type": "Offer",
-      url: `${settings.siteUrl}/register?step=${w.slug}`,
-      price: "0",
+      // The event page carries the registration button (sign-in, form, waitlist or the external form).
+      url: eventUrl,
+      price: (w.pricePaise / 100).toFixed(2).replace(/\.00$/, ""),
       priceCurrency: "INR",
-      availability: ended || w.seatsFilled >= w.seatsTotal ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
-      validFrom: "2026-08-01T00:00:00+05:30",
+      availability: offerAvailability(w, now),
+      ...(w.registrationOpensAt ? { validFrom: w.registrationOpensAt } : {}),
     },
   };
 }

@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { ArrowUp, Mail, MapPin, Phone } from "lucide-react";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
+import { useClock } from "@/components/providers/ClockProvider";
+import { useRegisterHref } from "@/components/registration/useRegisterHref";
+import { openSlug } from "@/lib/weekends";
 import { StairMark, Wordmark } from "@/components/ui/Logo";
 import { Instagram, Linkedin, Whatsapp, Youtube, Github } from "@/components/ui/BrandIcons";
+import { SmartLink } from "@/components/ui/SmartLink";
 
 const SOCIALS = [
   { key: "instagram", Icon: Instagram, label: "Instagram" },
@@ -18,6 +22,8 @@ const link = "inline-flex min-h-11 items-center underline-offset-4 hover:underli
 
 export function Footer() {
   const { settings: event, societies } = useSiteData();
+  const { next } = useClock();
+  const registerHref = useRegisterHref();
   const socials = SOCIALS.map(({ key, Icon, label }) => ({ href: event.social[key], Icon, label }));
   return (
     // extra bottom padding keeps content clear of the floating dock
@@ -59,9 +65,9 @@ export function Footer() {
                 ["/resources", "Resources"],
                 ["/#sponsors", "Sponsors"],
                 ["/#faq", "FAQ"],
-                ["/register", "Register"],
+                [registerHref(openSlug(next)), "Register"],
               ].map(([href, label]) => (
-                <li key={href}><Link href={href} className={link}>{label}</Link></li>
+                <li key={label}><SmartLink href={href} className={link}>{label}</SmartLink></li>
               ))}
             </ul>
           </nav>

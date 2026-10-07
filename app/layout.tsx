@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { Space_Mono, Urbanist } from "next/font/google";
 import "./globals.css";
 import { getSiteData } from "@/lib/site/load";
@@ -12,6 +13,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Dock } from "@/components/layout/Dock";
 import { Footer } from "@/components/layout/Footer";
 import { EasterEgg } from "@/components/layout/EasterEgg";
+import { GaPageViews } from "@/components/layout/GaPageViews";
+import { gaBootstrap } from "@/lib/analytics";
 
 const urbanist = Urbanist({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--font-urbanist", display: "swap" });
 const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-space-mono", display: "swap" });
@@ -74,10 +77,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <EasterEgg />
         {data.settings.gaId && (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${data.settings.gaId}`} strategy="afterInteractive" />
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(data.settings.gaId)}`} strategy="afterInteractive" />
             <Script id="ga" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','${data.settings.gaId}');`}
+              {gaBootstrap(data.settings.gaId)}
             </Script>
+            {/* useSearchParams needs a Suspense boundary; it renders nothing either way. */}
+            <Suspense fallback={null}>
+              <GaPageViews />
+            </Suspense>
           </>
         )}
       </body>
