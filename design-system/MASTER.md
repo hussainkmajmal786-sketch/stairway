@@ -15,6 +15,9 @@ Sections alternate `paper` / `paper-2` bands with 2px ink rules between them.
 - **Floating bottom dock on every screen size** (Home, Societies, Speakers, Gallery, FAQ + yellow Register). Active item is red with its label; others are icon squares, with labels from 768px. Footer reserves `--dock-h` of bottom padding.
 
 - **Dashboards** (`/me`): sidebar with a back button at the top; on mobile it collapses to a horizontal tab strip.
+- **Tickets:** `components/tickets/TicketCard.tsx` — yellow mono header, ink 2px border, hard shadow; QR is an inline SVG with a 4-module white quiet zone; token tickets show the token in large mono digits.
+- **Typed errors:** registration/cancel failures render `components/registration/ErrorPanel.tsx` (`role="alert"`, takes focus unless the fix is in the form fields) with one recovery action (retry + Google Form fallback, sign in, finish profile, My tickets, back to session).
+- **Attendee lists:** "Who's going" panel with an "N attending" line; avatars 40px, `referrerPolicy="no-referrer"`, only through `safeAvatarUrl()`; at most 24 people are listed; signed-out visitors see the count only.
 
 ## Colour tokens (`app/globals.css`)
 | Token | Hex | Use |
