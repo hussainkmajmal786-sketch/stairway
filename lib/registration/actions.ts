@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { z } from "zod";
 import { getAuthState } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -139,7 +139,8 @@ export async function registerForEvent(slug: string, values: unknown): Promise<R
 export async function cancelRegistration(registrationId: string): Promise<CancelResult> {
   const res = await cancelOwnRegistration(registrationId);
   // Outside every try/catch: redirect() throws a control-flow error that must reach Next.
-  if (res.ok) redirect(CANCELLED_PATH);
+  // Replace, not push (the Server Action default): Back must not return to the cancelled ticket.
+  if (res.ok) redirect(CANCELLED_PATH, RedirectType.replace);
   return res;
 }
 

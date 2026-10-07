@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({
+  RedirectType: { push: "push", replace: "replace" },
   redirect: vi.fn((to: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { digest: `NEXT_REDIRECT;replace;${to};307;` });
   }),
@@ -275,7 +276,7 @@ describe("cancelRegistration", () => {
     );
     // The redirect error must escape the action (not be swallowed into a typed error).
     await expect(cancelRegistration(RID)).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirect).toHaveBeenCalledWith("/me/tickets?cancelled=1");
+    expect(redirect).toHaveBeenCalledWith("/me/tickets?cancelled=1", "replace");
     expect(log[0].calls).toContainEqual(["eq", "user_id", UID]);
     expect(rpcCalls).toEqual([["cancel_registration", { p_registration_id: RID }]]);
     expect(revalidatePath).toHaveBeenCalledWith("/events/seeing-machines");
