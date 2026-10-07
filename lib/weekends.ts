@@ -2,7 +2,7 @@ import type { Settings } from "@/lib/site/schema";
 import { registerPath } from "@/lib/registration/cta";
 import { externalRegistrationUrl } from "@/lib/registration/external";
 
-export const pad2 =(n: number) => String(n).padStart(2, "0");
+export const pad2 = (n: number) => String(n).padStart(2, "0");
 
 const TZ = "Asia/Kolkata";
 
