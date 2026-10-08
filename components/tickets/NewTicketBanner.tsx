@@ -27,7 +27,7 @@ export function NewTicketBanner({ confirmed, position }: { confirmed: boolean; p
       tabIndex={-1}
       role="status"
       aria-labelledby="new-ticket-title"
-      className={`border-2 border-ink p-5 shadow-[4px_4px_0_0_var(--ink)] outline-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-blue-ink ${confirmed ? "bg-green" : "bg-yellow"}`}
+      className={`border-2 border-ink p-5 shadow-[4px_4px_0_0_var(--ink)] ${confirmed ? "bg-green" : "bg-yellow"}`}
     >
       <p id="new-ticket-title" className="flex items-center gap-2 text-xl font-semibold">
         {confirmed ? (

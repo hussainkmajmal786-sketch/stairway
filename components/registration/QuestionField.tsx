@@ -1,7 +1,6 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
-import { Field, fieldDescribedBy, inputCls, textareaCls } from "@/components/ui/Field";
+import { Field, FieldError, fieldDescribedBy, inputCls, textareaCls } from "@/components/ui/Field";
 import { TEXT_MAX, TEXTAREA_MAX, type AnswerValue, type Question } from "@/lib/registration/questions";
 import { cn } from "@/lib/utils";
 
@@ -14,16 +13,12 @@ const Req = () => (
 
 function GroupError({ id, error }: { id: string; error?: string }) {
   if (!error) return null;
-  return (
-    <p id={`${id}-err`} className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-red-ink">
-      <AlertCircle size={14} strokeWidth={2} aria-hidden /> {error}
-    </p>
-  );
+  return <FieldError id={`${id}-err`}>{error}</FieldError>;
 }
 
 const optionCls = (on: boolean) =>
   cn(
-    "flex min-h-12 cursor-pointer items-center gap-3 border-2 border-ink px-4 py-2 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-blue-ink",
+    "flex min-h-12 cursor-pointer items-center gap-3 border-2 border-ink px-4 py-2 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-field",
     on ? "bg-yellow" : "bg-paper hover:bg-paper-2",
   );
 
@@ -61,7 +56,7 @@ export function QuestionField({
         <label className={optionCls(on)}>
           <input
             id={id} type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} onBlur={onBlur}
-            className="h-5 w-5 shrink-0 accent-[#100f0d]" aria-required={q.required} aria-invalid={!!error}
+            className="h-5 w-5 shrink-0 accent-ink" aria-required={q.required} aria-invalid={!!error}
             aria-describedby={describedBy(q.help && `${id}-help`, error && `${id}-err`)}
           />
           <span>{q.label}{q.required && <Req />}</span>
@@ -98,7 +93,7 @@ export function QuestionField({
             <label key={opt} className={optionCls(on)}>
               <input
                 id={i === 0 ? id : `${id}-${i}`} type={multi ? "checkbox" : "radio"} name={id} value={opt} checked={on}
-                onChange={() => toggle(opt)} className="h-5 w-5 shrink-0 accent-[#100f0d]" aria-invalid={!!error}
+                onChange={() => toggle(opt)} className="h-5 w-5 shrink-0 accent-ink" aria-invalid={!!error}
               />
               <span>{opt}</span>
             </label>

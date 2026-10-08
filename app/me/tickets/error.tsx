@@ -20,7 +20,7 @@ export default function TicketsError({ retry }: { error: Error & { digest?: stri
         ref={ref}
         tabIndex={-1}
         role="alert"
-        className="box-2 grid gap-4 p-5 shadow-[4px_4px_0_0_var(--ink)] outline-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-blue-ink"
+        className="box-2 grid gap-4 p-5 shadow-[4px_4px_0_0_var(--ink)]"
       >
         <p className="flex items-center gap-2 text-xl font-semibold">
           <AlertTriangle size={22} strokeWidth={2} className="shrink-0" aria-hidden /> We couldn&apos;t load your tickets.

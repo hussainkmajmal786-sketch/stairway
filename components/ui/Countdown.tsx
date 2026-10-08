@@ -10,7 +10,14 @@ function split(ms: number) {
   return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
 }
 
-/** Flip-board countdown: each unit is an ink-bordered tile with mono digits. */
+const CELL = {
+  sm: "h-16 w-16",
+  md: "h-[4.5rem] w-[4.5rem] md:h-24 md:w-24",
+  lg: "h-20 w-20 md:h-28 md:w-28",
+};
+const DIGIT = { sm: "text-3xl", md: "text-4xl md:text-5xl", lg: "text-5xl md:text-6xl" };
+
+/** Poster countdown: ink cells, cream Anton digits, yellow mono units. Text-only updates (no live announcements per tick). */
 export function Countdown({
   target,
   size = "md",
@@ -32,23 +39,22 @@ export function Countdown({
 
   // the shared clock jumps to real time right after hydration; ticks refine it per second
   const t = split(new Date(target).getTime() - Math.max(tick, clockNow));
-  const units: [string, number, string][] = [
-    ["Days", t.d, "bg-yellow"],
-    ["Hours", t.h, "bg-paper"],
-    ["Min", t.m, "bg-paper"],
-    ["Sec", t.s, "bg-paper"],
+  const units: [string, number][] = [
+    ["Days", t.d],
+    ["Hours", t.h],
+    ["Min", t.m],
+    ["Sec", t.s],
   ];
-  const digit = { sm: "text-2xl w-14 h-14", md: "text-3xl md:text-4xl w-16 h-16 md:w-20 md:h-20", lg: "text-4xl md:text-6xl w-20 h-20 md:w-28 md:h-28" };
 
   return (
     <div className={cn("inline-flex flex-col", className)}>
-      <div className="flex items-start gap-2 md:gap-3" aria-hidden="true">
-        {units.map(([u, v, bg]) => (
-          <div key={u} className="flex flex-col items-center">
-            <span className={cn("grid place-items-center overflow-hidden border-2 border-ink font-mono font-bold tabular shadow-[3px_3px_0_0_var(--ink)]", bg, digit[size])}>
+      <div className="flex items-start gap-1.5 md:gap-2" aria-hidden="true">
+        {units.map(([u, v]) => (
+          <div key={u} className={cn("flex flex-col items-center justify-center border-2 border-ink bg-ink text-paper", CELL[size])}>
+            <span className={cn("block overflow-hidden font-display leading-none tabular", DIGIT[size])}>
               <span key={pad2(v)} className="block animate-[roll_0.25s_var(--ease)]">{pad2(v)}</span>
             </span>
-            <span className="mono mt-2 text-[0.65rem] font-bold text-ink-4">{u}</span>
+            <span className="mt-1 font-mono text-[0.6rem] font-bold uppercase tracking-[0.16em] text-yellow">{u}</span>
           </div>
         ))}
       </div>

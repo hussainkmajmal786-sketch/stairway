@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/browser";
 import { ProfileDetailsSchema, fieldErrors } from "@/lib/profile/schema";
 import { BRANCHES, SOCIAL_KEYS, SOCIAL_LABELS, YEARS, type SocialKey } from "@/lib/profile/options";
 import { MAX_SKILLS, MAX_SKILL_LEN, linksToDb, mergeSaved, normaliseSkill, skillDraftError } from "@/lib/profile/editor";
-import { Field, inputCls, textareaCls } from "@/components/ui/Field";
+import { Field, fieldDescribedBy, inputCls, textareaCls } from "@/components/ui/Field";
 import { cn } from "@/lib/utils";
 import { AvatarUploader } from "./AvatarUploader";
 
@@ -15,6 +15,8 @@ export interface ProfileFormValues {
   fullName: string; headline: string; bio: string; college: string; branch: string; year: string;
   skills: string[]; links: Record<SocialKey, string>; avatarUrl: string | null;
 }
+
+const HEADLINE_HINT = "e.g. 3rd-year ECE · robotics tinkerer";
 
 export function ProfileForm({ userId, initial }: { userId: string; initial: ProfileFormValues }) {
   const router = useRouter();
@@ -93,7 +95,8 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
     }
   }
 
-  const aria = (k: string) => ({ "aria-invalid": !!errors[k], "aria-describedby": errors[k] ? `${k}-err` : undefined });
+  const aria = (k: string, hint?: string) => ({ "aria-invalid": !!errors[k], "aria-describedby": fieldDescribedBy(k, { error: errors[k], hint }) });
+  const skillsHint = `Type a skill and press Enter (up to ${MAX_SKILLS}).`;
 
   return (
     <form onSubmit={submit} noValidate className="box grid gap-6 p-6 shadow-hard md:grid-cols-2 md:p-8" aria-label="Profile details">
@@ -109,8 +112,8 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
       <Field id="fullName" label="Full name" required error={errors.fullName}>
         <input id="fullName" autoComplete="name" maxLength={80} className={inputCls} value={d.fullName} onChange={(e) => setD({ ...d, fullName: e.target.value })} {...aria("fullName")} />
       </Field>
-      <Field id="headline" label="Headline" error={errors.headline} hint="e.g. 3rd-year ECE · robotics tinkerer">
-        <input id="headline" maxLength={120} className={inputCls} value={d.headline} onChange={(e) => setD({ ...d, headline: e.target.value })} {...aria("headline")} />
+      <Field id="headline" label="Headline" error={errors.headline} hint={HEADLINE_HINT}>
+        <input id="headline" maxLength={120} className={inputCls} value={d.headline} onChange={(e) => setD({ ...d, headline: e.target.value })} {...aria("headline", HEADLINE_HINT)} />
       </Field>
       <Field id="bio" label="About you" error={errors.bio} className="md:col-span-2">
         <textarea id="bio" maxLength={1500} className={textareaCls} value={d.bio} onChange={(e) => setD({ ...d, bio: e.target.value })} {...aria("bio")} />
@@ -132,7 +135,7 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
       </Field>
 
       <div className="md:col-span-2">
-        <Field id="skills" label="Skills" error={errors.skills} hint={`Type a skill and press Enter (up to ${MAX_SKILLS}).`}>
+        <Field id="skills" label="Skills" error={errors.skills} hint={skillsHint}>
           <input
             id="skills" className={inputCls} value={skillDraft} maxLength={MAX_SKILL_LEN + 10}
             onChange={(e) => setSkillDraft(e.target.value)}
@@ -143,7 +146,7 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
               }
             }}
             onBlur={addSkill}
-            {...aria("skills")}
+            {...aria("skills", skillsHint)}
           />
         </Field>
         {d.skills.length > 0 && (

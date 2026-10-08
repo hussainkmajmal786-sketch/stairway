@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { fieldDescribedBy } from "@/components/ui/Field";
 
 export interface RowListProps<T extends { id?: string }> {
   title: string;
@@ -180,7 +181,7 @@ export function RowList<T extends { id?: string }>(p: RowListProps<T>) {
   );
 }
 
-/** aria props for an input inside a RowList editor, pointing at the Field's error text. */
-export function rowAria(id: string, error: string | undefined) {
-  return { "aria-invalid": !!error, "aria-describedby": error ? `${id}-err` : undefined };
+/** aria props for an input inside a RowList editor, pointing at the Field's error and hint text. */
+export function rowAria(id: string, error: string | undefined, hint?: string) {
+  return { "aria-invalid": !!error, "aria-describedby": fieldDescribedBy(id, { error, hint }) };
 }

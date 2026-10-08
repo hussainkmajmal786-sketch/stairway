@@ -24,7 +24,7 @@ export function CancelledNotice() {
       ref={ref}
       tabIndex={-1}
       role="status"
-      className="box-2 flex items-center gap-2 p-4 font-semibold shadow-[4px_4px_0_0_var(--ink)] outline-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-blue-ink"
+      className="box-2 flex items-center gap-2 p-4 font-semibold shadow-[4px_4px_0_0_var(--ink)]"
     >
       <Check size={18} strokeWidth={2.5} className="shrink-0 text-green-ink" aria-hidden /> Your registration was cancelled.
     </p>

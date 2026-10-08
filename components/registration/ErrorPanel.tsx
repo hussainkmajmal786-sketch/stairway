@@ -76,7 +76,7 @@ export function ErrorPanel({
       ref={ref}
       tabIndex={-1}
       role="alert"
-      className="border-2 border-ink bg-red/15 p-5 outline-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-blue-ink"
+      className="border-2 border-ink bg-red/15 p-5"
     >
       <p className="flex items-start gap-2 font-semibold">
         <AlertTriangle size={18} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden /> {error.message}

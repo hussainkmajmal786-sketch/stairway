@@ -9,6 +9,7 @@ import { experienceFromDb, type ExperienceDbRow, type ExperienceRow } from "@/li
 const fmt = (iso: string) =>
   iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" }) : "";
 const COLS = "id, title, organization, start_date, end_date, description";
+const END_HINT = "Leave empty if it's current.";
 
 export function ExperienceEditor({ userId, initial }: { userId: string; initial: ExperienceRow[] }) {
   return (
@@ -64,8 +65,8 @@ export function ExperienceEditor({ userId, initial }: { userId: string; initial:
             <Field id="exp-start" label="Start date" required error={e.startDate}>
               <input id="exp-start" type="date" className={inputCls} value={r.startDate} onChange={(ev) => set({ startDate: ev.target.value })} {...rowAria("exp-start", e.startDate)} />
             </Field>
-            <Field id="exp-end" label="End date" error={e.endDate} hint="Leave empty if it's current.">
-              <input id="exp-end" type="date" className={inputCls} min={r.startDate || undefined} value={r.endDate} onChange={(ev) => set({ endDate: ev.target.value })} {...rowAria("exp-end", e.endDate)} />
+            <Field id="exp-end" label="End date" error={e.endDate} hint={END_HINT}>
+              <input id="exp-end" type="date" className={inputCls} min={r.startDate || undefined} value={r.endDate} onChange={(ev) => set({ endDate: ev.target.value })} {...rowAria("exp-end", e.endDate, END_HINT)} />
             </Field>
           </div>
           <Field id="exp-desc" label="What did you do?" error={e.description}>
