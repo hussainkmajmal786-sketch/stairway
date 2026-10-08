@@ -79,7 +79,7 @@ export async function Sponsors() {
             ) : (
               <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsorship%20deck%20request`} className="btn btn-primary"><Download size={16} strokeWidth={2} /> Request the deck</a>
             )}
-            <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsoring%20st(AI)rway`} className="btn btn-ghost"><Mail size={16} strokeWidth={2} /> Email us</a>
+            <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsoring%20st(AI)rway`} className="btn btn-secondary"><Mail size={16} strokeWidth={2} /> Email us</a>
           </div>
         </div>
       </div>

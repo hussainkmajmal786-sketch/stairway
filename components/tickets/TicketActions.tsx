@@ -69,12 +69,12 @@ export function TicketActions({
               href={googleCalendarUrl(ev, settings)}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-sm btn-ghost !px-2"
+              className="btn btn-sm btn-secondary !px-2"
             >
               <CalendarPlus size={16} strokeWidth={2} aria-hidden /> Google
               <span className="sr-only">Calendar (opens in a new tab)</span>
             </a>
-            <button type="button" onClick={() => downloadIcs(ev, settings)} className="btn btn-sm btn-ghost !px-2">
+            <button type="button" onClick={() => downloadIcs(ev, settings)} className="btn btn-sm btn-secondary !px-2">
               <Download size={16} strokeWidth={2} aria-hidden /> .ics<span className="sr-only"> calendar file</span>
             </button>
           </div>

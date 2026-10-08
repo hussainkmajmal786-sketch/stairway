@@ -23,13 +23,13 @@ export function ShareButtons({ path, text }: { path: string; text: string }) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <a className="btn btn-sm btn-ghost" href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`} target="_blank" rel="noopener noreferrer" onClick={() => track("share", { channel: "whatsapp", path })}>
+      <a className="btn btn-sm btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`} target="_blank" rel="noopener noreferrer" onClick={() => track("share", { channel: "whatsapp", path })}>
         <Whatsapp size={16} /> WhatsApp
       </a>
-      <a className="btn btn-sm btn-ghost" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`} target="_blank" rel="noopener noreferrer" onClick={() => track("share", { channel: "linkedin", path })}>
+      <a className="btn btn-sm btn-secondary" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`} target="_blank" rel="noopener noreferrer" onClick={() => track("share", { channel: "linkedin", path })}>
         <Linkedin size={16} /> LinkedIn
       </a>
-      <button className="btn btn-sm btn-ghost" onClick={copy} aria-live="polite">
+      <button className="btn btn-sm btn-secondary" onClick={copy} aria-live="polite">
         {copied ? <Check size={16} strokeWidth={2} /> : <Link2 size={16} strokeWidth={2} />}
         {copied ? "Copied" : "Copy link"}
       </button>

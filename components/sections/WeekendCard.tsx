@@ -86,7 +86,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
 
         <div className="mt-5 flex flex-wrap gap-3">
           {done ? (
-            <Link href={`/events/${w.slug}#resources`} className="btn btn-sm btn-ghost">
+            <Link href={`/events/${w.slug}#resources`} className="btn btn-sm btn-secondary">
               <FolderOpen size={16} strokeWidth={2} aria-hidden /> Resources
             </Link>
           ) : (
@@ -94,7 +94,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
               {w.status === "next" ? "Claim your step" : "Register"} <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
             </SmartLink>
           )}
-          <Link href={`/events/${w.slug}`} className="btn btn-sm btn-ghost">
+          <Link href={`/events/${w.slug}`} className="btn btn-sm btn-secondary">
             <Clock size={16} strokeWidth={2} aria-hidden /> Details
           </Link>
         </div>

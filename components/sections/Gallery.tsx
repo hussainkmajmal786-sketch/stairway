@@ -129,7 +129,7 @@ export function Gallery() {
       <div className="wrap">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <SectionHeader id="gallery-title" Icon={Camera} eyebrow="Gallery & highlights" title="Proof of the [[climb.]]" className="!mb-0" />
-          <Link href="/gallery" className="btn btn-ghost shrink-0" data-reveal>
+          <Link href="/gallery" className="btn btn-secondary shrink-0" data-reveal>
             Full gallery <ArrowRight size={16} strokeWidth={2} />
           </Link>
         </div>

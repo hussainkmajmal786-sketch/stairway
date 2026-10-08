@@ -33,7 +33,7 @@ export function ProfileView({ p }: { p: ProfileViewData }) {
           {meta && <p className="mt-2 text-sm text-ink-3">{meta}</p>}
         </div>
         {p.isOwner && (
-          <Link href="/me/profile" className="btn btn-sm btn-ghost self-start sm:self-center">
+          <Link href="/me/profile" className="btn btn-sm btn-secondary self-start sm:self-center">
             <Pencil size={14} strokeWidth={2} aria-hidden /> Edit profile
           </Link>
         )}
@@ -43,7 +43,7 @@ export function ProfileView({ p }: { p: ProfileViewData }) {
         <ul className="flex flex-wrap gap-3" aria-label="Links">
           {p.links.map(({ key, url }) => (
             <li key={key}>
-              <a href={url} target="_blank" rel={EXT_REL} className="btn btn-sm btn-ghost">
+              <a href={url} target="_blank" rel={EXT_REL} className="btn btn-sm btn-secondary">
                 {SOCIAL_LABELS[key]} <ExternalLink size={14} strokeWidth={2} aria-hidden />
                 <span className="sr-only">(opens in a new tab)</span>
               </a>

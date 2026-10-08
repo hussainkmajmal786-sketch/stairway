@@ -22,7 +22,7 @@ export async function AboutIEEE() {
           </div>
           <div className="mt-8 flex flex-wrap gap-3" data-reveal>
             <a href={event.ieee.joinUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">Join IEEE <ArrowUpRight size={16} strokeWidth={2} /></a>
-            <a href={event.ieee.branchUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">Visit IEEE SB CEK</a>
+            <a href={event.ieee.branchUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">Visit IEEE SB CEK</a>
           </div>
         </div>
         <div className="box shadow-[6px_6px_0_0_var(--ink)]" data-reveal>

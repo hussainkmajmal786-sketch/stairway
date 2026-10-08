@@ -112,7 +112,8 @@
   html { scroll-behavior: auto; }
 }
 
-/* z-index scale: 40 header · 50 dock · 60 modal · 70 toast */
+/* z-index scale: 40 header · 50 dock · 60 modal · 70 toast · 80 skip link
+   inside a .field: 0 ghost word · 1 corner bands · 2 content · 5 print grain · 6 cream panels */
 
 @layer components {
   /* ───────── layout ───────── */
@@ -134,18 +135,117 @@
     color: var(--ink-3);
   }
   .mono { font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.75rem; }
+  .mono-wide { font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; font-size: 0.7rem; }
+  /* removed in Task 6 together with .blur-in, once the hero uses the stair lettering */
   .h-hero { font-size: clamp(3.4rem, 15vw, 10rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.95; }
-  .h2 { font-family: var(--font-mono); font-weight: 700; font-size: clamp(1.9rem, 4.4vw, 3.25rem); letter-spacing: -0.03em; line-height: 1.05; }
+  .h-display { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: 0.01em; line-height: 0.95; }
+  .h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.6rem, 7vw, 5rem); text-transform: uppercase; letter-spacing: 0.01em; line-height: 0.95; }
   .h3 { font-size: clamp(1.4rem, 2.4vw, 1.9rem); font-weight: 600; }
   .lead { color: var(--ink-3); font-size: clamp(1.1rem, 1.6vw, 1.35rem); line-height: 1.55; max-width: 58ch; }
+  .tagline { font-size: clamp(1.15rem, 2.2vw, 1.55rem); font-weight: 400; line-height: 1.4; max-width: 46ch; }
+  .presents { line-height: 1.35; }
+  .presents b { display: block; font-family: var(--font-mono); font-size: clamp(0.78rem, 1.4vw, 1rem); letter-spacing: 0.08em; text-transform: uppercase; }
+  .presents small { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; }
+  /* poster rule heading ("COMING SOON"): lead rule · text · flexible trailing rule */
+  .rule-h { display: flex; align-items: center; gap: clamp(10px, 2vw, 22px); }
+  .rule-h::before, .rule-h::after { content: ""; flex: 1 1 12px; min-width: 12px; height: 3px; background: currentColor; }
+  .rule-h.left::before { flex: 0 0 28px; }
+  .soon { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; line-height: 0.95; letter-spacing: 0.01em; white-space: nowrap; font-size: clamp(1.3rem, 6.4vw, 3.4rem); }
 
   /* ───────── surfaces ───────── */
   .box { background: var(--paper); border: var(--border); }
   .box-2 { background: var(--paper-2); border: var(--border); }
+  .panel { background: var(--paper); color: var(--ink); border: var(--border); box-shadow: var(--shadow-lg); --focus: var(--ink); }
   .shadow-hard { box-shadow: var(--shadow); }
   .lift { transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease); }
   .lift:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
   .lift:active { transform: translate(2px, 2px); box-shadow: 0 0 0 0 var(--ink); }
+
+  /* ───────── signature 1 · cobalt field + print grain ───────── */
+  .field { position: relative; isolation: isolate; background-color: var(--field); overflow: hidden; overflow: clip; }
+  .field-2 { background-color: var(--field-2); }
+  .field::before, .field::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: soft-light; }
+  .field::before { background-image: var(--noise); opacity: 0.32; }
+  .field::after { background-image: var(--blot); background-size: 600px; opacity: 0.14; }
+  .field-content { position: relative; z-index: 2; }
+  /* cream panels sit above the grain so forms, tables and QR codes stay perfectly clean */
+  .field :is(.box, .box-2, .panel) { position: relative; z-index: 6; }
+  /* text on the field is cream; focus turns yellow (4.86:1 on cobalt) */
+  .on-field { --focus: var(--yellow); color: var(--paper); }
+  .on-field :is(.eyebrow, .lead) { color: var(--paper); }
+  .on-field .tag-outline { color: var(--paper); border-color: var(--paper); }
+  .on-field :is(.box, .box-2, .panel) { color: var(--ink); --focus: var(--ink); }
+  .on-field :is(.box, .box-2, .panel) :is(.eyebrow, .lead) { color: var(--ink-3); }
+  .on-field :is(.box, .box-2, .panel) .tag-outline { color: var(--ink); border-color: var(--ink); }
+
+  /* ───────── signature 2 · ghost word ───────── */
+  .ghost {
+    position: absolute; inset: -12% -25% auto; z-index: 0; transform: rotate(-7deg); pointer-events: none; user-select: none;
+    font-family: var(--font-display); text-transform: uppercase; font-size: clamp(5rem, 15vw, 13rem); line-height: 0.86;
+    color: var(--paper); opacity: 0.075; white-space: nowrap;
+  }
+  .ghost span { display: block; }
+  .ghost span:nth-child(even) { margin-left: -0.6em; opacity: 0.7; }
+
+  /* ───────── signature 3 · diagonal corner bands ───────── */
+  .bands { position: absolute; left: 0; right: 0; height: clamp(44px, 9vw, 120px); z-index: 1; pointer-events: none; }
+  .bands.top { top: 0; background: linear-gradient(176deg, var(--paper) 0 30%, var(--ink) calc(30% + 0.5px) 62%, transparent calc(62% + 0.5px)); }
+  .bands.bottom { bottom: 0; background: linear-gradient(176deg, transparent 0 38%, var(--ink) calc(38% + 0.5px) 70%, var(--paper) calc(70% + 0.5px)); }
+
+  /* ───────── signature 4 · double frame + logo row ───────── */
+  .frame {
+    position: relative; z-index: 2; border: 6px solid var(--paper); outline: 2px solid var(--paper); outline-offset: -14px;
+    padding: clamp(22px, 3.4vw, 44px) clamp(20px, 3.4vw, 48px);
+  }
+  .logo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid rgba(244, 239, 230, 0.35); }
+  .logo-row .lm { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.2; }
+  .logo-row .ieee { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; letter-spacing: 0.06em; line-height: 1; }
+  .diamond { width: 22px; height: 22px; flex: none; border: 2px solid var(--paper); transform: rotate(45deg); display: grid; place-items: center; }
+  .diamond::after { content: ""; width: 8px; height: 8px; background: var(--paper); }
+  @media (max-width: 480px) {
+    .frame { border-width: 5px; outline-offset: -11px; }
+    .logo-row .mid { display: none; }
+  }
+
+  /* ───────── signature 5 · extruded stair-step lettering ───────── */
+  /* --extrude lives here, not on :root: a custom property resolves var(--ink) where it is declared */
+  .stair, .extrude {
+    --x: var(--ink);
+    --extrude: 0.012em -0.012em 0 var(--x), 0.024em -0.024em 0 var(--x), 0.036em -0.036em 0 var(--x), 0.048em -0.048em 0 var(--x),
+      0.06em -0.06em 0 var(--x), 0.072em -0.072em 0 var(--x), 0.084em -0.084em 0 var(--x), 0.096em -0.096em 0 var(--x),
+      0.108em -0.108em 0 var(--x), 0.12em -0.12em 0 var(--x);
+  }
+  .extrude { text-shadow: var(--extrude); }
+  .stair {
+    --step: 0.1em;
+    font-family: var(--font-display); font-weight: 400; line-height: 0.9; letter-spacing: 0.005em;
+    font-size: clamp(3.4rem, 16.5vw, 11.5rem); color: var(--paper);
+    display: flex; align-items: flex-end; padding-top: calc(var(--step) * 6 + 0.14em);
+  }
+  .stair .g { display: inline-block; text-shadow: var(--extrude); transform: translateY(calc(var(--i) * var(--step) * -1)); }
+  .stair .ai {
+    background: var(--yellow); color: var(--ink); padding: 0.02em 0.07em 0; margin: 0 0.04em 0 0.03em; text-shadow: none;
+    box-shadow: 0.03em -0.03em 0 var(--x), 0.06em -0.06em 0 var(--x), 0.09em -0.09em 0 var(--x), 0.12em -0.12em 0 var(--x);
+  }
+  .stair-cap { white-space: nowrap; font-size: clamp(0.56rem, 2.5vw, 0.78rem); letter-spacing: clamp(0.16em, 0.6vw, 0.3em); margin-top: 0.9rem; transform: rotate(-5deg); transform-origin: 0 50%; }
+  /* two-digit step number on a cream panel (event header): cobalt face, ink extrusion */
+  .stair-num { --step: 0.12em; font-size: clamp(3.6rem, 9vw, 5.4rem); color: var(--field); padding-top: calc(var(--step) + 0.14em); }
+  @media (prefers-reduced-motion: no-preference) {
+    .stair .g { animation: climb 0.7s var(--ease) both; animation-delay: calc(0.08s + var(--i) * 70ms); }
+  }
+  @keyframes climb {
+    from { opacity: 0; transform: translateY(0.35em); }
+    to { opacity: 1; transform: translateY(calc(var(--i) * var(--step) * -1)); }
+  }
+
+  /* card step number: Anton in cobalt with a mini extrusion and three rising ink bars */
+  .stepnum { --stepnum-size: 4.6rem; display: inline-flex; align-items: flex-end; gap: 3px; }
+  .stepnum i { display: block; width: calc(var(--stepnum-size) * 0.16); background: var(--ink); }
+  .stepnum i:nth-child(1) { height: calc(var(--stepnum-size) * 0.25); }
+  .stepnum i:nth-child(2) { height: calc(var(--stepnum-size) * 0.42); }
+  .stepnum i:nth-child(3) { height: calc(var(--stepnum-size) * 0.58); }
+  .stepnum b { margin-left: 6px; font-family: var(--font-display); font-weight: 400; font-size: var(--stepnum-size); line-height: 0.8; color: var(--field); text-shadow: 0.04em -0.04em 0 var(--ink); }
+  .stepnum-ink b { color: var(--ink); text-shadow: none; }
 
   /* ───────── buttons ───────── */
   .btn {
@@ -157,11 +257,11 @@
     padding: 0 1.4rem;
     border: var(--border);
     box-shadow: var(--shadow);
-    background: var(--paper-2);
+    background: var(--paper);
     color: var(--ink);
     font-family: var(--font-mono);
     font-weight: 700;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     white-space: nowrap;
@@ -170,23 +270,38 @@
   .btn:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
   .btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 0 var(--ink); }
   .btn-primary { background: var(--yellow); }
-  .btn-ghost { background: var(--paper-2); }
+  .btn-secondary { background: var(--paper); }
+  .btn-ghost { background: transparent; box-shadow: none; }
+  .btn-ghost:hover { transform: none; box-shadow: none; background: rgba(11, 16, 38, 0.06); }
+  .on-field .btn-ghost { color: var(--paper); border-color: var(--paper); }
+  .on-field .btn-ghost:hover { background: rgba(244, 239, 230, 0.1); }
   .btn-ink { background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 0 var(--yellow); }
   .btn-ink:hover { box-shadow: 6px 6px 0 0 var(--yellow); }
-  .btn-sm { min-height: 44px; padding: 0 1rem; font-size: 0.74rem; }
-  .btn-lg { min-height: 60px; padding: 0 2rem; font-size: 0.9rem; }
-  .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+  .btn-sm { min-height: 44px; padding: 0 1rem; font-size: 0.72rem; }
+  .btn-lg { min-height: 58px; padding: 0 1.8rem; font-size: 0.86rem; }
+  /* disabled: dashed border + paper-3 fill (opacity .5 failed contrast on the field) */
+  .btn:disabled, .btn[aria-disabled="true"] { background: var(--paper-3); color: var(--ink-4); border-style: dashed; box-shadow: none; transform: none; pointer-events: none; }
+  .on-field .btn:disabled, .on-field .btn[aria-disabled="true"] { background: transparent; color: rgba(244, 239, 230, 0.75); border-color: rgba(244, 239, 230, 0.75); }
 
-  /* ───────── tags (flat colour blocks) ───────── */
+  /* ───────── top bar (ink) ───────── */
+  .topbar { --focus: var(--yellow); }
+  .topbar .btn { border-color: var(--paper); box-shadow: 3px 3px 0 0 var(--yellow); }
+  .topbar .btn:hover { box-shadow: 5px 5px 0 0 var(--yellow); }
+  .topbar .btn-primary { box-shadow: 3px 3px 0 0 var(--paper); }
+  .topbar .btn-primary:hover { box-shadow: 5px 5px 0 0 var(--paper); }
+
+  /* ───────── tags (flat colour chips, always with an ink border and a word) ───────── */
   .tag {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.28rem 0.6rem;
+    padding: 0.26rem 0.55rem;
+    border: 2px solid var(--ink);
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.12em;
+    line-height: 1.3;
     text-transform: uppercase;
     color: var(--ink);
     background: var(--paper-3);
@@ -199,7 +314,9 @@
   .tag-orange { background: var(--orange); }
   .tag-purple { background: var(--purple); }
   .tag-ink { background: var(--ink); color: var(--paper); }
-  .tag-outline { background: transparent; box-shadow: inset 0 0 0 2px var(--ink); }
+  .tag-cream { background: var(--paper); }
+  .tag-field { background: var(--field); color: var(--paper); }
+  .tag-outline { background: transparent; border-style: dashed; }
 
   /* label with coloured icon: WHEN / WHERE / CLOSES */
   .meta-label { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.4rem; }
@@ -210,6 +327,7 @@
     padding: 0 1rem;
     border: var(--border);
     background: var(--paper);
+    color: var(--ink);
     font-family: var(--font-mono);
     font-size: 0.72rem;
     font-weight: 700;
@@ -222,12 +340,30 @@
 
   /* ───────── seats bar ───────── */
   .seats-track { height: 14px; border: var(--border); background: var(--paper); overflow: hidden; }
-  .seats-fill { height: 100%; background: var(--ink); transform-origin: left; }
-  .seats-fill[data-tone="low"] { background: var(--red); border-right: var(--border); }
+  .seats-fill {
+    height: 100%; transform-origin: left; background-color: var(--field);
+    background-image: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(244, 239, 230, 0.18) 6px 9px);
+  }
+  .seats-fill[data-tone="low"] { background-color: var(--red); background-image: none; border-right: var(--border); }
 
   /* status square that blinks for "next up" */
   .blink { width: 9px; height: 9px; background: currentColor; animation: blink 1.2s steps(2, start) infinite; }
   @keyframes blink { to { visibility: hidden; } }
+
+  /* ───────── tickets ───────── */
+  .ticket-h {
+    position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 20px; background: var(--field); color: var(--paper); border-bottom: var(--border);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .ticket-h::after { content: ""; position: absolute; right: -6px; top: 0; bottom: 0; width: 90px; background: linear-gradient(110deg, transparent 0 40%, var(--ink) 40% 60%, var(--paper) 60% 70%, transparent 70%); }
+  .perf { position: relative; height: 0; margin: 0 20px; border-top: 2px dashed var(--ink); }
+  .perf::before, .perf::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border: var(--border); background: var(--paper); border-radius: 50%; }
+  .perf::before { left: -34px; clip-path: inset(0 0 0 50%); }
+  .perf::after { right: -34px; clip-path: inset(0 50% 0 0); }
+
+  /* ───────── dashboard ───────── */
+  .side-strip { height: 10px; background: var(--field); border: var(--border); }
 
   /* ───────── marquee ───────── */
   .marquee { display: flex; overflow: hidden; user-select: none; }
@@ -242,7 +378,7 @@
   /* revealed cards keep their snappy hover lift */
   .js [data-reveal].is-in.lift { transition: opacity 0.5s var(--ease), transform 0.15s var(--ease), box-shadow 0.15s var(--ease); }
 
-  /* hero wordmark: blur → sharp */
+  /* hero wordmark: blur → sharp (removed in Task 6) */
   .blur-in { animation: blur-in 1.1s var(--ease) both; }
   @keyframes blur-in { from { filter: blur(16px); opacity: 0; } to { filter: blur(0); opacity: 1; } }
   .fade-up { animation: fade-up 0.6s var(--ease) both; animation-delay: calc(0.25s + var(--d, 0) * 70ms); }
@@ -272,4 +408,12 @@
   }
   .marquee-track { animation: none !important; }
   .js [data-reveal] { opacity: 1; transform: none; }
+  .stair .g { animation: none !important; }
+}
+
+@media print {
+  .field { background: none !important; }
+  .field::before, .field::after, .ghost, .bands { display: none !important; }
+  .on-field, .on-field .stair { color: var(--ink) !important; }
+  nav[aria-label="Primary"], .skip-link { display: none !important; }
 }

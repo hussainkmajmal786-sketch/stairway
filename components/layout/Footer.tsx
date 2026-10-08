@@ -130,7 +130,7 @@ export function Footer() {
               window.scrollTo({ top: 0 });
               document.getElementById("main")?.focus({ preventScroll: true });
             }}
-            className="btn btn-ghost"
+            className="btn btn-secondary"
           >
             <ArrowUp size={16} strokeWidth={2} /> Back to top
           </button>

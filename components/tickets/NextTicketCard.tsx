@@ -35,14 +35,14 @@ export function NextTicketCard({ next, failed = false }: { next: NextStep | null
       ) : failed ? (
         <div className="p-5">
           <p className="text-ink-2">We couldn&apos;t load your tickets just now.</p>
-          <Link href="/me/tickets" className="btn btn-ghost mt-4">
+          <Link href="/me/tickets" className="btn btn-secondary mt-4">
             Go to My tickets <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>
       ) : (
         <div className="p-5">
           <p className="text-ink-2">You haven&apos;t registered for an upcoming session yet.</p>
-          <Link href="/#societies" className="btn btn-ghost mt-4">
+          <Link href="/#societies" className="btn btn-secondary mt-4">
             Find your next step <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>

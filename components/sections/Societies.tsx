@@ -55,8 +55,8 @@ function Quiz() {
             <p className="mt-2 text-ink-3">{rec.topic}. {rec.summary}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <SmartLink href={registerHref(rec.slug)} className="btn btn-primary">Claim this step <ArrowRight size={16} strokeWidth={2} /></SmartLink>
-              <Link href={`/events/${rec.slug}`} className="btn btn-ghost">Details</Link>
-              <button onClick={() => { setI(0); setScore(0); setDone(false); }} className="btn btn-ghost"><RotateCcw size={16} strokeWidth={2} /> Retake</button>
+              <Link href={`/events/${rec.slug}`} className="btn btn-secondary">Details</Link>
+              <button onClick={() => { setI(0); setScore(0); setDone(false); }} className="btn btn-secondary"><RotateCcw size={16} strokeWidth={2} /> Retake</button>
             </div>
           </div>
         ) : (
@@ -99,7 +99,7 @@ export function Societies() {
                     ) : (
                       <p className="border-2 border-dashed border-ink p-3 text-sm text-ink-3">New steps announced soon.</p>
                     )}
-                    <Link href={`/s/${s.slug}`} className="btn btn-sm btn-ghost mt-3 w-full">View {s.shortName} stairway <ArrowRight size={16} strokeWidth={2} /></Link>
+                    <Link href={`/s/${s.slug}`} className="btn btn-sm btn-secondary mt-3 w-full">View {s.shortName} stairway <ArrowRight size={16} strokeWidth={2} /></Link>
                   </div>
                 </div>
               </li>

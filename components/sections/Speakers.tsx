@@ -78,7 +78,7 @@ export function Speakers() {
             <div className="mt-8">
               <h3 className="text-2xl font-semibold">Want to speak at st(AI)rway?</h3>
               <p className="mt-2 text-sm text-ink-3">Share what you know with 500+ students. Talks, labs and mentoring slots are open.</p>
-              <a href={event.speakerFormUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost mt-5">Apply to speak</a>
+              <a href={event.speakerFormUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary mt-5">Apply to speak</a>
             </div>
           </li>
         </ul>

@@ -39,7 +39,7 @@ export function Hero() {
           <Button href={registerHref(openSlug(next), event.registration)} size="lg" trackAs="register_click" trackProps={{ from: "hero" }}>
             Claim your step <ArrowRight size={18} strokeWidth={2} />
           </Button>
-          <Button href="#societies" variant="ghost" size="lg">
+          <Button href="#societies" variant="secondary" size="lg">
             <ArrowDown size={18} strokeWidth={2} /> Explore the societies
           </Button>
         </div>

@@ -101,7 +101,7 @@ export function Resources() {
       <div className="wrap">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <SectionHeader id="resources-title" Icon={FolderOpen} eyebrow="Resources hub" title="Missed a step? [[Catch up.]]" lead="Slides, code, notebooks and recordings from every weekend we've climbed." className="!mb-0" />
-          <Link href="/resources" className="btn btn-ghost shrink-0">All resources <ArrowRight size={16} strokeWidth={2} /></Link>
+          <Link href="/resources" className="btn btn-secondary shrink-0">All resources <ArrowRight size={16} strokeWidth={2} /></Link>
         </div>
         <div className="mt-10"><ResourceHub /></div>
       </div>

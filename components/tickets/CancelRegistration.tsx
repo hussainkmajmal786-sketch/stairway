@@ -75,7 +75,7 @@ export function CancelRegistration({
       <div className="grid gap-2">
         <button
           type="button"
-          className="btn btn-sm btn-ghost justify-self-start"
+          className="btn btn-sm btn-secondary justify-self-start"
           aria-disabled="true"
           aria-describedby={reasonId}
         >
@@ -99,7 +99,7 @@ export function CancelRegistration({
       <button
         ref={openRef}
         type="button"
-        className="btn btn-sm btn-ghost justify-self-start"
+        className="btn btn-sm btn-secondary justify-self-start"
         onClick={() => {
           setError(null);
           justOpened.current = true;
@@ -133,7 +133,7 @@ export function CancelRegistration({
         </button>
         <button
           type="button"
-          className="btn btn-sm btn-ghost"
+          className="btn btn-sm btn-secondary"
           disabled={busy}
           onClick={() => {
             setError(null);

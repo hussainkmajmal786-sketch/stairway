@@ -24,7 +24,7 @@ export function TopBar() {
             {next && (
               <Link
                 href={`/events/${next.slug}`}
-                className="btn btn-sm btn-ghost !px-3 !shadow-[3px_3px_0_0_var(--ink)]"
+                className="btn btn-sm btn-secondary !px-3 !shadow-[3px_3px_0_0_var(--ink)]"
                 aria-label={`Next: Step ${next.step}, ${next.title}, ${formatDate(next.start, { day: "numeric", month: "long" })}`}
               >
                 <CalendarDays size={16} strokeWidth={2} aria-hidden />

@@ -35,7 +35,7 @@ export function DashboardShell({ variant, children }: { variant: DashboardVarian
   return (
     <div className="wrap grid gap-6 py-8 md:py-12 lg:grid-cols-[240px_1fr] lg:gap-10">
       <aside className="lg:sticky lg:top-24 lg:self-start">
-        <Link href="/" className="btn btn-sm btn-ghost mb-4 w-full justify-start lg:mb-6">
+        <Link href="/" className="btn btn-sm btn-secondary mb-4 w-full justify-start lg:mb-6">
           <ArrowLeft size={16} strokeWidth={2} aria-hidden /> Back to site
         </Link>
         <p className="mono mb-3 hidden font-bold text-ink-3 lg:block">{title}</p>

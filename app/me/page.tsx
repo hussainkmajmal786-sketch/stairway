@@ -66,7 +66,7 @@ export default async function MePage() {
           <Link href="/me/profile" className="btn btn-primary">
             Edit profile <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Link>
-          <Link href={`/u/${profile.handle}`} className="btn btn-ghost">View public profile</Link>
+          <Link href={`/u/${profile.handle}`} className="btn btn-secondary">View public profile</Link>
         </div>
       </section>
     </div>

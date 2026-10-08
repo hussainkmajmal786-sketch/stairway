@@ -42,7 +42,7 @@ export function EmailCodeForm({ next }: { next: string }) {
       <Field id="login-email" label="Email" error={error ?? undefined}>
         <input id="login-email" type="email" autoComplete="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
-      <button type="submit" className="btn btn-ghost w-full" disabled={busy}>
+      <button type="submit" className="btn btn-secondary w-full" disabled={busy}>
         {busy && <Loader2 size={16} className="animate-spin" />} Email me a code
       </button>
     </form>

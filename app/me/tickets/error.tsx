@@ -30,7 +30,7 @@ export default function TicketsError({ retry }: { error: Error & { digest?: stri
           <button type="button" onClick={() => retry()} className="btn btn-primary">
             <RotateCw size={16} strokeWidth={2} aria-hidden /> Try again
           </button>
-          <Link href="/me" className="btn btn-ghost">Back to overview</Link>
+          <Link href="/me" className="btn btn-secondary">Back to overview</Link>
         </div>
       </div>
     </div>

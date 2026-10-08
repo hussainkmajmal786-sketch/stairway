@@ -126,7 +126,7 @@ export function RowList<T extends { id?: string }>(p: RowListProps<T>) {
         <button type="button" className="btn btn-primary btn-sm" onClick={onSave} disabled={busy}>
           {busy && <Loader2 size={16} className="animate-spin" aria-hidden />} Save
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { close(); setMessage(null); }}>
+        <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => { close(); setMessage(null); }}>
           Cancel
         </button>
       </div>
@@ -138,7 +138,7 @@ export function RowList<T extends { id?: string }>(p: RowListProps<T>) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink bg-paper-2 px-5 py-3">
         <h2 className="mono font-bold">{p.title}</h2>
         <button
-          type="button" className="btn btn-sm btn-ghost" disabled={locked} data-focus-key="add"
+          type="button" className="btn btn-sm btn-secondary" disabled={locked} data-focus-key="add"
           onClick={() => begin(rows.length, p.blank(), "add")}
         >
           <Plus size={16} strokeWidth={2} aria-hidden /> {p.addLabel}

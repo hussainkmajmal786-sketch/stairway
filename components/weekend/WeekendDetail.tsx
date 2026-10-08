@@ -161,10 +161,10 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
           {done && Object.keys(w.resources).length > 0 && (
             <Block title="Resources" Icon={FileText} id="resources" fill="bg-green">
               <div className="flex flex-wrap gap-3">
-                {w.resources.slides && <a className="btn btn-sm btn-ghost" href={w.resources.slides} target="_blank" rel="noopener noreferrer"><FileText size={16} strokeWidth={2} /> Slides</a>}
-                {w.resources.code && <a className="btn btn-sm btn-ghost" href={w.resources.code} target="_blank" rel="noopener noreferrer"><Github size={16} /> Code</a>}
-                {w.resources.notebook && <a className="btn btn-sm btn-ghost" href={w.resources.notebook} target="_blank" rel="noopener noreferrer"><NotebookPen size={16} strokeWidth={2} /> Notebook</a>}
-                {w.resources.reading?.map((r) => <a key={r.href} className="btn btn-sm btn-ghost" href={r.href} target="_blank" rel="noopener noreferrer">{r.label}</a>)}
+                {w.resources.slides && <a className="btn btn-sm btn-secondary" href={w.resources.slides} target="_blank" rel="noopener noreferrer"><FileText size={16} strokeWidth={2} /> Slides</a>}
+                {w.resources.code && <a className="btn btn-sm btn-secondary" href={w.resources.code} target="_blank" rel="noopener noreferrer"><Github size={16} /> Code</a>}
+                {w.resources.notebook && <a className="btn btn-sm btn-secondary" href={w.resources.notebook} target="_blank" rel="noopener noreferrer"><NotebookPen size={16} strokeWidth={2} /> Notebook</a>}
+                {w.resources.reading?.map((r) => <a key={r.href} className="btn btn-sm btn-secondary" href={r.href} target="_blank" rel="noopener noreferrer">{r.label}</a>)}
               </div>
               {w.resources.recording && (
                 <div id="recording" className="mt-6 aspect-video border-2 border-ink">
@@ -232,10 +232,10 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
                   <RegisterCta state={cta} step={w.step} />
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
+                  <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary !px-2">
                     <CalendarPlus size={16} strokeWidth={2} /> Google
                   </a>
-                  <button onClick={() => downloadIcs(w, event)} className="btn btn-sm btn-ghost !px-2">
+                  <button onClick={() => downloadIcs(w, event)} className="btn btn-sm btn-secondary !px-2">
                     <Download size={16} strokeWidth={2} /> .ics
                   </button>
                 </div>

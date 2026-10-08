@@ -89,7 +89,7 @@ export function NextWeekend() {
               <Button href={registerHref(openSlug(next), event.registration)} variant="ink" trackAs="register_click" trackProps={{ from: "spotlight", step: next.step }}>
                 Claim your step <ArrowRight size={16} strokeWidth={2} />
               </Button>
-              <Link href={`/events/${next.slug}`} className="btn btn-ghost">Find out more</Link>
+              <Link href={`/events/${next.slug}`} className="btn btn-secondary">Find out more</Link>
             </div>
 
             <div className="mt-6 border-t-2 border-ink pt-5">
