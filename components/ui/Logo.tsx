@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 /** The st(AI)rway wordmark. "(AI)" sits on a yellow block — the brand's core. */
 export function Wordmark({ className, block = true }: { className?: string; block?: boolean }) {
   return (
-    <span className={cn("font-display font-semibold tracking-[-0.04em]", className)} aria-label="st(AI)rway">
+    <span className={cn("font-sans font-semibold tracking-[-0.04em]", className)} aria-label="st(AI)rway">
       <span aria-hidden>st</span>
-      <span aria-hidden className={cn(block && "mx-[0.04em] bg-yellow px-[0.08em]")}>(AI)</span>
+      <span aria-hidden className={cn(block && "mx-[0.04em] bg-yellow px-[0.08em] text-ink")}>(AI)</span>
       <span aria-hidden>rway</span>
     </span>
   );

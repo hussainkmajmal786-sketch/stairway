@@ -1,34 +1,42 @@
 @import "tailwindcss";
 
 /* ═════════════════════════════════════════════════════════════
-   st(AI)rway design system — "paper" brutalism
-   Cream paper, ink outlines, hard offset shadows, flat colour blocks.
-   Square corners everywhere. Colour marks meaning, never decoration.
+   st(AI)rway design system — "Cobalt Circuit" poster brutalism
+   A cobalt poster field for heroes and key bands, cream panels for reading,
+   ink outlines, hard offset shadows, flat colour chips. Square corners.
+   Hex values mirror lib/design/tokens.ts (tests/design/tokens.test.ts keeps them in sync).
+   Ink text never sits on the field (2.39:1): ink is decoration there only.
    ═════════════════════════════════════════════════════════════ */
 
 :root {
+  /* poster field (cobalt) */
+  --field: #1c3fd0;
+  --field-2: #122c99;
   /* surfaces */
   --paper: #f4efe6;
-  --paper-2: #ece4d7;
-  --paper-3: #e2d8c8;
-  /* ink (text, borders, shadows) */
-  --ink: #100f0d;
-  --ink-2: #3a352e;
-  --ink-3: #4f4a40;
-  --ink-4: #6b6355; /* muted labels — 5:1 on paper */
+  --paper-2: #e8e1d3;
+  --paper-3: #dcd3c2;
+  /* ink (text, borders, shadows): blue-black */
+  --ink: #0b1026;
+  --ink-2: #2a2f48;
+  --ink-3: #454a63;
+  --ink-4: #5a5f78; /* faint labels: 5.49 on paper, 4.83 on paper-2 */
   /* flat fills (always with ink text on top) */
-  --yellow: #ffb200;
-  --blue: #2a8cff;
-  --green: #1be349;
-  --red: #ff5a5a;
-  --orange: #ff5c38;
-  --purple: #c07cff;
+  --yellow: #ffc21a;
+  --blue: #6cc8ff; /* intermediate: sky, never confused with the field */
+  --green: #2edb6a;
+  --red: #ff5c5c;
+  --orange: #ff7a3d;
+  --purple: #c9a0ff;
   /* text-safe accents (AA on paper) */
-  --blue-ink: #0b57c9;
+  --blue-ink: #1c3fd0;
   --purple-ink: #6b2fb5;
   --red-ink: #c31f1f;
   --green-ink: #0a7a2a;
   --amber-ink: #8a5a00;
+  --error-bg: #fff6f5;
+  /* focus ring: ink on cream; .on-field, the top bar and the footer switch it to yellow */
+  --focus: var(--ink);
 
   --shadow: 4px 4px 0 0 var(--ink);
   --shadow-lg: 6px 6px 0 0 var(--ink);
@@ -36,9 +44,14 @@
   --section-y: clamp(72px, 10vw, 128px);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --dock-h: 76px;
+  /* print-grain tiles for .field (inline SVG, copied from the mock-up) */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --blot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -2.2 1.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
 }
 
 @theme inline {
+  --color-field: var(--field);
+  --color-field-2: var(--field-2);
   --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
   --color-paper-3: var(--paper-3);
@@ -57,8 +70,9 @@
   --color-red-ink: var(--red-ink);
   --color-green-ink: var(--green-ink);
   --color-amber-ink: var(--amber-ink);
+  --color-error-bg: var(--error-bg);
   --font-sans: var(--font-urbanist), ui-sans-serif, system-ui;
-  --font-display: var(--font-urbanist), ui-sans-serif, system-ui;
+  --font-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;
   --font-mono: var(--font-space-mono), ui-monospace, monospace;
 }
 
@@ -75,8 +89,8 @@
     background-color: var(--paper);
     /* faint graph-paper grid */
     background-image:
-      linear-gradient(rgba(16, 15, 13, 0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(16, 15, 13, 0.055) 1px, transparent 1px);
+      linear-gradient(rgba(11, 16, 38, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 16, 38, 0.05) 1px, transparent 1px);
     background-size: 32px 32px;
     color: var(--ink);
     font-family: var(--font-sans);
@@ -86,7 +100,7 @@
     -webkit-font-smoothing: antialiased;
   }
   ::selection { background: var(--yellow); color: var(--ink); }
-  :focus-visible { outline: 3px solid var(--blue-ink); outline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   h1, h2, h3, h4 { letter-spacing: -0.02em; line-height: 1.08; }
   img, svg, video, canvas { display: block; max-width: 100%; }
   /* Tailwind v4 resets buttons to cursor:default — every clickable gets a pointer */
