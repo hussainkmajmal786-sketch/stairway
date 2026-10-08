@@ -1118,7 +1118,7 @@ export function Bands({ edge }: { edge: "top" | "bottom" }) {
  * The frame's logo row. Text for now (no logo files yet): when the branch supplies cream IEEE SB CEK / IEEE logo
  * SVGs, swap this body for them and keep FRAME_ORG as their accessible name.
  */
-export function LogoRow({ org = FRAME_ORG, middle = "Kerala Section · Region 10" }: { org?: string; middle?: string }) {
+export function LogoRow({ org = FRAME_ORG, middle }: { org?: string; middle?: string }) {
   return (
     <div className="logo-row">
       <span className="lm">
@@ -2122,7 +2122,7 @@ Expected: PASS.
 
 - [ ] **Step 7: Visual smoke check (375 and 1280)**
 
-With the `stairway-dev` preview: at 375 the stair lettering `st(AI)rway` fits inside the frame with **no horizontal scroll** (`javascript_tool`: `document.documentElement.scrollWidth` → `375`), the glyphs step up left to right, `(AI)` is on yellow with an ink extrusion, the rotated caption fits on one line, the rule head "STEP 04 OPENS SAT 17 OCT" (yellow verb) fits on one line, and "Explore the societies" is a cream-outlined transparent button. At 1280 the frame, the logo row (`IEEE SB CE KIDANGOOR` · `Kerala Section · Region 10` · `IEEE`), the top and bottom corner bands and the faint CLIMB ghost match `mockup-desktop-1280.png`. Tab through: the focus ring is **yellow** inside the field. Compare against the mock-up screenshots side by side; fix drift before committing.
+With the `stairway-dev` preview: at 375 the stair lettering `st(AI)rway` fits inside the frame with **no horizontal scroll** (`javascript_tool`: `document.documentElement.scrollWidth` → `375`), the glyphs step up left to right, `(AI)` is on yellow with an ink extrusion, the rotated caption fits on one line, the rule head "STEP 04 OPENS SAT 17 OCT" (yellow verb) fits on one line, and "Explore the societies" is a cream-outlined transparent button. At 1280 the frame, the logo row (`IEEE SB CE KIDANGOOR` · `IEEE`), the top and bottom corner bands and the faint CLIMB ghost match `mockup-desktop-1280.png`. Tab through: the focus ring is **yellow** inside the field. Compare against the mock-up screenshots side by side; fix drift before committing.
 
 - [ ] **Step 8: Run the checks**
 
