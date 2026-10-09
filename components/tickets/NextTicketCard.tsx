@@ -7,7 +7,7 @@ import type { NextStep } from "@/lib/tickets/list";
 export function NextTicketCard({ next, failed = false }: { next: NextStep | null; failed?: boolean }) {
   return (
     <section className="box shadow-hard" aria-labelledby="next-ticket-title">
-      <div className="border-b-2 border-ink bg-yellow px-5 py-3">
+      <div className="border-b-2 border-ink bg-field px-5 py-3 text-paper">
         <h2 id="next-ticket-title" className="mono font-bold">Your next step</h2>
       </div>
       {next ? (
