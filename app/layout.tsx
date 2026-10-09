@@ -15,6 +15,7 @@ import { Footer } from "@/components/layout/Footer";
 import { EasterEgg } from "@/components/layout/EasterEgg";
 import { GaPageViews } from "@/components/layout/GaPageViews";
 import { gaBootstrap } from "@/lib/analytics";
+import { TOKENS } from "@/lib/design/tokens";
 
 const urbanist = Urbanist({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--font-urbanist", display: "swap" });
 // Display face: hero stair lettering, section titles, countdown digits, step numbers. One weight (~20 KB latin).
@@ -46,7 +47,7 @@ export const dynamic = "force-dynamic";
 const requestTime = () => Date.now();
 
 export const viewport: Viewport = {
-  themeColor: "#F4EFE6",
+  themeColor: TOKENS.ink,
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
