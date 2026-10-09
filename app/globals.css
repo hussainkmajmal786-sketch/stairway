@@ -113,7 +113,9 @@
 }
 
 /* z-index scale: 40 header · 50 dock · 60 modal · 70 toast · 80 skip link
-   inside a .field: 0 ghost word · 1 corner bands · 2 content · 5 print grain · 6 cream panels */
+   inside a .field (its own isolated stacking context): ghost word, corner bands and content are z-index auto and
+   paint in DOM order, then 5 print grain, then 6 cream panels. Nothing between .field and a panel may create a
+   stacking context (no z-index on .field-content / .frame), or the panel is trapped under the grain. */
 
 @layer components {
   /* ───────── layout ───────── */
@@ -167,7 +169,7 @@
   .field::before, .field::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: soft-light; }
   .field::before { background-image: var(--noise); opacity: 0.32; }
   .field::after { background-image: var(--blot); background-size: 600px; opacity: 0.14; }
-  .field-content { position: relative; z-index: 2; }
+  .field-content { position: relative; }
   /* cream panels sit above the grain so forms, tables and QR codes stay perfectly clean */
   .field :is(.box, .box-2, .panel) { position: relative; z-index: 6; }
   /* text on the field is cream; focus turns yellow (4.86:1 on cobalt) */
@@ -180,7 +182,7 @@
 
   /* ───────── signature 2 · ghost word ───────── */
   .ghost {
-    position: absolute; inset: -12% -25% auto; z-index: 0; transform: rotate(-7deg); pointer-events: none; user-select: none;
+    position: absolute; inset: -12% -25% auto; z-index: auto; transform: rotate(-7deg); pointer-events: none; user-select: none;
     font-family: var(--font-display); text-transform: uppercase; font-size: clamp(5rem, 15vw, 13rem); line-height: 0.86;
     color: var(--paper); opacity: 0.075; white-space: nowrap;
   }
@@ -188,13 +190,13 @@
   .ghost span:nth-child(even) { margin-left: -0.6em; opacity: 0.7; }
 
   /* ───────── signature 3 · diagonal corner bands ───────── */
-  .bands { position: absolute; left: 0; right: 0; height: clamp(44px, 9vw, 120px); z-index: 1; pointer-events: none; }
+  .bands { position: absolute; left: 0; right: 0; height: clamp(44px, 9vw, 120px); z-index: auto; pointer-events: none; }
   .bands.top { top: 0; background: linear-gradient(176deg, var(--paper) 0 30%, var(--ink) calc(30% + 0.5px) 62%, transparent calc(62% + 0.5px)); }
   .bands.bottom { bottom: 0; background: linear-gradient(176deg, transparent 0 38%, var(--ink) calc(38% + 0.5px) 70%, var(--paper) calc(70% + 0.5px)); }
 
   /* ───────── signature 4 · double frame + logo row ───────── */
   .frame {
-    position: relative; z-index: 2; border: 6px solid var(--paper); outline: 2px solid var(--paper); outline-offset: -14px;
+    position: relative; border: 6px solid var(--paper); outline: 2px solid var(--paper); outline-offset: -14px;
     padding: clamp(22px, 3.4vw, 44px) clamp(20px, 3.4vw, 48px);
   }
   .logo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid rgba(244, 239, 230, 0.35); }
@@ -282,6 +284,10 @@
   /* disabled: dashed border + paper-3 fill (opacity .5 failed contrast on the field) */
   .btn:disabled, .btn[aria-disabled="true"] { background: var(--paper-3); color: var(--ink-4); border-style: dashed; box-shadow: none; transform: none; pointer-events: none; }
   .on-field .btn:disabled, .on-field .btn[aria-disabled="true"] { background: transparent; color: rgba(244, 239, 230, 0.75); border-color: rgba(244, 239, 230, 0.75); }
+  /* cream panels on the field are cream surfaces again: ghost and disabled buttons go back to ink */
+  .on-field :is(.box, .box-2, .panel) .btn-ghost { color: var(--ink); border-color: var(--ink); }
+  .on-field :is(.box, .box-2, .panel) .btn-ghost:hover { background: rgba(11, 16, 38, 0.06); }
+  .on-field :is(.box, .box-2, .panel) .btn:disabled, .on-field :is(.box, .box-2, .panel) .btn[aria-disabled="true"] { background: var(--paper-3); color: var(--ink-4); border-color: var(--ink); }
 
   /* ───────── top bar (ink) ───────── */
   .topbar { --focus: var(--yellow); }

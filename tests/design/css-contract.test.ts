@@ -30,6 +30,33 @@ describe("globals.css contract", () => {
     expect(rule).not.toContain("opacity");
   });
 
+  // body of the first rule whose selector list is exactly `selector`
+  const ruleBody = (selector: string) => {
+    const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*");
+    return new RegExp(`(?:^|[}\\n])\\s*${esc}\\s*\\{([^}]*)\\}`).exec(css)?.[1];
+  };
+
+  it("keeps cream panels above the grain: nothing between .field and a panel is a stacking context", () => {
+    expect(ruleBody(".field::before, .field::after")).toMatch(/z-index:\s*5/);
+    expect(ruleBody(".field :is(.box, .box-2, .panel)")).toMatch(/z-index:\s*6/);
+    for (const sel of [".field-content", ".frame"]) {
+      const body = ruleBody(sel);
+      expect(body, sel).toBeDefined();
+      expect(body, sel).not.toMatch(/z-index|isolation|transform|opacity|filter/);
+    }
+    for (const sel of [".ghost", ".bands"]) expect(ruleBody(sel), sel).toMatch(/z-index:\s*auto/);
+  });
+
+  it("puts ghost and disabled buttons back to ink inside cream panels on the field", () => {
+    expect(ruleBody(".on-field :is(.box, .box-2, .panel) .btn-ghost")).toMatch(/color:\s*var\(--ink\)/);
+    const disabled = ruleBody('.on-field :is(.box, .box-2, .panel) .btn:disabled, .on-field :is(.box, .box-2, .panel) .btn[aria-disabled="true"]');
+    expect(disabled).toMatch(/background:\s*var\(--paper-3\)/);
+    expect(disabled).toMatch(/color:\s*var\(--ink-4\)/);
+    // the panel resets must come after the on-field rules they override
+    expect(css.indexOf(".on-field :is(.box, .box-2, .panel) .btn-ghost")).toBeGreaterThan(css.indexOf(".on-field .btn-ghost {"));
+    expect(css.indexOf(".on-field :is(.box, .box-2, .panel) .btn:disabled")).toBeGreaterThan(css.indexOf(".on-field .btn:disabled"));
+  });
+
   it("only animates the stair lettering when motion is welcome", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\)\s*\{\s*\.stair \.g\s*\{\s*animation:/);
   });
