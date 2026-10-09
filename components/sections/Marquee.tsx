@@ -18,13 +18,13 @@ export function Marquee() {
       {TOPICS.map(([t, c]) => (
         <li key={t} className="flex items-center gap-4">
           <span className={`tag ${c} !px-3 !py-1.5 !text-[0.78rem]`}>{t}</span>
-          <span className="font-mono text-ink-4" aria-hidden>{"<>"}</span>
+          <span className="font-mono text-paper/60" aria-hidden>{"<>"}</span>
         </li>
       ))}
     </ul>
   );
   return (
-    <div className="border-b-2 border-ink bg-paper py-3" role="region" aria-label="Topics covered">
+    <div className="border-b-2 border-ink bg-ink py-3" role="region" aria-label="Topics covered">
       <div className="marquee" style={{ ["--speed" as string]: "55s" }}>
         {row(false)}
         {row(true)}

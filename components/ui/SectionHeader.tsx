@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { Heading } from "./Heading";
 import { cn } from "@/lib/utils";
 
+/** Mono eyebrow + Anton rule heading (+ lead). Use `tone="field"` inside a FieldBand (cream text, yellow marked words). */
 export function SectionHeader({
   id,
   eyebrow,
@@ -9,6 +10,7 @@ export function SectionHeader({
   lead,
   Icon,
   align = "left",
+  tone = "paper",
   className,
 }: {
   id: string;
@@ -17,6 +19,7 @@ export function SectionHeader({
   lead?: string;
   Icon?: LucideIcon;
   align?: "left" | "center";
+  tone?: "paper" | "field";
   className?: string;
 }) {
   return (
@@ -25,7 +28,7 @@ export function SectionHeader({
         {Icon && <Icon size={16} strokeWidth={2} aria-hidden />}
         {eyebrow}
       </p>
-      <Heading id={id} text={title} className="h2 max-w-[20ch]" />
+      <Heading id={id} text={title} tone={tone} rule={align === "center" ? "both" : "left"} className={cn("h2", align === "center" && "w-full")} />
       {lead && (
         <p className={cn("lead mt-5", align === "center" && "mx-auto")} data-reveal style={{ ["--d" as string]: 2 }}>
           {lead}

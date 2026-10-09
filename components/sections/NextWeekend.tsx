@@ -9,6 +9,7 @@ import { FormatChip, LevelChip, SeatsBar } from "@/components/ui/Badges";
 import { Avatar } from "@/components/ui/Avatar";
 import { ShareButtons } from "@/components/ui/ShareButtons";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
+import { TOKENS } from "@/lib/design/tokens";
 import { longDate, openSlug, pad2, registerHref, timeOf } from "@/lib/weekends";
 
 /** Featured block for the next step — a "poster" on the left, details on a yellow panel. */
@@ -31,12 +32,12 @@ export function NextWeekend() {
           <div className="relative flex min-h-[320px] min-w-0 flex-col justify-between overflow-hidden border-ink bg-paper p-6 max-lg:border-b-2 lg:border-r-2 md:p-8">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
               {Array.from({ length: 6 }, (_, i) => (
-                <rect key={i} x={i * 16.66} y={86 - i * 13} width="16.66" height={14 + i * 13} fill={i === 5 ? "#FFB200" : i % 2 ? "#E2D8C8" : "#ECE4D7"} stroke="#100F0D" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
+                <rect key={i} x={i * 16.66} y={86 - i * 13} width="16.66" height={14 + i * 13} fill={i === 5 ? TOKENS.yellow : i % 2 ? TOKENS.paper3 : TOKENS.paper2} stroke={TOKENS.ink} strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
               ))}
             </svg>
             <span className="relative tag tag-ink self-start">Step {pad2(next.step)} / {stairwayLength}</span>
             <div className="relative">
-              <p className="font-mono text-[clamp(5rem,14vw,9rem)] font-bold leading-none">{pad2(next.step)}</p>
+              <p className="font-display text-[clamp(5rem,14vw,9rem)] leading-none text-field [text-shadow:0.04em_-0.04em_0_var(--ink)]">{pad2(next.step)}</p>
               <p className="mt-2 max-w-[14ch] text-2xl font-semibold">{next.title}</p>
             </div>
           </div>
@@ -47,7 +48,7 @@ export function NextWeekend() {
               <LevelChip level={next.level} />
               {next.formats.map((f) => <FormatChip key={f} format={f} />)}
             </div>
-            <h2 id="next-title" className="mt-4 font-mono text-[clamp(1.8rem,3.6vw,2.6rem)] font-bold uppercase leading-tight tracking-[-0.02em]">
+            <h2 id="next-title" className="h-display mt-4 text-[clamp(2.2rem,4.4vw,3.4rem)]">
               {next.title}
             </h2>
             <p className="mono mt-1 font-bold">{next.topic}</p>

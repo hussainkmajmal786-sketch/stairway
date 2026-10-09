@@ -13,6 +13,7 @@ import { pad2, shortDate } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
 import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import { SmartLink } from "@/components/ui/SmartLink";
+import { FieldBand } from "@/components/ui/Poster";
 
 function Quiz() {
   const { weekends } = useClock();
@@ -72,9 +73,9 @@ export function Societies() {
   const { societies } = useSiteData();
   const { weekends } = useClock();
   return (
-    <section id="societies" aria-labelledby="societies-title" className="section section-alt">
+    <FieldBand id="societies" labelledBy="societies-title" ghost={false} bands="top" className="section border-y-2 border-ink">
       <div className="wrap">
-        <SectionHeader id="societies-title" Icon={Layers} eyebrow="Five societies · five stairways" title="Pick your [[stairway.]]" lead="Every IEEE society at CEK runs its own weekly climb. Follow one, or hop between them." />
+        <SectionHeader id="societies-title" Icon={Layers} eyebrow="Five societies · five stairways" title="Pick your [[stairway.]]" lead="Every IEEE society at CEK runs its own weekly climb. Follow one, or hop between them." tone="field" />
         <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {societies.map((s, i) => {
             const next = nextForSociety(weekends, s.slug);
@@ -108,6 +109,6 @@ export function Societies() {
         </ul>
         <div className="mt-12"><Quiz /></div>
       </div>
-    </section>
+    </FieldBand>
   );
 }
