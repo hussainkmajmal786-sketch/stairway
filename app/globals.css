@@ -205,7 +205,6 @@
   }
   .logo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid rgba(244, 239, 230, 0.35); }
   .logo-row .lm { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.2; }
-  .logo-row .ieee { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; letter-spacing: 0.06em; line-height: 1; }
   .diamond { width: 22px; height: 22px; flex: none; border: 2px solid var(--paper); transform: rotate(45deg); display: grid; place-items: center; }
   .diamond::after { content: ""; width: 8px; height: 8px; background: var(--paper); }
   @media (max-width: 480px) {

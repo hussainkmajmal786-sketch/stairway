@@ -20,9 +20,9 @@ export function Bands({ edge }: { edge: "top" | "bottom" }) {
 }
 
 /**
- * The frame's logo row. Text for now (no logo files yet): when the branch supplies cream IEEE SB CEK / IEEE logo
- * SVGs, swap this body for them and keep FRAME_ORG as their accessible name. `middle` is optional (hidden on
- * phones) and renders nothing unless a caller passes real copy.
+ * The frame's logo row: the decorative diamond and the text FRAME_ORG ("IEEE SB CE KIDANGOOR"), nothing else (no
+ * separate "IEEE" mark). When the branch supplies a cream logo SVG, swap the body for it and keep FRAME_ORG as its
+ * accessible name. `middle` is optional (hidden on phones) and renders nothing unless a caller passes real copy.
  */
 export function LogoRow({ org = FRAME_ORG, middle }: { org?: string; middle?: string }) {
   return (
@@ -32,7 +32,6 @@ export function LogoRow({ org = FRAME_ORG, middle }: { org?: string; middle?: st
         {org}
       </span>
       {middle && <span className="lm mid">{middle}</span>}
-      <span className="lm ieee" aria-hidden="true">IEEE</span>
     </div>
   );
 }
@@ -78,8 +77,10 @@ export function FieldBand({
   innerClassName,
   children,
 }: FieldBandProps) {
+  // a named <div> needs a landmark role (ARIA prohibits naming a generic element)
+  const role = Tag === "div" && (label || labelledBy) ? "region" : undefined;
   return (
-    <Tag id={id} aria-labelledby={labelledBy} aria-label={label} className={cn("field on-field", deep && "field-2", className)}>
+    <Tag id={id} role={role} aria-labelledby={labelledBy} aria-label={label} className={cn("field on-field", deep && "field-2", className)}>
       {ghost && <Ghost word={ghost} />}
       {bands !== "none" && <Bands edge="top" />}
       {bands === "both" && <Bands edge="bottom" />}

@@ -76,6 +76,12 @@ describe("FieldBand", () => {
     expect(out).toMatch(/^<footer class="field on-field">/);
     expect(out.match(/class="bands (top|bottom)" aria-hidden="true"/g)).toHaveLength(2);
   });
+  it("gives a named div the region role (a generic element cannot be named), and only a named div", () => {
+    expect(r(createElement(FieldBand, { as: "div", label: "Your tickets", ghost: false, children: "x" }))).toMatch(/^<div role="region" aria-label="Your tickets" class="field on-field">/);
+    expect(r(createElement(FieldBand, { as: "div", labelledBy: "t", ghost: false, children: "x" }))).toMatch(/^<div role="region" aria-labelledby="t"/);
+    expect(r(createElement(FieldBand, { as: "div", ghost: false, children: "x" }))).toMatch(/^<div class="field on-field">/);
+    expect(r(createElement(FieldBand, { label: "Hero", ghost: false, children: "x" }))).toMatch(/^<section aria-label="Hero"/);
+  });
   it("uses the deep cobalt when asked", () => {
     expect(r(createElement(FieldBand, { deep: true, ghost: false, children: "x" }))).toMatch(/^<section class="field on-field field-2">/);
   });
@@ -94,5 +100,11 @@ describe("Frame and LogoRow", () => {
     expect(row).not.toContain('class="lm mid"');
     expect(spoken(row)).toBe(FRAME_ORG);
     expect(r(createElement(LogoRow, { middle: "Hello" }))).toContain('<span class="lm mid">Hello</span>');
+  });
+  it("shows only the branch name (and the decorative diamond): no separate IEEE mark", () => {
+    const row = r(createElement(LogoRow));
+    expect(row).not.toContain("ieee");
+    expect(row.replace(/<[^>]+>/g, "")).toBe(FRAME_ORG);
+    expect(row).toContain('<span class="diamond" aria-hidden="true"></span>');
   });
 });

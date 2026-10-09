@@ -80,7 +80,7 @@ Define `--extrude` **on `.stair`**, not on `:root`. A custom property resolves `
 @media (max-width: 480px) { .frame { border-width: 5px; outline-offset: -11px; } }
 .logo-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid rgb(244 239 230 / .35); }
 ```
-The logo row holds the IEEE SB CEK mark, a middle line (hidden <480px) and the IEEE mark. **Use the official logo SVGs supplied by the branch.** The mockup uses text placeholders only.
+The logo row holds the decorative diamond and the text `IEEE SB CE KIDANGOOR` (`FRAME_ORG`), plus an optional middle line (hidden <480px). **User decision (review of Tasks 1-4): there is no separate "IEEE" mark** — not in the logo row and not on the OG cards; the mock-up's right-hand `IEEE` placeholder is dropped. If the branch later supplies an official cream logo SVG, it replaces the row's text in one place (`LogoRow`).
 
 ### 3.3 Diagonal corner bands
 ```css
