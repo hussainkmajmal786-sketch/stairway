@@ -57,6 +57,26 @@ describe("globals.css contract", () => {
     expect(css.indexOf(".on-field :is(.box, .box-2, .panel) .btn:disabled")).toBeGreaterThan(css.indexOf(".on-field .btn:disabled"));
   });
 
+  it("draws a yellow ring around focusable cards sitting directly on the field, ink when nested in a panel", () => {
+    expect(ruleBody(".on-field :is(.box, .box-2, .panel):focus-visible")).toMatch(/outline-color:\s*var\(--yellow\)/);
+    expect(ruleBody(".on-field :is(.box, .box-2, .panel) :is(.box, .box-2, .panel):focus-visible")).toMatch(/outline-color:\s*var\(--ink\)/);
+  });
+
+  it("drops the yellow shadow from a disabled top-bar button", () => {
+    expect(ruleBody('.topbar .btn:disabled, .topbar .btn[aria-disabled="true"]')).toMatch(/box-shadow:\s*none/);
+  });
+
+  it("matches the mock-up details (panel shadow on the field, presents alignment, mono weight)", () => {
+    expect(ruleBody(".on-field .panel")).toMatch(/box-shadow:\s*8px 8px 0 0 var\(--ink\)/);
+    expect(ruleBody(".presents")).toMatch(/text-align:\s*right/);
+    expect(ruleBody(".mono")).toMatch(/font-weight:\s*700/);
+  });
+
+  it("prints cream-on-field labels, leads, outline tags and ghost buttons in ink", () => {
+    const print = /@media print\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? "";
+    expect(print).toMatch(/\.on-field :is\(\.eyebrow, \.lead, \.tag-outline, \.btn-ghost\)\s*\{\s*color:\s*var\(--ink\) !important;\s*border-color:\s*var\(--ink\) !important;/);
+  });
+
   it("only animates the stair lettering when motion is welcome", () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\)\s*\{\s*\.stair \.g\s*\{\s*animation:/);
   });

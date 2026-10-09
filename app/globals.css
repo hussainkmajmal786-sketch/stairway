@@ -136,7 +136,7 @@
     text-transform: uppercase;
     color: var(--ink-3);
   }
-  .mono { font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.75rem; }
+  .mono { font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.75rem; }
   .mono-wide { font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; font-size: 0.7rem; }
   /* removed in Task 6 together with .blur-in, once the hero uses the stair lettering */
   .h-hero { font-size: clamp(3.4rem, 15vw, 10rem); font-weight: 500; letter-spacing: -0.045em; line-height: 0.95; }
@@ -145,9 +145,9 @@
   .h3 { font-size: clamp(1.4rem, 2.4vw, 1.9rem); font-weight: 600; }
   .lead { color: var(--ink-3); font-size: clamp(1.1rem, 1.6vw, 1.35rem); line-height: 1.55; max-width: 58ch; }
   .tagline { font-size: clamp(1.15rem, 2.2vw, 1.55rem); font-weight: 400; line-height: 1.4; max-width: 46ch; }
-  .presents { line-height: 1.35; }
+  .presents { text-align: right; line-height: 1.35; }
   .presents b { display: block; font-family: var(--font-mono); font-size: clamp(0.78rem, 1.4vw, 1rem); letter-spacing: 0.08em; text-transform: uppercase; }
-  .presents small { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; }
+  .presents small { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.9; }
   /* poster rule heading ("COMING SOON"): lead rule · text · flexible trailing rule */
   .rule-h { display: flex; align-items: center; gap: clamp(10px, 2vw, 22px); }
   .rule-h::before, .rule-h::after { content: ""; flex: 1 1 12px; min-width: 12px; height: 3px; background: currentColor; }
@@ -177,6 +177,10 @@
   .on-field :is(.eyebrow, .lead) { color: var(--paper); }
   .on-field .tag-outline { color: var(--paper); border-color: var(--paper); }
   .on-field :is(.box, .box-2, .panel) { color: var(--ink); --focus: var(--ink); }
+  .on-field .panel { box-shadow: 8px 8px 0 0 var(--ink); }
+  /* a focusable card sitting directly on the field draws its ring on cobalt: yellow there, ink again when nested */
+  .on-field :is(.box, .box-2, .panel):focus-visible { outline-color: var(--yellow); }
+  .on-field :is(.box, .box-2, .panel) :is(.box, .box-2, .panel):focus-visible { outline-color: var(--ink); }
   .on-field :is(.box, .box-2, .panel) :is(.eyebrow, .lead) { color: var(--ink-3); }
   .on-field :is(.box, .box-2, .panel) .tag-outline { color: var(--ink); border-color: var(--ink); }
 
@@ -207,6 +211,7 @@
   @media (max-width: 480px) {
     .frame { border-width: 5px; outline-offset: -11px; }
     .logo-row .mid { display: none; }
+    .presents { text-align: left; }
   }
 
   /* ───────── signature 5 · extruded stair-step lettering ───────── */
@@ -295,13 +300,14 @@
   .topbar .btn:hover { box-shadow: 5px 5px 0 0 var(--yellow); }
   .topbar .btn-primary { box-shadow: 3px 3px 0 0 var(--paper); }
   .topbar .btn-primary:hover { box-shadow: 5px 5px 0 0 var(--paper); }
+  .topbar .btn:disabled, .topbar .btn[aria-disabled="true"] { box-shadow: none; }
 
   /* ───────── tags (flat colour chips, always with an ink border and a word) ───────── */
   .tag {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.26rem 0.55rem;
+    padding: 0.3rem 0.6rem;
     border: 2px solid var(--ink);
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -345,7 +351,7 @@
   .chip-btn[aria-pressed="true"], .chip-btn[aria-selected="true"] { background: var(--ink); color: var(--paper); box-shadow: 3px 3px 0 0 var(--yellow); }
 
   /* ───────── seats bar ───────── */
-  .seats-track { height: 14px; border: var(--border); background: var(--paper); overflow: hidden; }
+  .seats-track { position: relative; height: 16px; border: var(--border); background: var(--paper); overflow: hidden; }
   .seats-fill {
     height: 100%; transform-origin: left; background-color: var(--field);
     background-image: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(244, 239, 230, 0.18) 6px 9px);
@@ -363,10 +369,10 @@
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .ticket-h::after { content: ""; position: absolute; right: -6px; top: 0; bottom: 0; width: 90px; background: linear-gradient(110deg, transparent 0 40%, var(--ink) 40% 60%, var(--paper) 60% 70%, transparent 70%); }
-  .perf { position: relative; height: 0; margin: 0 20px; border-top: 2px dashed var(--ink); }
-  .perf::before, .perf::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border: var(--border); background: var(--paper); border-radius: 50%; }
-  .perf::before { left: -34px; clip-path: inset(0 0 0 50%); }
-  .perf::after { right: -34px; clip-path: inset(0 50% 0 0); }
+  .perf { position: relative; height: 0; margin: 0 18px; border-top: 2px dashed var(--ink); }
+  .perf::before, .perf::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border: var(--border); background: var(--paper-2); border-radius: 50%; }
+  .perf::before { left: -32px; clip-path: inset(0 0 0 50%); }
+  .perf::after { right: -32px; clip-path: inset(0 50% 0 0); }
 
   /* ───────── dashboard ───────── */
   .side-strip { height: 10px; background: var(--field); border: var(--border); }
@@ -421,5 +427,6 @@
   .field { background: none !important; }
   .field::before, .field::after, .ghost, .bands { display: none !important; }
   .on-field, .on-field .stair { color: var(--ink) !important; }
+  .on-field :is(.eyebrow, .lead, .tag-outline, .btn-ghost) { color: var(--ink) !important; border-color: var(--ink) !important; }
   nav[aria-label="Primary"], .skip-link { display: none !important; }
 }
