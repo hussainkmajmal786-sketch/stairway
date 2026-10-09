@@ -285,6 +285,8 @@
   .btn-ink:hover { box-shadow: 6px 6px 0 0 var(--yellow); }
   .btn-sm { min-height: 44px; padding: 0 1rem; font-size: 0.72rem; }
   .btn-lg { min-height: 58px; padding: 0 1.8rem; font-size: 0.86rem; }
+  /* 320–379px phones: long labels ("Sign in to register") wrap inside their button instead of widening the page */
+  @media (max-width: 379.98px) { .btn { white-space: normal; text-align: center; } }
   /* disabled: dashed border + paper-3 fill (opacity .5 failed contrast on the field) */
   .btn:disabled, .btn[aria-disabled="true"] { background: var(--paper-3); color: var(--ink-4); border-style: dashed; box-shadow: none; transform: none; pointer-events: none; }
   .on-field .btn:disabled, .on-field .btn[aria-disabled="true"] { background: transparent; color: rgba(244, 239, 230, 0.75); border-color: rgba(244, 239, 230, 0.75); }

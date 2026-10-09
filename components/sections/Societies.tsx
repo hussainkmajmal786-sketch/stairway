@@ -79,7 +79,7 @@ export function Societies() {
           {societies.map((s, i) => {
             const next = nextForSociety(weekends, s.slug);
             return (
-              <li key={s.slug} data-reveal style={{ ["--d" as string]: i }} className="box flex flex-col shadow-hard">
+              <li key={s.slug} data-reveal style={{ ["--d" as string]: i }} className="box flex min-w-0 flex-col shadow-hard">
                 <div className={cn("flex items-center justify-between border-b-2 border-ink px-5 py-3", SOCIETY_FILL[s.color])}>
                   <span className="mono font-bold">{s.shortName}</span>
                   <span className="mono font-bold">{weekends.filter((w) => w.society.slug === s.slug).length} steps</span>
@@ -88,7 +88,7 @@ export function Societies() {
                   <h3 className="text-2xl font-semibold">{s.name}</h3>
                   <p className="mt-2 text-ink-2">{s.description}</p>
                   <ul className="mt-4 flex flex-wrap gap-1.5" aria-label="Tracks">
-                    {s.tracks.map((t) => <li key={t.id} className="tag">{t.name}</li>)}
+                    {s.tracks.map((t) => <li key={t.id} className="tag max-w-full !whitespace-normal">{t.name}</li>)}
                   </ul>
                   <div className="mt-auto pt-5">
                     {next ? (

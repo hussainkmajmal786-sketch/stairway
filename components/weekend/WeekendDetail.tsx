@@ -209,7 +209,7 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
         </div>
 
         {/* sticky action rail */}
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
+        <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24">
           <div className={cn("border-2 border-ink p-6 shadow-[6px_6px_0_0_var(--ink)]", done ? "bg-paper-2" : "bg-yellow")} data-reveal>
             {done ? (
               <>

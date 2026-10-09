@@ -28,7 +28,7 @@ export function NextWeekend() {
         </p>
         <div data-reveal className="grid border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] lg:grid-cols-[0.85fr_1.15fr]">
           {/* poster */}
-          <div className="relative flex min-h-[320px] flex-col justify-between overflow-hidden border-ink bg-paper p-6 max-lg:border-b-2 lg:border-r-2 md:p-8">
+          <div className="relative flex min-h-[320px] min-w-0 flex-col justify-between overflow-hidden border-ink bg-paper p-6 max-lg:border-b-2 lg:border-r-2 md:p-8">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
               {Array.from({ length: 6 }, (_, i) => (
                 <rect key={i} x={i * 16.66} y={86 - i * 13} width="16.66" height={14 + i * 13} fill={i === 5 ? "#FFB200" : i % 2 ? "#E2D8C8" : "#ECE4D7"} stroke="#100F0D" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
@@ -42,7 +42,7 @@ export function NextWeekend() {
           </div>
 
           {/* details */}
-          <div className="bg-yellow p-6 md:p-8">
+          <div className="min-w-0 bg-yellow p-6 md:p-8">
             <div className="flex flex-wrap gap-2">
               <LevelChip level={next.level} />
               {next.formats.map((f) => <FormatChip key={f} format={f} />)}
