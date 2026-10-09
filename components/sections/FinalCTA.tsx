@@ -15,7 +15,7 @@ export function FinalCTA() {
     return (
       <section id="register" aria-labelledby="cta-title" className="border-y-2 border-ink bg-yellow">
         <div className="wrap py-[clamp(72px,10vw,128px)]">
-          <h2 id="cta-title" className="text-[clamp(2.2rem,6vw,4.5rem)] font-medium leading-[0.95] tracking-[-0.04em]" data-reveal>
+          <h2 id="cta-title" className="h-display text-[clamp(2.4rem,6vw,4.5rem)]" data-reveal>
             Sessions will be announced soon.
           </h2>
           <Button href="#societies" variant="ink" size="lg" className="mt-8">
@@ -30,7 +30,7 @@ export function FinalCTA() {
       <div className="wrap grid gap-12 py-[clamp(72px,10vw,128px)] lg:grid-cols-[1.2fr_1fr] lg:items-end">
         <div className="min-w-0">
           <p className="mono font-bold" data-reveal>Step {pad2(next.step)} · {next.title}</p>
-          <h2 id="cta-title" className="mt-4 text-[clamp(3rem,9vw,7.5rem)] font-medium leading-[0.92] tracking-[-0.045em]" data-reveal>
+          <h2 id="cta-title" className="h-display mt-4 text-[clamp(3rem,9vw,7.5rem)] leading-[0.92]" data-reveal>
             Your next step is waiting.
           </h2>
         </div>

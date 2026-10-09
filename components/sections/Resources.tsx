@@ -8,6 +8,8 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { LevelChip } from "@/components/ui/Badges";
 import { pad2 } from "@/lib/weekends";
+import { inputBase } from "@/components/ui/Field";
+import { cn } from "@/lib/utils";
 
 const LEVELS = ["All", "Beginner", "Intermediate", "Advanced", "All levels"];
 
@@ -37,7 +39,7 @@ export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by topic — e.g. regression"
-            className="h-12 w-full border-2 border-ink bg-paper pl-11 pr-4 shadow-[3px_3px_0_0_var(--ink)] outline-none placeholder:text-ink-4 focus:bg-paper-2"
+            className={cn("h-12 w-full pl-11 pr-4", inputBase)}
           />
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by level">

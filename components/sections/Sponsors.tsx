@@ -68,18 +68,20 @@ export async function Sponsors() {
       </div>
 
       <div className="wrap mt-14">
-        <div className="flex flex-col items-start justify-between gap-6 border-2 border-ink bg-blue p-6 shadow-[6px_6px_0_0_var(--ink)] md:flex-row md:items-center md:p-10" data-reveal>
-          <div>
-            <h3 className="font-mono text-2xl font-bold uppercase md:text-3xl">Become a sponsor</h3>
-            <p className="mt-2 max-w-xl">Put your brand in front of 500+ engineering students across 12 weekends — and help build Kerala&apos;s next generation of AI builders.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {event.sponsorDeckUrl ? (
-              <a href={event.sponsorDeckUrl} className="btn btn-primary" download><Download size={16} strokeWidth={2} /> Sponsorship deck</a>
-            ) : (
-              <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsorship%20deck%20request`} className="btn btn-primary"><Download size={16} strokeWidth={2} /> Request the deck</a>
-            )}
-            <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsoring%20st(AI)rway`} className="btn btn-secondary"><Mail size={16} strokeWidth={2} /> Email us</a>
+        <div className="field on-field border-2 border-ink p-6 shadow-[6px_6px_0_0_var(--ink)] md:p-10" data-reveal>
+          <div className="field-content flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+            <div>
+              <h3 className="h-display text-3xl md:text-4xl">Become a sponsor</h3>
+              <p className="mt-2 max-w-xl">Put your brand in front of 500+ engineering students across 12 weekends — and help build Kerala&apos;s next generation of AI builders.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {event.sponsorDeckUrl ? (
+                <a href={event.sponsorDeckUrl} className="btn btn-primary" download><Download size={16} strokeWidth={2} /> Sponsorship deck</a>
+              ) : (
+                <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsorship%20deck%20request`} className="btn btn-primary"><Download size={16} strokeWidth={2} /> Request the deck</a>
+              )}
+              <a href={`mailto:${event.contact.sponsorEmail}?subject=Sponsoring%20st(AI)rway`} className="btn btn-secondary"><Mail size={16} strokeWidth={2} /> Email us</a>
+            </div>
           </div>
         </div>
       </div>

@@ -6,6 +6,8 @@ import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { Instagram, Linkedin, Whatsapp } from "@/components/ui/BrandIcons";
 import { Heading } from "@/components/ui/Heading";
 import { track } from "@/lib/analytics";
+import { inputBase } from "@/components/ui/Field";
+import { cn } from "@/lib/utils";
 
 export function Community() {
   const { settings: event } = useSiteData();
@@ -68,7 +70,7 @@ export function Community() {
                 placeholder="you@college.edu"
                 aria-invalid={state === "error"}
                 aria-describedby="nl-msg"
-                className="h-[52px] flex-1 border-2 border-ink bg-paper px-4 shadow-[3px_3px_0_0_var(--ink)] outline-none placeholder:text-ink-4 focus:bg-paper-2 aria-[invalid=true]:bg-red/20"
+                className={cn("h-[52px] w-full min-w-0 shrink-0 px-4 sm:flex-1", inputBase)}
               />
               <button type="submit" className="btn btn-primary" disabled={state === "loading"}>
                 {state === "loading" ? <Loader2 size={18} className="animate-spin" /> : state === "done" ? <Check size={18} /> : <ArrowRight size={18} strokeWidth={2} />}
