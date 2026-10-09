@@ -11,7 +11,7 @@ export function AccountButton() {
   if (!user) {
     const next = pathname.startsWith("/login") || pathname.startsWith("/auth") ? "/" : pathname;
     return (
-      <Link href={`/login?next=${encodeURIComponent(next)}`} className="btn btn-sm btn-primary !px-3">
+      <Link href={`/login?next=${encodeURIComponent(next)}`} className="btn btn-sm btn-primary !whitespace-nowrap !px-3">
         Sign in
       </Link>
     );
@@ -20,7 +20,7 @@ export function AccountButton() {
   return (
     <Link
       href={profile?.onboarded ? "/me" : "/onboarding"}
-      className="flex h-11 items-center gap-2 border-2 border-ink bg-paper-2 pl-1 pr-3 shadow-[3px_3px_0_0_var(--ink)] hover:bg-yellow"
+      className="flex h-11 items-center gap-2 border-2 border-paper bg-paper pl-1 pr-3 text-ink shadow-[3px_3px_0_0_var(--yellow)] hover:bg-yellow"
       aria-label={`${name} — open your dashboard`}
     >
       <Avatar name={name} photo={profile?.avatarUrl ?? undefined} size={34} referrerPolicy="no-referrer" />

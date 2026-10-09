@@ -8,6 +8,7 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import { openSlug } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
+import { DOCK_NARROW, dockItemClass } from "@/lib/design/dock";
 import { SmartLink } from "@/components/ui/SmartLink";
 
 interface Item {
@@ -68,10 +69,10 @@ export function Dock() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 z-50 flex justify-center px-3"
+      className="fixed inset-x-0 z-50 flex justify-center px-2 min-[360px]:px-3"
       style={{ bottom: "max(12px, env(safe-area-inset-bottom))" }}
     >
-      <ul className="flex items-stretch gap-1.5 border-2 border-ink bg-paper p-1.5 shadow-[4px_4px_0_0_var(--ink)] sm:gap-2">
+      <ul className="flex items-stretch gap-1 border-2 border-ink bg-paper p-1 shadow-[4px_4px_0_0_var(--ink)] min-[360px]:gap-1.5 min-[360px]:p-1.5 sm:gap-2">
         {ITEMS.map(({ id, label, Icon }) => {
           const on = active === id;
           return (
@@ -81,10 +82,7 @@ export function Dock() {
                 aria-label={label}
                 aria-current={on ? "page" : undefined}
                 title={label}
-                className={cn(
-                  "flex h-12 min-w-12 items-center justify-center gap-2 border-2 border-ink px-3 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-[background,transform] duration-150 hover:-translate-y-0.5",
-                  on ? "bg-red" : "bg-paper-2 hover:bg-paper-3",
-                )}
+                className={dockItemClass(on)}
               >
                 <Icon size={19} strokeWidth={2} aria-hidden />
                 {/* active label shows from 420px (fits a 6-item dock); all labels from tablet up */}
@@ -98,7 +96,10 @@ export function Dock() {
             href={registerHref(openSlug(next))}
             aria-label="Register"
             aria-current={active === "register" ? "page" : undefined}
-            className="flex h-12 min-w-12 items-center justify-center gap-2 border-2 border-ink bg-yellow px-3 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-transform duration-150 hover:-translate-y-0.5"
+            className={cn(
+              "flex h-12 min-w-12 items-center justify-center gap-2 border-2 border-ink bg-yellow px-3 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] text-ink transition-transform duration-150 hover:-translate-y-0.5",
+              DOCK_NARROW,
+            )}
           >
             <Ticket size={19} strokeWidth={2} aria-hidden />
             <span className="hidden sm:inline">Register</span>
