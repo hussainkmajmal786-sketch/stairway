@@ -100,4 +100,7 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
 /** Pairs the design forbids for text; the test proves they really fail so nobody "fixes" the rule away. */
 export const FORBIDDEN_PAIRS: ContrastPair[] = [
   { fg: "ink", bg: "field", min: 3, use: "ink type on the cobalt field (ink is decoration only there)" },
+  { fg: "ink", bg: "field2", min: 3, use: "ink type on the deep field (1.65:1)" },
+  { fg: "greenInk", bg: "paper2", min: 4.5, use: "success text on alternate bands (4.21:1, cream only)" },
+  { fg: "redInk", bg: "paper3", min: 4.5, use: "error text on paper-3 chips or disabled fills (4.00:1)" },
 ];

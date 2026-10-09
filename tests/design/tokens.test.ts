@@ -33,7 +33,14 @@ describe("design tokens", () => {
     expect(contrastRatio(TOKENS[fg], TOKENS[bg])).toBeGreaterThanOrEqual(min);
   });
 
-  it.each(FORBIDDEN_PAIRS)("$fg on $bg stays forbidden ($use)", ({ fg, bg }) => {
-    expect(contrastRatio(TOKENS[fg], TOKENS[bg])).toBeLessThan(3);
+  it.each(FORBIDDEN_PAIRS)("$fg on $bg stays forbidden ($use)", ({ fg, bg, min }) => {
+    expect(contrastRatio(TOKENS[fg], TOKENS[bg])).toBeLessThan(min);
+  });
+
+  it("forbids ink on either field, green-ink on paper-2 and red-ink on paper-3", () => {
+    const keys = FORBIDDEN_PAIRS.map((p) => `${p.fg}/${p.bg}`);
+    expect(keys).toEqual(expect.arrayContaining(["ink/field", "ink/field2", "greenInk/paper2", "redInk/paper3"]));
+    // none of them may also be listed as an allowed pair
+    for (const p of CONTRAST_PAIRS) expect(keys).not.toContain(`${p.fg}/${p.bg}`);
   });
 });
