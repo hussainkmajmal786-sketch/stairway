@@ -55,7 +55,7 @@ export function SettingsForm({
   return (
     <form onSubmit={submit} noValidate className="grid gap-6 md:grid-cols-2">
       <Field id="email" label="Email" hint={HINTS.email} className="md:col-span-2">
-        <input id="email" className={cn(inputCls, "bg-paper-2")} value={email} readOnly aria-readonly aria-describedby={fieldDescribedBy("email", { hint: HINTS.email })} />
+        <input id="email" className={cn(inputCls, "!bg-paper-2")} value={email} readOnly aria-readonly aria-describedby={fieldDescribedBy("email", { hint: HINTS.email })} />
       </Field>
       <Field id="phone" label="Phone (WhatsApp)" error={errors.phone} hint={HINTS.phone}>
         <input
