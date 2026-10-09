@@ -84,4 +84,9 @@ describe("globals.css contract", () => {
   it("keeps print free of the field, its grain and the ghost word", () => {
     expect(css).toMatch(/@media print\s*\{[\s\S]*\.field::before, \.field::after, \.ghost, \.bands/);
   });
+
+  it("drops the old blur-in hero classes", () => {
+    expect(css).not.toContain(".h-hero");
+    expect(css).not.toContain("blur-in");
+  });
 });
