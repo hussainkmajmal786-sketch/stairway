@@ -5,7 +5,7 @@ import { FRAME_ORG } from "@/lib/design/brand";
 import { TOKENS } from "@/lib/design/tokens";
 
 // global-error replaces the root layout, so it loads its own display face (same file as the layout's Anton).
-const anton = Anton({ subsets: ["latin"], weight: "400", display: "swap", fallback: ["Impact", "Haettenschweiler", "Arial Narrow Bold", "sans-serif"] });
+const anton = Anton({ subsets: ["latin"], weight: "400", display: "swap", preload: false, fallback: ["Impact", "Haettenschweiler", "Arial Narrow Bold", "sans-serif"] });
 
 const SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const MONO = "ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace";
