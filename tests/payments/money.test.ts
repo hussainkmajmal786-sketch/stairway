@@ -9,4 +9,15 @@ describe("formatInr", () => {
     expect(formatInr(0)).toBe("₹0");
     expect(formatInr(5)).toBe("₹0.05");
   });
+
+  it("never prints NaN, Infinity or a negative price", () => {
+    for (const v of [NaN, Infinity, -Infinity, -1, -19900, "199" as unknown as number, null as unknown as number]) {
+      expect(formatInr(v)).toBe("—");
+    }
+  });
+
+  it("rounds a fractional amount to whole paise", () => {
+    expect(formatInr(19900.4)).toBe("₹199");
+    expect(formatInr(19950.6)).toBe("₹199.51");
+  });
 });
