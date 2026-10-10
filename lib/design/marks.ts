@@ -7,7 +7,7 @@ export interface MarkPart {
 const MARK = /(\[\[(?:(?!\[\[)[\s\S])+?\]\])/;
 
 /**
- * Splits heading copy on the highlighter syntax: "Pick your [[stairway.]]" ?
+ * Splits heading copy on the highlighter syntax: "Pick your [[stairway.]]" →
  * [{ text: "Pick your ", marked: false }, { text: "stairway.", marked: true }].
  * Empty or unclosed brackets stay literal text; empty parts are dropped. Nested brackets: the innermost pair wins and
  * the outer brackets stay literal. A newline inside the brackets is kept inside the marked part.
