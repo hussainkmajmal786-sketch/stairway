@@ -16,7 +16,7 @@ export function TopBar() {
       <AnnouncementBar />
       <div className="topbar border-b-2 border-ink bg-ink text-paper">
         <div className="wrap flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 text-[1.3rem] sm:text-[1.6rem]" aria-label="st(AI)rway home">
+          <Link href="/" className="flex min-h-11 min-w-11 items-center justify-center gap-2.5 text-[1.3rem] sm:text-[1.6rem]" aria-label="st(AI)rway home">
             <StairMark size={28} tone="field" />
             {/* below 375px only the mark shows, so the next-step button and the account chip keep 44px targets at 320 */}
             <Wordmark className="hidden min-[375px]:inline" />
@@ -26,7 +26,7 @@ export function TopBar() {
               <Link
                 href={`/events/${next.slug}`}
                 className="btn btn-sm btn-secondary !whitespace-nowrap !px-3"
-                aria-label={`Next: Step ${next.step}, ${next.title}, ${formatDate(next.start, { day: "numeric", month: "long" })}`}
+                aria-label={`Next: Step ${pad2(next.step)},${next.title}, ${formatDate(next.start, { day: "numeric", month: "long" })}`}
               >
                 <CalendarDays size={16} strokeWidth={2} className="hidden shrink-0 min-[400px]:block" aria-hidden />
                 <span className="hidden sm:inline">Next ·</span> Step {pad2(next.step)}
