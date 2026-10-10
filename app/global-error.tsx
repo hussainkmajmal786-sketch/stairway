@@ -17,7 +17,7 @@ const MONO = "ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace"
  */
 export default function GlobalError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <html lang="en">
+    <html lang="en-IN">
       <body
         style={{
           margin: 0,
