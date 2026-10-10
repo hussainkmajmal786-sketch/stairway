@@ -31,7 +31,7 @@ const L = sqlLiteral;
 const emptyText = "'{}'::text[]";
 const arr = (a: readonly string[]) => (a.length ? L([...a]) : emptyText);
 
-interface EventSeedRow {
+export interface EventSeedRow {
   slug: string; society: string; track: string; step: number; finale: boolean;
   title: string; topic: string; summary: string; description: string;
   start: string; end: string; level: string; formats: readonly string[];
@@ -39,7 +39,8 @@ interface EventSeedRow {
   capacity: number; resources: unknown; winners: unknown; speakerIds: readonly string[];
 }
 
-function eventRows(): EventSeedRow[] {
+/** Every seeded session row (mapped weekends + the WIE stairway); shared with tests so they never drift from the seed. */
+export function eventRows(): EventSeedRow[] {
   const existing = weekends.map((w) => {
     const m = EVENT_SOCIETY_MAP[w.slug];
     if (!m) throw new Error(`No society mapping for ${w.slug}`);
