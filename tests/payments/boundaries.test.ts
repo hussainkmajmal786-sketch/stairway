@@ -101,6 +101,7 @@ describe("payment secret boundaries", () => {
     for (const f of [
       "lib/payments/crypto.ts", "lib/payments/razorpay.ts", "lib/payments/money.ts", "lib/payments/config.ts", "lib/supabase/admin.ts",
       "lib/payments/confirm.ts", "lib/payments/actions.ts", "lib/payments/webhook.ts", "app/api/payments/webhook/route.ts", "lib/payments/refunds.ts",
+      "lib/sync/contract.ts", "lib/sync/processor.ts", "lib/cron/request.ts", "lib/cron/tick.ts", "app/api/cron/tick/route.ts",
     ]) {
       const src = readFileSync(join(ROOT, f), "utf8");
       expect(src, f).not.toMatch(/from\s+["'](?:node:|crypto["']|buffer["'])/);
