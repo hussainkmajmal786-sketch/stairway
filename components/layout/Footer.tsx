@@ -34,7 +34,7 @@ export function Footer() {
       <div className="wrap">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.3fr]">
           <div>
-            <Link href="/" className="flex items-center gap-2.5 text-3xl" aria-label="st(AI)rway home">
+            <Link href="/" className="flex min-h-11 items-center gap-2.5 text-3xl" aria-label="st(AI)rway home">
               <StairMark size={32} tone="field" />
               <Wordmark />
             </Link>

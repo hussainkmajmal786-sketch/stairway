@@ -91,7 +91,7 @@ export function Hero() {
               </div>
               <div className="flex flex-col gap-6 p-5 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
-                  <Link href={`/events/${next.slug}`} className="text-2xl font-semibold underline-offset-4 hover:underline md:text-3xl">
+                  <Link href={`/events/${next.slug}`} className="inline-flex min-h-11 items-center text-2xl font-semibold underline-offset-4 hover:underline md:text-3xl">
                     {next.title}
                   </Link>
                   <p className="mono mt-1 text-ink-3">{next.topic}</p>

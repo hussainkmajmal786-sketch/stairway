@@ -69,7 +69,7 @@ export function Testimonials() {
           <div className="flex flex-wrap items-center justify-between gap-4 border-t-2 border-ink px-6 py-3">
             <div className="flex gap-1" role="tablist" aria-label="Choose testimonial">
               {testimonials.map((_, k) => (
-                <button key={k} role="tab" aria-selected={k === i} aria-label={`Testimonial ${k + 1}`} onClick={() => setI(k)} className="grid h-11 w-8 place-items-center">
+                <button key={k} role="tab" aria-selected={k === i} aria-label={`Testimonial ${k + 1}`} onClick={() => setI(k)} className="grid h-11 w-11 place-items-center">
                   <span className={cn("block h-3 border-2 border-ink transition-all duration-200", k === i ? "w-7 bg-ink" : "w-3 bg-paper")} />
                 </button>
               ))}
