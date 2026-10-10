@@ -4716,6 +4716,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `usePayFlow(opts: { step: number; abandonTo?: (registrationId: string) => string }): { pay(registrationId: string): Promise<void>; phase: "idle" | "creating" | "checkout" | "verifying"; busy: boolean; error: RegistrationError | null }`.
   - `<PayButton registrationId amountPaise step here />` (client).
   - `RegistrationForm` prop `paid?: { pricePaise: number; step: number }`.
+- **REVIEW AMENDMENT (Tasks 5-7 review U-1, `.superpowers/sdd/p4-review-5-7.md`):** `registerForEvent` now returns `status: "pending_payment"` for a paid session. `RegistrationForm` (RegisterForm) must route that result to the payment step (`usePayFlow().pay(registrationId)` → Checkout), **never** to the `?new=1` "You're in" ticket copy (which is for `confirmed` / `waitlisted` only). Test it: a `pending_payment` result starts payment and does not navigate to `?new=1`. `verifyPayment` (after the Tasks 5-7 fixes) also returns `payment_failed` for a failed payment, `payment_processing` when payments were switched off, and answers a replay from the row; `flow.ts` maps every `VerifyResult` error code through `ErrorPanel`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -5224,6 +5225,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `ticketHeading(status)`: confirmed "Your ticket", waitlisted "Your waitlist place", pending_payment "Complete your payment", refund_needed "Refund pending", refunded "Refunded", cancelled "Registration cancelled".
   - `TicketListRow` gains `holdExpiresAt: string | null`; `ticketListRow(t, now?)`, `ticketGroups(list, now)` passes `now`; `passLabel` returns `"No entry pass"` for refund/cancelled statuses.
   - `getMyTickets` lists `VISIBLE_STATUSES`; `getTicket` returns the user's own row in any status.
+  - **REVIEW AMENDMENT (Tasks 5-7 review I-3, must not ship without it):** `getTicket` / `getMyTickets` must return the owner's `refund_needed` and `refunded` rows (the `refund_pending` CTA "View status" and the `recovery: "tickets"` of `refund_pending` / `payment_processing` / `payment_unverified` / `payment_review` land there; today `lib/registration/server.ts` still filters `ACTIVE_STATUSES` → 404 / missing row). Because `getTicket` then returns these rows WITH `ticket_code`, `doorPass` stays the only source of code / token / QR: required tests — for each of `refund_needed`, `refunded`, `cancelled`, `pending_payment` and `waitlisted`, `ticketView` yields no code, no `qrRows` and no PNG download, and the ticket page renders none of them; `getMyTickets` / `getTicket` tests assert `refund_needed` and `refunded` rows are returned for the owner (and never another user's).
   - `EventView.attending?: number` (confirmed only); `rowToEventView(r, seatsTaken, attending = seatsTaken)`.
   - `<PaymentPanel registrationId holdExpiresAt amountPaise step here />`, `<AutoRefresh intervalMs? maxMs? />`; `CancelRegistration` props gain `hold?: boolean`, `paidAmount?: string`.
 
@@ -6641,7 +6643,10 @@ update private.feature_flags set enabled = true, updated_at = now() where key = 
 
 Razorpay webhook (Dashboard → Account & Settings → Webhooks → Add new): URL
 `https://stairway.ieeesbcek.workers.dev/api/payments/webhook`, events `order.paid` and `refund.processed`, the secret
-above. Do not change Fund Easy's webhook. Keep "automatic capture" on (Payment capture settings).
+above. Do not change Fund Easy's webhook. **Payment capture must be Automatic (immediate)** — Dashboard → Account &
+Settings → Payment capture (the account is shared with Fund Easy, so check it, do not assume it). st(AI)rway never captures
+a payment itself: with manual or delayed capture every payment stays `authorized`, "Verify" says *processing*,
+`order.paid` never fires, the hold lapses and Razorpay refunds the money automatically after a few days.
 
 To switch payments off again: delete `PAYMENTS_ENABLED` (or set it to anything but `true`) and/or set the database flag to
 `false`. Live holds keep counting until they expire.
@@ -6708,10 +6713,11 @@ Update `.superpowers/sdd/progress.md` with the merge commit, the deployed versio
 
 1. **Upgrade Cloudflare to Workers Paid** ($5/month: Workers & Pages → Plans). Pre-condition for enabling payments. Afterwards the assistant can add `"limits": { "cpu_ms": 5000 }` to `wrangler.jsonc` as a runaway guard.
 2. **Razorpay TEST keys:** Razorpay Dashboard in *Test mode* → API Keys → generate. Add the five payment secrets and `PAYMENTS_ENABLED=true` in Cloudflare exactly as in README §3d (never paste them in chat).
-3. **Webhook:** add `https://stairway.ieeesbcek.workers.dev/api/payments/webhook` (test mode) with events `order.paid`, `refund.processed` and the `RAZORPAY_WEBHOOK_SECRET` value. Leave Fund Easy's webhook as it is.
+3. **Payment capture = Automatic (immediate):** Razorpay Dashboard → Account & Settings → Payment capture. The account is shared with Fund Easy: check it (in test mode AND later in live mode) and confirm with Fund Easy's owner before changing it. Without automatic capture no st(AI)rway payment ever confirms (payments stay `authorized` and are auto-refunded by Razorpay).
+3a. **Webhook:** add `https://stairway.ieeesbcek.workers.dev/api/payments/webhook` (test mode) with events `order.paid`, `refund.processed` and the `RAZORPAY_WEBHOOK_SECRET` value. Leave Fund Easy's webhook as it is.
 4. **Database flag:** run `update private.feature_flags set enabled = true, updated_at = now() where key = 'payments';` in the Supabase SQL editor.
 5. **A test paid session:** e.g. `update public.events set price_paise = 100 where slug = '<an upcoming test session>';` (₹1), or ask the assistant to prepare a dedicated draft test event migration.
-6. **Test-card run (phone + desktop):** register → "Continue to payment · ₹1" → Razorpay test checkout (card `4111 1111 1111 1111`, any future expiry, any CVV, choose *Success*; or UPI `success@razorpay`) → ticket shows Confirmed, QR and `STW-…` receipt; Razorpay Dashboard → Webhooks shows a 200 delivery. Also: close Checkout once and complete payment from My tickets; let one hold expire (wait > 15 minutes, then refresh: "Seat hold expired"); cancel the paid seat → "Refund pending".
+6. **Test-card run (phone + desktop):** register → "Continue to payment · ₹1" → Razorpay test checkout (card `4111 1111 1111 1111`, any future expiry, any CVV, choose *Success*; or UPI `success@razorpay`) → ticket shows Confirmed, QR and `STW-…` receipt; Razorpay Dashboard → Webhooks shows a 200 delivery; Razorpay Dashboard → Payments shows the payment as **Captured** (not *Authorized*) within seconds — if it stays Authorized, stop and fix step 3 (capture setting). Also: close Checkout once and complete payment from My tickets; let one hold expire (wait > 15 minutes, then refresh: "Seat hold expired"); cancel the paid seat → "Refund pending".
 7. **Fund Easy (later):** rotate/remove the seeded super-admin accounts, create the private GitHub backup, review `docs/integrations/fund-easy-patch/`, apply it, then add the three `FUND_EASY_*`/`STAIRWAY_SYNC_SECRET` secrets.
 8. **Going live (later):** KYC → live keys + a live-mode webhook; repeat step 6 with a real ₹1 payment and refund it.
 9. Decide what to do with the test registrations/payments (they are real rows on the live database; paid rows cannot be deleted by cascade).
