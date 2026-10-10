@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
@@ -10,6 +10,9 @@ import { emptyAnswers, type AnswerValue, type Answers, type Question } from "@/l
 import { registrationFieldErrors, registrationSchema, type Registrant } from "@/lib/registration/schema";
 import { registrationError, type RegistrationError } from "@/lib/registration/errors";
 import { registerForEvent, type RegisterResult } from "@/lib/registration/actions";
+import { formatInr } from "@/lib/payments/money";
+import { afterRegister } from "@/lib/payments/flow";
+import { usePayFlow } from "@/components/payments/usePayFlow";
 import { ticketPath } from "@/lib/registration/cta";
 import { FORM_ERROR_ID, fieldOrder, firstInvalid, formLevelError, submitGate } from "@/lib/registration/form";
 import { QuestionField } from "./QuestionField";
@@ -18,9 +21,11 @@ import { ErrorPanel } from "./ErrorPanel";
 const HINTS: Partial<Record<string, string>> = { phone: "Only you and the organisers can see this.", ieeeMemberId: "Optional." };
 
 export function RegistrationForm({
-  slug, questions, initial, waitlist, fallbackUrl,
+  slug, questions, initial, waitlist, fallbackUrl, paid,
 }: {
   slug: string; questions: Question[]; initial: Registrant; waitlist: boolean; fallbackUrl: string | null;
+  /** Set for a paid session while payments are on (the page decides from the server-side flag). */
+  paid?: { pricePaise: number; step: number };
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -33,6 +38,12 @@ export function RegistrationForm({
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<RegistrationError | null>(null);
   const [busy, startTransition] = useTransition();
+  // Paid sessions: after the hold is created, Checkout opens straight away. Closing it lands on the ticket page,
+  // which shows "Complete payment" with the hold's countdown (the form itself cannot register twice).
+  const abandonTo = useCallback((id: string) => `${ticketPath(id)}?new=1`, []);
+  const { pay, error: payError } = usePayFlow({ step: paid?.step ?? 0, abandonTo });
+  // The hold this form created, so "Try again" after a failed order retries the payment, not the registration.
+  const [heldId, setHeldId] = useState<string | null>(null);
 
   const clientErrors = useMemo(() => {
     const r = schema.safeParse({ registrant, answers });
@@ -88,8 +99,17 @@ export function RegistrationForm({
         return;
       }
       if (res.ok) {
+        const step = afterRegister(res);
+        if (step.kind === "pay") {
+          // A paid hold goes to Checkout, never to the "You're in" copy. Inside the transition, so the button stays
+          // busy while Checkout opens and the payment is verified.
+          setHeldId(step.registrationId);
+          setError(null);
+          await pay(step.registrationId);
+          return;
+        }
         // Inside the transition, so the button stays busy until the ticket page has loaded.
-        router.push(`${ticketPath(res.registrationId)}?new=1`);
+        router.push(step.href);
         return;
       }
       setError(res.error);
@@ -100,6 +120,7 @@ export function RegistrationForm({
     });
   }
 
+  const shownError = payError ?? error;
   const invalidCount = Object.keys(clientErrors).length;
   const formError = formLevelError(serverErrors, order) ?? (submitted ? formLevelError(clientErrors, order) : undefined);
 
@@ -161,11 +182,21 @@ export function RegistrationForm({
 
       <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
         <div className="border-2 border-ink bg-paper-2 p-6 shadow-[6px_6px_0_0_var(--ink)]">
-          <p className="mono font-bold">{waitlist ? "Event is full — you'll join the waitlist" : "Free registration"}</p>
+          <p className="mono font-bold">
+            {waitlist
+              ? "Event is full — you'll join the waitlist"
+              : paid
+                ? `Paid registration · ${formatInr(paid.pricePaise)}`
+                : "Free registration"}
+          </p>
           <p className="mt-2 text-sm text-ink-2">
             {waitlist
-              ? "If a seat frees up you move up automatically; My tickets shows your place."
-              : "Your ticket appears in My tickets straight after you confirm."}{" "}
+              ? paid
+                ? "No payment now. If a seat frees up you get 15 minutes to pay; My tickets shows your place."
+                : "If a seat frees up you move up automatically; My tickets shows your place."
+              : paid
+                ? "Continuing holds your seat for 15 minutes while you pay securely with Razorpay (UPI, cards, netbanking)."
+                : "Your ticket appears in My tickets straight after you confirm."}{" "}
             We don&apos;t send a confirmation email.
           </p>
           {formError && (
@@ -175,23 +206,33 @@ export function RegistrationForm({
           )}
           <button type="submit" className="btn btn-primary btn-lg mt-6 w-full" disabled={busy}>
             {busy ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <ArrowRight size={18} strokeWidth={2} aria-hidden />}
-            {busy ? "Saving…" : waitlist ? "Join the waitlist" : "Confirm registration"}
+            {busy
+              ? paid && !waitlist ? "Opening payment…" : "Saving…"
+              : waitlist
+                ? "Join the waitlist"
+                : paid
+                  ? `Continue to payment · ${formatInr(paid.pricePaise)}`
+                  : "Confirm registration"}
           </button>
           <p className="sr-only" role="status" aria-live="polite">
             {busy ? (waitlist ? "Joining the waitlist…" : "Registering…") : ""}
           </p>
-          {submitted && !error && invalidCount > 0 && (
+          {submitted && !shownError && invalidCount > 0 && (
             <p role="alert" className="mt-3 text-sm font-semibold text-red-ink">
               {invalidCount === 1 ? "One field needs" : `${invalidCount} fields need`} a look before you can register.
             </p>
           )}
         </div>
-        {error && (
+        {shownError && (
           <ErrorPanel
-            error={error} slug={slug} fallbackUrl={fallbackUrl}
-            onRetry={() => formRef.current?.requestSubmit()}
+            error={shownError} slug={slug} fallbackUrl={fallbackUrl}
+            onRetry={() => {
+              // After a failed order / Checkout the seat is already held: retry the payment, not the registration.
+              if (payError && heldId) startTransition(() => pay(heldId));
+              else formRef.current?.requestSubmit();
+            }}
             onFixFields={() => focusId(firstInvalid({ ...clientErrors, ...serverErrors }, order))}
-            autoFocus={error.recovery !== "fix_fields"}
+            autoFocus={shownError.recovery !== "fix_fields"}
           />
         )}
         <p className="px-2 text-xs text-ink-3">

@@ -5,6 +5,7 @@ import { requireOnboarded } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { BRANCHES, YEARS } from "@/lib/profile/options";
 import { ctaEvent, ctaState, registerPath } from "@/lib/registration/cta";
+import { paymentsConfig } from "@/lib/payments/config";
 import { registrationError } from "@/lib/registration/errors";
 import { externalRegistrationUrl, fallbackFormUrl } from "@/lib/registration/external";
 import { parseQuestions, type Question } from "@/lib/registration/questions";
@@ -45,7 +46,9 @@ export default async function RegisterPage({ params }: PageProps<"/events/[slug]
   if (externalRegistrationUrl(settings.registration)) redirect(`/events/${encodeURIComponent(ev.slug)}`);
 
   const mine = await getMyRegistration(ev.id, user.id);
-  const state = ctaState({ now: requestNow(), event: ctaEvent(ev), signedIn: true, registration: mine, externalUrl: null });
+  const state = ctaState({ now: requestNow(), event: ctaEvent(ev), signedIn: true, registration: mine, externalUrl: null,
+    paymentsEnabled: paymentsConfig().enabled,
+  });
   const fallbackUrl = fallbackFormUrl(settings.registration);
 
   const page = (body: React.ReactNode) => (
@@ -102,6 +105,7 @@ export default async function RegisterPage({ params }: PageProps<"/events/[slug]
       initial={initial}
       waitlist={state.kind === "join_waitlist"}
       fallbackUrl={fallbackUrl}
+      paid={ev.pricePaise > 0 ? { pricePaise: ev.pricePaise, step: ev.step } : undefined}
     />,
   );
 }
