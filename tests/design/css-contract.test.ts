@@ -9,7 +9,7 @@ describe("globals.css contract", () => {
   it.each([
     ".field::before", ".field::after", ".field-content", ".on-field", ".ghost", ".bands.top", ".bands.bottom",
     ".frame", ".logo-row", ".stair .g", ".stair .ai", ".extrude", ".stair-num", ".rule-h", ".btn-secondary",
-    ".btn-ghost", ".tag-field", ".tag-cream", ".stepnum", ".ticket-h", ".perf", ".panel", ".topbar .btn", ".side-strip",
+    ".btn-ghost", ".tag-field", ".stepnum", ".ticket-h", ".perf", ".panel", ".topbar .btn", ".side-strip",
   ])("defines %s", (selector) => {
     expect(css).toContain(selector);
   });

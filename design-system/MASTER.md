@@ -43,7 +43,7 @@ Section titles are rule headings: mono eyebrow + Anton `.h2` with a lead rule an
 
 ## Components
 - **Buttons:** `.btn-primary` yellow · `.btn-secondary` cream (renamed from the old `.btn-paper`) · `.btn-ghost` transparent (cream outline on the field) · `.btn-ink` ink with a yellow shadow · disabled = paper-3 fill, ink-4 text, **dashed** border, no shadow (on the bare field: transparent with a cream dashed outline; opacity .5 failed contrast).
-- **Tags:** 2px ink border on every chip; `.tag-field` (society), `.tag-cream`, `.tag-outline` dashed (waitlist/pending, cream-outlined on the field).
+- **Tags:** 2px ink border on every chip; `.tag-field` (society), `.tag-outline` dashed (waitlist/pending, cream-outlined on the field).
 - **Cards:** cream, 2px ink, 6px shadow (8px on the field). `StepNumber`: Anton cobalt digits with a mini extrusion and three rising bars.
 - **Countdown:** ink cells, cream Anton digits, yellow mono units; minute-level polite announcement only.
 - **Seats:** cobalt fill with a faint cream hatch; low = red (urgent text on yellow uses ink, see `FORBIDDEN_PAIRS`).

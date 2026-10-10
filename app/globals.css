@@ -344,7 +344,6 @@
   .tag-orange { background: var(--orange); }
   .tag-purple { background: var(--purple); }
   .tag-ink { background: var(--ink); color: var(--paper); }
-  .tag-cream { background: var(--paper); }
   .tag-field { background: var(--field); color: var(--paper); }
   .tag-outline { background: transparent; border-style: dashed; }
 
