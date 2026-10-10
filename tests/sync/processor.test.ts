@@ -60,9 +60,10 @@ describe("processOutbox", () => {
   });
   it("never follows a redirect: any 3xx is a transient 'redirect' error, retried", async () => {
     const { db, completes } = fakeDb([row(1), row(2)]);
+    const statuses = [307, 308];
     const f = vi.fn<FetchLike>(async (_u, init) => {
       expect(init.redirect).toBe("manual");
-      return new Response(null, { status: f.mock.calls.length === 1 ? 307 : 308, headers: { location: "https://evil.example/x" } });
+      return new Response(null, { status: statuses.shift(), headers: { location: "https://evil.example/x" } });
     });
     const report = await processOutbox({ db, fetch: f, url: URL_, secret: SECRET });
     expect(report).toEqual({ claimed: 2, sent: 0, failed: 2, dead: 0, skipped: 0 });

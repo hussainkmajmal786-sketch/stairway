@@ -13,7 +13,6 @@ import { registerForEvent, type RegisterResult } from "@/lib/registration/action
 import { formatInr } from "@/lib/payments/money";
 import { abandonHref, afterRegister } from "@/lib/payments/flow";
 import { usePayFlow } from "@/components/payments/usePayFlow";
-import { ticketPath } from "@/lib/registration/cta";
 import { FORM_ERROR_ID, fieldOrder, firstInvalid, formLevelError, submitGate } from "@/lib/registration/form";
 import { QuestionField } from "./QuestionField";
 import { ErrorPanel } from "./ErrorPanel";
