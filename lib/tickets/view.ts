@@ -70,7 +70,10 @@ export type TicketNotice =
   | { kind: "refunded"; amount: string; refundedOn: string | null }
   | { kind: "cancelled" };
 
-/** `justPaid` = Checkout just reported success (?paid=1): show "confirming" until the server's status changes. */
+/**
+ * `justPaid` = Checkout just reported success (?paid=1): show "confirming" while the hold is still live, until the
+ * server's status changes. Hold expiry is evaluated first so a stale ?paid=1 can never hide the expired / pay state.
+ */
 export function ticketNotice(
   t: Pick<TicketDetail, "status" | "waitlistPosition" | "holdExpiresAt" | "amountPaise" | "cancelReason" | "refundedAt"> & {
     event: Pick<TicketDetail["event"], "pricePaise">;
@@ -84,9 +87,10 @@ export function ticketNotice(
     case "waitlisted":
       return { kind: "waitlisted", position: t.waitlistPosition, paid: t.event.pricePaise > 0 };
     case "pending_payment": {
-      if (justPaid) return { kind: "processing" };
       const end = t.holdExpiresAt;
-      return end && Date.parse(end) > now ? { kind: "pay", holdExpiresAt: end, amountPaise: t.amountPaise } : { kind: "hold_expired" };
+      if (!end || !(Date.parse(end) > now)) return { kind: "hold_expired" };
+      if (justPaid) return { kind: "processing" };
+      return { kind: "pay", holdExpiresAt: end, amountPaise: t.amountPaise };
     }
     case "refund_needed":
       return { kind: "refund_needed", amount: formatInr(t.amountPaise), latePayment: t.cancelReason === "late_payment_no_seat" };

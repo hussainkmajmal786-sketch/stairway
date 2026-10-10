@@ -14,8 +14,16 @@ export function afterCheckout(kind: CheckoutOutcome["kind"], abandonTo: string |
   return { kind: "error", error: registrationError(kind === "unavailable" ? "checkout_unavailable" : "payment_cancelled") };
 }
 
-/** Success, and outcomes the ticket page explains from the server's state (recovery "tickets"), go to the ticket. */
+/**
+ * Success, and outcomes the ticket page explains from the server's state (recovery "tickets"), go to the ticket.
+ * `?paid=1` = "confirming" (shown only while the hold is live). An unverified / under-review payment goes with its own
+ * marker instead, so the ticket page explains it but still offers Pay while the hold lives (never stranded behind
+ * "processing" until the cron releases the hold). "payment_processing" (waiting for the webhook) keeps `?paid=1`.
+ */
 export function afterVerify(res: VerifyResult, ticketHref: string): FlowStep {
+  if (!res.ok && (res.error.code === "payment_unverified" || res.error.code === "payment_review")) {
+    return { kind: "navigate", href: `${ticketHref}?paid=${res.error.code === "payment_review" ? "review" : "unverified"}` };
+  }
   if (res.ok || res.error.recovery === "tickets") return { kind: "navigate", href: `${ticketHref}?paid=1` };
   return { kind: "error", error: res.error };
 }

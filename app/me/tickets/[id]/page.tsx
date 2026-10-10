@@ -9,6 +9,7 @@ import { getSiteData } from "@/lib/site/load";
 import { paymentsConfig } from "@/lib/payments/config";
 import { formatInr } from "@/lib/payments/money";
 import { ticketPath } from "@/lib/registration/cta";
+import { registrationError } from "@/lib/registration/errors";
 import { getTicket } from "@/lib/registration/server";
 import { ticketFilename, ticketHeading, ticketView } from "@/lib/tickets/view";
 import { TicketCard } from "@/components/tickets/TicketCard";
@@ -56,6 +57,11 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/m
   const ev = events.find((e) => e.id === ticket.event.id) ?? null;
   // ?paid=1: Checkout reported success; the server status below is still the authority.
   const justPaid = sp.paid === "1";
+  // ?paid=unverified|review: verification couldn't complete; explain it, but the hold state below still decides Pay.
+  const verifyNote =
+    sp.paid === "unverified" ? registrationError("payment_unverified").message
+    : sp.paid === "review" ? registrationError("payment_review").message
+    : null;
   const view = ticketView(ticket, profile.fullName, settings, ev, requestNow(), justPaid);
   const confirmed = ticket.status === "confirmed";
   const waitlisted = ticket.status === "waitlisted";
@@ -71,6 +77,11 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/m
       <h1 className="text-3xl font-semibold md:text-4xl">{view.heading}</h1>
       {(sp.new === "1" || justPaid) && (confirmed || waitlisted) && (
         <NewTicketBanner confirmed={confirmed} position={ticket.waitlistPosition} />
+      )}
+      {verifyNote && (
+        <p role="status" className="box-2 p-4">
+          {verifyNote}
+        </p>
       )}
       {view.notice.kind === "processing" && <AutoRefresh />}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,440px)_1fr] lg:items-start">

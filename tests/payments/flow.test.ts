@@ -22,8 +22,10 @@ describe("afterVerify", () => {
     expect(afterVerify({ ok: true, status: "processing" }, T)).toEqual({ kind: "navigate", href: `${T}?paid=1` });
     expect(afterVerify({ ok: true, status: "refund_needed" }, T)).toEqual({ kind: "navigate", href: `${T}?paid=1` });
     expect(afterVerify({ ok: false, error: registrationError("payment_processing") }, T)).toEqual({ kind: "navigate", href: `${T}?paid=1` });
-    expect(afterVerify({ ok: false, error: registrationError("payment_unverified") }, T).kind).toBe("navigate");
-    expect(afterVerify({ ok: false, error: registrationError("payment_review") }, T).kind).toBe("navigate");
+  });
+  it("sends unverified / review payments with their own marker, never ?paid=1 (the Pay button stays reachable)", () => {
+    expect(afterVerify({ ok: false, error: registrationError("payment_unverified") }, T)).toEqual({ kind: "navigate", href: `${T}?paid=unverified` });
+    expect(afterVerify({ ok: false, error: registrationError("payment_review") }, T)).toEqual({ kind: "navigate", href: `${T}?paid=review` });
   });
   it("stays to show errors with another recovery", () => {
     expect(afterVerify({ ok: false, error: registrationError("not_signed_in") }, T)).toEqual({ kind: "error", error: registrationError("not_signed_in") });

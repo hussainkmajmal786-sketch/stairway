@@ -69,6 +69,13 @@ describe("ticketNotice", () => {
   });
   it("shows 'confirming' right after Checkout succeeded", () => {
     expect(ticketNotice(t(), NOW, true)).toEqual({ kind: "processing" });
+    // Hold expiry wins over ?paid=1: a stale marker never hides the expired state (or the Pay path after a re-hold).
+    expect(ticketNotice(t({ holdExpiresAt: past }), NOW, true)).toEqual({ kind: "hold_expired" });
+    expect(ticketNotice(t({ holdExpiresAt: null }), NOW, true)).toEqual({ kind: "hold_expired" });
+    const edge = new Date(NOW).toISOString();
+    expect(ticketNotice(t({ holdExpiresAt: edge }), NOW, true)).toEqual({ kind: "hold_expired" });
+    expect(ticketNotice(t({ holdExpiresAt: new Date(NOW + 1000).toISOString() }), NOW, true)).toEqual({ kind: "processing" });
+    expect(ticketNotice(t({ holdExpiresAt: new Date(NOW + 1000).toISOString() }), NOW, false)).toMatchObject({ kind: "pay" });
   });
   it("explains refunds and the waitlist", () => {
     expect(ticketNotice(t({ status: "refund_needed", cancelReason: "late_payment_no_seat" }), NOW))
