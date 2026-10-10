@@ -7,7 +7,7 @@ import { StairMark, Wordmark } from "@/components/ui/Logo";
 import { AnnouncementBar } from "./AnnouncementBar";
 import { AccountButton } from "./AccountButton";
 import { useClock } from "@/components/providers/ClockProvider";
-import { formatDate } from "@/lib/weekends";
+import { formatDate, pad2 } from "@/lib/weekends";
 import { nextStepLabel } from "@/lib/design/next-label";
 
 /** Slim ink top bar (yellow focus ring): brand on the left, the next step on the right. Main navigation lives in the dock. */
