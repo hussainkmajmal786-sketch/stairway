@@ -8,10 +8,22 @@ const FETCH_TIMEOUT_MS = 2500;
 const cache = new Map<string, ArrayBuffer>();
 const CACHE_MAX = 64;
 
-/** The first TrueType/OpenType URL in a Google Fonts css2 response (Satori can't read woff2). */
+/** Font files are only ever fetched from Google's font CDN, whatever the css response says. */
+const FONT_HOST = "https://fonts.gstatic.com/";
+
+/** The first TrueType/OpenType URL in a Google Fonts css2 response (Satori can't read woff2), if it is on fonts.gstatic.com. */
 export function ttfUrlFromCss(css: string): string | null {
   const m = /src:\s*url\(([^)]+)\)\s*format\(['"](?:opentype|truetype)['"]\)/.exec(css);
-  return m ? m[1].replace(/^['"]|['"]$/g, "") : null;
+  const url = m ? m[1].replace(/^['"]|['"]$/g, "") : null;
+  return url && url.startsWith(FONT_HOST) ? url : null;
+}
+
+let warned = false;
+/** One line in the build log (and once per Worker isolate) when a card falls back to the built-in font. */
+function warnFallbackOnce(family: string) {
+  if (warned) return;
+  warned = true;
+  console.warn(`[og-font] could not load "${family}" from Google Fonts; OG images/icons use the built-in font`);
 }
 
 /**
@@ -46,9 +58,10 @@ export async function loadGoogleFont(family: string, text: string): Promise<Arra
     if (data) {
       if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
       cache.set(key, data);
-    }
+    } else warnFallbackOnce(family);
     return data;
   } catch {
+    warnFallbackOnce(family);
     return null;
   } finally {
     clearTimeout(timer);
