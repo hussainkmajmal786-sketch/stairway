@@ -102,7 +102,7 @@ What it does:
 - **Holds:** registering creates a 15-minute seat hold (`pending_payment`) that counts toward capacity. "Complete payment" with a countdown appears on the event page, the ticket and My tickets. When the hold lapses the cron tick releases the seat and promotes the waitlist.
 - **Confirmation** is idempotent and happens twice: by `verifyPayment` (Checkout signature, then the payment is re-fetched from Razorpay) and by the **webhook** `POST /api/payments/webhook` (`order.paid`, `refund.processed`). A payment after the hold expired is honoured if a seat is free, otherwise the row becomes `refund_needed`. Receipts are `STW-YYYY-NNNNNN`.
 - **Shared Razorpay account:** every order carries `notes.source = "stairway"`; the webhook ignores everything else with HTTP 200.
-- **Refunds** are never automatic. Cancelling a paid seat makes it `refund_needed` ("Refund pending"); `lib/payments/refunds.ts` performs a full refund (the admin button arrives with the Phase 5 dashboard). A processed refund shows "Refunded".
+- **Refunds** are never automatic. Cancelling a paid seat makes it `refund_needed` ("Refund pending"); `lib/payments/refunds.ts` performs a full refund (the admin button arrives with the Phase 5 dashboard). A refund started from st(AI)rway (the helper, later the admin button) shows "Refunded" once Razorpay processes it; a refund made by hand in the Razorpay dashboard is **not** tracked automatically (mark it via the Phase 5 admin tool; until then use the SQL function `mark_refunded` as the service role).
 - **Cron:** a Cloudflare Cron Trigger (every 5 minutes, `cloudflare/worker.ts` -> `POST /api/cron/tick`, shared secret `CRON_SECRET`) releases expired holds, promotes waitlists and drains the Fund Easy outbox. It is idle when no flag is on.
 - **Fund Easy sync:** one-way, signed, idempotent, retried with backoff (`docs/integrations/fund-easy-sync.md`). The Fund Easy side is a **proposed, NOT applied** patch in `docs/integrations/fund-easy-patch/`.
 - **Database:** `private.payment_orders` (ledger), `private.payment_events` (append-only log), `private.external_sync_outbox`; assertion scripts `supabase/tests/payments-*.sql` and `supabase/tests/sync-outbox.sql`.
@@ -130,7 +130,7 @@ All values are Cloudflare Worker **secrets** (`npx wrangler secret put NAME`, or
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Razorpay Dashboard -> Account & Settings -> API Keys (**test mode** first) |
 | `RAZORPAY_WEBHOOK_SECRET` | the secret you type when adding the webhook (32+ random characters) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase -> Project Settings -> API -> `service_role` (project `nfrdsdnrtsbttyrmfppy`) |
-| `CRON_SECRET` | 32+ random characters |
+| `CRON_SECRET` | 32+ random characters (required for payments to count as enabled) |
 
 Required Razorpay settings:
 - **Payment capture = Automatic (immediate)** — Dashboard -> Account & Settings -> Payment capture. The account is shared with Fund Easy, so check it, do not assume it. st(AI)rway never captures a payment itself: with manual or delayed capture every payment stays `authorized`, "Verify" says *processing*, `order.paid` never fires, the hold lapses and Razorpay refunds the money automatically after a few days.

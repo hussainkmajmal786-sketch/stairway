@@ -15,7 +15,7 @@ Workers & Pages -> stairway -> Settings -> Variables and Secrets, type **Secret*
 - `RAZORPAY_KEY_SECRET`
 - `RAZORPAY_WEBHOOK_SECRET` (the value you will type in step 4)
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `CRON_SECRET`
+- `CRON_SECRET` (32+ random characters; **required**: payments stay off without it, because the cron tick releases expired holds)
 - Optional, only after step 9: `FUND_EASY_SYNC_URL`, `STAIRWAY_SYNC_SECRET`, `FUND_EASY_SYNC_ENABLED`
 
 ## 3. Razorpay: Payment capture = Automatic
@@ -55,7 +55,7 @@ Register -> "Continue to payment" -> Razorpay test checkout (card `4111 1111 111
 - Failed payment (test card failure option): "Payment failed" message, hold kept, retry works.
 - Let one hold expire (wait more than 15 minutes, then refresh): "Seat hold expired".
 - Cancel a paid seat: **Refund pending** label.
-- After a refund is processed (Razorpay test refund): **Refunded** label.
+- After a refund is processed, **Refunded** label. Only refunds started from st(AI)rway itself (the refund helper in `lib/payments/refunds.ts`, and the Phase 5 admin button when it ships) are tracked: they carry the registration in the refund's notes. A refund made by hand in the Razorpay dashboard is **not** reflected on the ticket automatically (the webhook logs `refund_not_tracked` and ignores it). Workaround: mark it from the Phase 5 admin tool; until that exists, call the SQL function `mark_refunded` as the service role (SQL editor), then check the ticket.
 - Sold-out paid session: waitlist, then promotion after a hold expires.
 
 ## 8. Only then: live keys

@@ -166,7 +166,12 @@ export async function handleRazorpayWebhook(deps: WebhookDeps, req: WebhookReque
     if (!p.success) return ignored("malformed");
     const refund = p.data.refund.entity;
     const registrationId = ourRegistration(refund.notes);
-    if (!registrationId) return ignored("not_ours");
+    if (!registrationId) {
+      // A refund made by hand in the Razorpay dashboard carries no notes, so it is not reflected on the ticket
+      // (go-live checklist step 7). Safe marker only: no ids, amounts or secrets.
+      console.info("razorpay webhook", JSON.stringify({ event: eventId ?? "none", outcome: "refund_not_tracked" }));
+      return ignored("not_ours");
+    }
     const { data, error } = await deps.db().rpc("mark_refunded", {
       p_registration_id: registrationId,
       p_payment_id: refund.payment_id,
@@ -184,5 +189,9 @@ export async function handleRazorpayWebhook(deps: WebhookDeps, req: WebhookReque
     return done(eventId, parsed.data.outcome);
   }
 
+  if (env.data.event === "refund.failed") {
+    // Not subscribed by default; if someone enables it, leave a trace so a failed refund is not silently lost.
+    attention(eventId, "refund_failed");
+  }
   return ignored("event_not_handled");
 }

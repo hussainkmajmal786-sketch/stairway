@@ -144,6 +144,21 @@ describe("handleRazorpayWebhook", () => {
     await handleRazorpayWebhook(d, req(orderPaid(), undefined, "evt with spaces"));
     expect(rpc).toHaveBeenCalledWith("confirm_payment", expect.objectContaining({ p_event_id: undefined }));
   });
+  it("logs a safe marker for dashboard refunds (no notes) and for refund.failed, without ids", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { d, rpc } = deps();
+    const res = await handleRazorpayWebhook(d, req(refundProcessed({})));
+    expect(res.body.result).toBe("ignored:not_ours");
+    expect(rpc).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(String(info.mock.calls[0][1])).toContain("refund_not_tracked");
+    const failed = JSON.stringify({ entity: "event", event: "refund.failed", payload: {} });
+    expect((await handleRazorpayWebhook(d, req(failed))).body.result).toBe("ignored:event_not_handled");
+    expect(String(warn.mock.calls[0][1])).toContain("refund_failed");
+    const logged = JSON.stringify([...info.mock.calls, ...warn.mock.calls]);
+    expect(logged).not.toMatch(/rfnd_|pay_|order_|33333333/);
+  });
   it("records refund.processed for our refunds", async () => {
     const { d, rpc, fetch } = deps({ data: { outcome: "refunded", status: "refunded" }, error: null });
     const res = await handleRazorpayWebhook(d, req(refundProcessed()));
