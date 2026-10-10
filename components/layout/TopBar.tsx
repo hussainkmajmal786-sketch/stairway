@@ -7,7 +7,8 @@ import { StairMark, Wordmark } from "@/components/ui/Logo";
 import { AnnouncementBar } from "./AnnouncementBar";
 import { AccountButton } from "./AccountButton";
 import { useClock } from "@/components/providers/ClockProvider";
-import { formatDate, pad2 } from "@/lib/weekends";
+import { formatDate } from "@/lib/weekends";
+import { nextStepLabel } from "@/lib/design/next-label";
 
 /** Slim ink top bar (yellow focus ring): brand on the left, the next step on the right. Main navigation lives in the dock. */
 export function TopBar() {
@@ -41,7 +42,7 @@ export function TopBar() {
               <Link
                 href={`/events/${next.slug}`}
                 className="btn btn-sm btn-secondary !whitespace-nowrap !px-3"
-                aria-label={`Next: Step ${pad2(next.step)},${next.title}, ${formatDate(next.start, { day: "numeric", month: "long" })}`}
+                aria-label={nextStepLabel(next)}
               >
                 <CalendarDays size={16} strokeWidth={2} className="hidden shrink-0 min-[400px]:block" aria-hidden />
                 <span className="hidden sm:inline">Next ·</span> Step {pad2(next.step)}
