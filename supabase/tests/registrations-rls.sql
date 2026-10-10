@@ -67,7 +67,7 @@ do $$ begin
     'event_attendees exposes unexpected columns';
   assert (select array_agg(column_name::text order by ordinal_position) from information_schema.columns
           where table_schema = 'public' and table_name = 'event_seat_counts')
-         = array['event_id', 'seats_taken', 'waitlisted'],
+         = array['event_id', 'seats_taken', 'waitlisted', 'attending'],
     'event_seat_counts columns changed';
   assert not has_function_privilege('anon', 'private.event_attendees()', 'execute'), 'anon can execute private.event_attendees';
   assert not has_function_privilege('anon', 'private.questions_valid(jsonb)', 'execute'), 'anon can execute questions_valid';
@@ -177,6 +177,7 @@ do $$ declare n int; ev uuid; draft uuid; begin
   assert (select seats_taken from public.event_seat_counts where event_id = ev) = 1,
     'seats_taken should be 1 (expired hold and cancelled seat must not count)';
   assert (select waitlisted from public.event_seat_counts where event_id = ev) = 1, 'waitlisted should be 1';
+  assert (select attending from public.event_seat_counts where event_id = ev) = 1, 'attending should be 1 (confirmed only)';
   select count(*) into n from public.event_seat_counts where event_id = draft;
   assert n = 0, 'seat counts of a draft event leaked';
 

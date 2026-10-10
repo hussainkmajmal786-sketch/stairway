@@ -459,6 +459,7 @@ export type Database = {
         Row: {
           amount_paise: number
           answers: Json
+          cancel_reason: string | null
           cancelled_at: string | null
           checked_in_at: string | null
           checked_in_by: string | null
@@ -467,8 +468,13 @@ export type Database = {
           event_id: string
           hold_expires_at: string | null
           id: string
+          paid_at: string | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
+          razorpay_refund_id: string | null
+          receipt_number: string | null
+          refund_claimed_until: string | null
+          refunded_at: string | null
           status: Database["public"]["Enums"]["registration_status"]
           ticket_code: string
           token_number: number | null
@@ -479,6 +485,7 @@ export type Database = {
         Insert: {
           amount_paise?: number
           answers?: Json
+          cancel_reason?: string | null
           cancelled_at?: string | null
           checked_in_at?: string | null
           checked_in_by?: string | null
@@ -487,8 +494,13 @@ export type Database = {
           event_id: string
           hold_expires_at?: string | null
           id?: string
+          paid_at?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          razorpay_refund_id?: string | null
+          receipt_number?: string | null
+          refund_claimed_until?: string | null
+          refunded_at?: string | null
           status: Database["public"]["Enums"]["registration_status"]
           ticket_code: string
           token_number?: number | null
@@ -499,6 +511,7 @@ export type Database = {
         Update: {
           amount_paise?: number
           answers?: Json
+          cancel_reason?: string | null
           cancelled_at?: string | null
           checked_in_at?: string | null
           checked_in_by?: string | null
@@ -507,8 +520,13 @@ export type Database = {
           event_id?: string
           hold_expires_at?: string | null
           id?: string
+          paid_at?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          razorpay_refund_id?: string | null
+          receipt_number?: string | null
+          refund_claimed_until?: string | null
+          refunded_at?: string | null
           status?: Database["public"]["Enums"]["registration_status"]
           ticket_code?: string
           token_number?: number | null
@@ -812,6 +830,7 @@ export type Database = {
       }
       event_seat_counts: {
         Row: {
+          attending: number | null
           event_id: string | null
           seats_taken: number | null
           waitlisted: number | null
