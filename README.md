@@ -57,7 +57,7 @@ Use WebP/AVIF where you can; `next/image` handles resizing and lazy loading.
 ### Registration
 Registration is per session at `/events/<slug>/register` (signed-in, onboarded members). The old `/register` and `/register?step=<slug>` URLs are a 307 route handler (`app/register/route.ts`, never cached) that redirects to the right session, or to the Google Form in external mode.
 
-- Each event row carries its own `capacity`, `price_paise` (0 = free; paid registration arrives with Razorpay in Phase 4), `ticket_type` (`qr` or `token`), `token_prefix` (e.g. `RAS-01`), `registration_opens_at` / `registration_closes_at` (empty = open until the session starts) and `questions` (custom questions, see `lib/registration/questions.ts`; types `text`, `textarea`, `single_choice`, `multi_choice`, `checkbox`).
+- Each event row carries its own `capacity`, `price_paise` (0 = free; paid sessions use Razorpay, see section 3d), `ticket_type` (`qr` or `token`), `token_prefix` (e.g. `RAS-01`), `registration_opens_at` / `registration_closes_at` (empty = open until the session starts) and `questions` (custom questions, see `lib/registration/questions.ts`; types `text`, `textarea`, `single_choice`, `multi_choice`, `checkbox`).
 - In the `registration` object of the `settings` site block, `mode: "external"` sends every Register button to `googleFormUrl` (https only; it opens in a new tab). In the default `mode: "onsite"`, `googleFormUrl` is offered as a fallback when an on-site registration fails; the placeholder `your-form-id` is ignored.
 
 The newsletter box posts to `newsletter.endpoint` (demo mode while it is empty).
@@ -76,7 +76,7 @@ Sign-in is **Google only** for now. The email-code form is built but hidden: fli
 - `/u/[handle]` is a public-style profile page, but **visible to signed-in users only**; anonymous visitors are redirected to `/login`.
 - `middleware.ts` refreshes the Supabase session on the edge. It only does work when a Supabase auth cookie is present, so anonymous traffic pays nothing.
 - Row-level security is covered by SQL assertion scripts in `supabase/tests/` (`profiles-rls.sql`, `security-hardening.sql`, plus the registration scripts in section 3c). Run each as a single query in the Supabase SQL editor or through the Supabase MCP `execute_sql`; they roll back and leave no data behind.
-- Account deletion: users email the team for now.
+- Account deletion: users email the team for now (accounts that opened a payment checkout need admin anonymisation first, see the deletion runbook in section 3d).
 
 ---
 
@@ -88,6 +88,60 @@ Sign-in is **Google only** for now. The email-code form is built but hidden: fli
 - The event page has a "Who's going" panel with an "N attending" line. Signed-in members see names, photos and headlines for the first 24 attendees (from the `event_attendees` view); anonymous visitors only see the count.
 - SQL assertion scripts: `supabase/tests/registrations-rls.sql` and `supabase/tests/registrations-rpc.sql` (run each as one query; they roll back).
 - Per-event registration settings for the seeded events live in `supabase/seed-data/registration.ts`. `npx tsx scripts/generate-seed.ts --registration-sql` prints the matching targeted-update migration; never run `supabase/seed.sql` against the live database.
+
+---
+
+## 3d. Payments (Razorpay), holds and the Fund Easy sync — OFF until configured
+
+**Pre-flight: the Cloudflare account must be on Workers Paid** before payments are switched on.
+- **CPU:** on Workers Free every request gets 10 ms of CPU and full page renders already exceed it intermittently (error 1102); a payment must never fail that way.
+- **Bundle size:** the OpenNext Worker is about 17 KiB gzip over the Workers **Free** bundle cap (3072 KiB; Workers Paid allows 10 MiB), so with the Phase 4 code the Worker may not deploy on the Free plan at all. Upgrading fixes both.
+
+What it does:
+- Paid sessions (`events.price_paise > 0`) are registered and paid **on st(AI)rway** with Razorpay Checkout. Members are never sent to Fund Easy.
+- **Holds:** registering creates a 15-minute seat hold (`pending_payment`) that counts toward capacity. "Complete payment" with a countdown appears on the event page, the ticket and My tickets. When the hold lapses the cron tick releases the seat and promotes the waitlist.
+- **Confirmation** is idempotent and happens twice: by `verifyPayment` (Checkout signature, then the payment is re-fetched from Razorpay) and by the **webhook** `POST /api/payments/webhook` (`order.paid`, `refund.processed`). A payment after the hold expired is honoured if a seat is free, otherwise the row becomes `refund_needed`. Receipts are `STW-YYYY-NNNNNN`.
+- **Shared Razorpay account:** every order carries `notes.source = "stairway"`; the webhook ignores everything else with HTTP 200.
+- **Refunds** are never automatic. Cancelling a paid seat makes it `refund_needed` ("Refund pending"); `lib/payments/refunds.ts` performs a full refund (the admin button arrives with the Phase 5 dashboard). A processed refund shows "Refunded".
+- **Cron:** a Cloudflare Cron Trigger (every 5 minutes, `cloudflare/worker.ts` -> `POST /api/cron/tick`, shared secret `CRON_SECRET`) releases expired holds, promotes waitlists and drains the Fund Easy outbox. It is idle when no flag is on.
+- **Fund Easy sync:** one-way, signed, idempotent, retried with backoff (`docs/integrations/fund-easy-sync.md`). The Fund Easy side is a **proposed, NOT applied** patch in `docs/integrations/fund-easy-patch/`.
+- **Database:** `private.payment_orders` (ledger), `private.payment_events` (append-only log), `private.external_sync_outbox`; assertion scripts `supabase/tests/payments-*.sql` and `supabase/tests/sync-outbox.sql`.
+- **Deletion runbook:** accounts that ever created a payment order cannot be deleted by cascade (`ON DELETE RESTRICT`); this includes users who only opened Checkout and never paid. The "email us to delete my account" path therefore needs admin **anonymisation** (planned for Phase 5). Until then a project owner must first anonymise or detach that user's `private.payment_orders` / `private.payment_events` rows by SQL (keep the money records), then delete the user. Token numbers are never reused.
+- No Content-Security-Policy is set today. If one is added, allow `https://checkout.razorpay.com` (script) and `https://api.razorpay.com`, `https://*.razorpay.com` (frames and connections).
+
+### Enabling payments (Razorpay TEST mode first)
+
+Payments need **two switches**, both on:
+
+1. **Worker secret `PAYMENTS_ENABLED` = `true`**, together with the four credentials below. Anything missing means off.
+2. **The database flag**, one line in the Supabase SQL editor:
+
+```sql
+update private.feature_flags set enabled = true, updated_at = now() where key = 'payments';
+```
+
+With either switch off, paid events keep "Paid registration opens soon" and `register_for_event` raises `paid_event`.
+
+All values are Cloudflare Worker **secrets** (`npx wrangler secret put NAME`, or Workers & Pages -> stairway -> Settings -> Variables and Secrets -> type *Secret*), never plain-text variables: **plain-text variables added in the dashboard are dropped by the next `wrangler deploy`**. Never commit them or paste them in chat.
+
+| Secret | Value |
+|---|---|
+| `PAYMENTS_ENABLED` | `true` |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Razorpay Dashboard -> Account & Settings -> API Keys (**test mode** first) |
+| `RAZORPAY_WEBHOOK_SECRET` | the secret you type when adding the webhook (32+ random characters) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase -> Project Settings -> API -> `service_role` (project `nfrdsdnrtsbttyrmfppy`) |
+| `CRON_SECRET` | 32+ random characters |
+
+Required Razorpay settings:
+- **Payment capture = Automatic (immediate)** — Dashboard -> Account & Settings -> Payment capture. The account is shared with Fund Easy, so check it, do not assume it. st(AI)rway never captures a payment itself: with manual or delayed capture every payment stays `authorized`, "Verify" says *processing*, `order.paid` never fires, the hold lapses and Razorpay refunds the money automatically after a few days.
+- **Webhook** (Dashboard -> Account & Settings -> Webhooks -> Add new): URL `https://stairway.ieeesbcek.workers.dev/api/payments/webhook`, events **`order.paid`** and **`refund.processed`**, and the secret above. Do not change Fund Easy's webhook.
+- Use **TEST mode** (test keys and a test-mode webhook) until the whole checklist in `docs/payments-go-live-checklist.md` has passed; only then switch to live keys and a live-mode webhook.
+
+To switch payments off again: delete `PAYMENTS_ENABLED` (or set it to anything but `true`) and/or set the database flag to `false`. Live holds keep counting until they expire.
+
+### Enabling the Fund Easy sync
+
+Only after the Fund Easy patch is applied (see its README): secrets `FUND_EASY_SYNC_ENABLED=true`, `FUND_EASY_SYNC_URL=https://fidguqathrzitfbpknrd.supabase.co/functions/v1/external-sync`, `STAIRWAY_SYNC_SECRET` (same value as on Fund Easy), plus `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY`. Registrations queued earlier are sent on the next tick.
 
 ---
 
@@ -118,10 +172,11 @@ Custom domain: add it under the Worker's **Settings -> Domains & Routes**, and u
 ```
 app/                 routes: /, /events/[slug], /s/[society], /gallery, /resources,
                      /register (redirect), /events/[slug]/register, /me/tickets (+ /me/tickets/[id]),
-                     /login, /onboarding, /me (+ /me/profile, /me/settings), /u/[handle],
+                     /api/payments/webhook, /api/cron/tick, /login, /onboarding, /me (+ /me/profile, /me/settings), /u/[handle],
                      /auth/{callback,continue,signout}, /code-of-conduct, /privacy, 404, sitemap,
                      robots, manifest, OG images
 middleware.ts        edge middleware: refreshes the Supabase session cookie
+cloudflare/worker.ts custom Worker entry (OpenNext fetch + Cron Trigger)
 components/
   auth/              login panel, email-code form (hidden)
   dashboard/         sidebar shell for /me
@@ -138,6 +193,9 @@ lib/
   events/            event types, row mappers, status/colour helpers
   site/              site-content schema (zod), types and loader
   auth/              session lookup, auth config flag, safe `next` redirects, cookie helpers
+  payments/          Razorpay REST client, signatures, order/verify actions, webhook, refunds, Checkout loader
+  sync/              Fund Easy contract v1 and outbox processor
+  cron/              5-minute tick (hold expiry, outbox)
   registration/      registration schemas, CTA states, errors, server reads and actions
   tickets/           token format, QR matrix, PNG export
   dashboard/         dashboard nav active-state helper
