@@ -24,13 +24,19 @@ export function ruleHead(ev: { step: number; start: string } | null | undefined,
   };
 }
 
-/** "@handle" from an http(s) profile URL's first path segment, or null. */
+/**
+ * "@handle" from an http(s) profile URL's first path segment, or null. Invisible format characters (\p{Cf}: zero-width
+ * spaces/joiners, bidi marks) are dropped and a segment that already starts with "@" (e.g. threads/medium URLs) is not
+ * doubled to "@@".
+ */
 export function handleFromUrl(url: string): string | null {
   try {
     const u = new URL(url);
     if (u.protocol !== "https:" && u.protocol !== "http:") return null;
     const seg = u.pathname.split("/").filter(Boolean)[0];
-    return seg ? `@${decodeURIComponent(seg)}` : null;
+    if (!seg) return null;
+    const name = decodeURIComponent(seg).replace(/\p{Cf}/gu, "").replace(/^@+/, "").trim();
+    return name ? `@${name}` : null;
   } catch {
     return null;
   }

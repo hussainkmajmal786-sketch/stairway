@@ -12,6 +12,12 @@ describe("ruleHead", () => {
     expect(ruleHead(ev, Date.parse("2026-10-17T05:00:00Z")).verb).toBe("is on");
   });
 
+  it("is on at the exact start instant and opens one millisecond before", () => {
+    const start = Date.parse(ev.start);
+    expect(ruleHead(ev, start).verb).toBe("is on");
+    expect(ruleHead(ev, start - 1).verb).toBe("opens");
+  });
+
   it("uses the IST calendar date (a late-evening UTC start is the next day in India)", () => {
     expect(ruleHead({ step: 12, start: "2026-10-17T20:00:00Z" }, 0)).toEqual({ lead: "Step 12", verb: "opens", when: "Sun 18 Oct" });
   });
@@ -31,6 +37,16 @@ describe("handles row", () => {
     expect(handleFromUrl("not a url")).toBeNull();
     expect(handleFromUrl("")).toBeNull();
     expect(handleFromUrl("javascript:alert(1)")).toBeNull();
+  });
+
+  it("does not double a leading @ and drops invisible format characters", () => {
+    expect(handleFromUrl("https://www.threads.net/@ieeesbcek")).toBe("@ieeesbcek");
+    expect(handleFromUrl("https://medium.com/%40ieeesbcek")).toBe("@ieeesbcek");
+    expect(handleFromUrl("https://instagram.com/ieee​sb‍cek⁠")).toBe("@ieeesbcek");
+    expect(handleFromUrl("https://instagram.com/%E2%80%8Eieeesbcek%E2%80%8F")).toBe("@ieeesbcek");
+    expect(handleFromUrl("https://instagram.com/@")).toBeNull();
+    expect(handleFromUrl("https://instagram.com/%E2%80%8B")).toBeNull();
+    expect(handleFromUrl("https://instagram.com/%E0%A4")).toBeNull(); // malformed escape
   });
 
   it("lists the Instagram handle and the site host", () => {
