@@ -66,7 +66,7 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         slug={slug}
         cta={cta}
         attending={{
-          count: ev.seatsFilled,
+          count: ev.attending ?? ev.seatsFilled,
           signedIn: !!auth.user,
           attendees: auth.user ? attendees : null,
           signInHref: loginPath(`/events/${ev.slug}`),

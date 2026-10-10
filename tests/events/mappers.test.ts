@@ -31,6 +31,11 @@ describe("rowToEventView", () => {
     expect(v.seatsTotal).toBe(60);
     expect(v.seatsFilled).toBe(12);
   });
+  it("keeps the attending (confirmed) count separate from seats taken", () => {
+    expect(rowToEventView(row, 12).attending).toBe(12);
+    expect(rowToEventView(row, 12, 9).attending).toBe(9);
+    expect(rowToEventView(row, 12, 9).seatsFilled).toBe(12);
+  });
   it("tolerates null track and non-array jsonb", () => {
     const w = rowToEventView({ ...row, track: null, agenda: null, winners: {}, resources: null }, 0);
     expect(w.trackName).toBeNull();

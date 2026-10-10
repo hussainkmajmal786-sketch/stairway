@@ -28,6 +28,7 @@ export function statusLabel(status: RegistrationStatus, waitlistPosition: number
  * row may still carry an old number in the DB); lists never carry the QR ticket code at all.
  */
 export function passLabel(t: Pick<TicketSummary, "status" | "ticketType" | "token">): string {
+  if (t.status === "refund_needed" || t.status === "refunded" || t.status === "cancelled") return "No entry pass";
   if (t.status !== "confirmed") return t.ticketType === "token" ? "Token pass once confirmed" : "QR pass once confirmed";
   if (t.ticketType === "token" && t.token) return `Token ${t.token}`;
   return "QR pass";
@@ -42,11 +43,14 @@ export interface TicketListRow {
   when: string;
   status: { label: string; tone: StatusTone };
   pass: string;
+  /** End of a live payment hold (shown as a countdown), else null. */
+  holdExpiresAt: string | null;
 }
 
 /** Everything one row of My tickets renders, derived from a summary (which never holds the ticket code). */
-export function ticketListRow(t: TicketSummary): TicketListRow {
+export function ticketListRow(t: TicketSummary, now: number = Date.now()): TicketListRow {
   const e = t.event;
+  const hold = t.status === "pending_payment" && t.holdExpiresAt && Date.parse(t.holdExpiresAt) > now ? t.holdExpiresAt : null;
   return {
     id: t.id,
     href: ticketPath(t.id),
@@ -55,13 +59,14 @@ export function ticketListRow(t: TicketSummary): TicketListRow {
     when: `${shortDate(e.start)}, ${timeOf(e.start)} IST`,
     status: statusLabel(t.status, t.waitlistPosition),
     pass: passLabel(t),
+    holdExpiresAt: hold,
   };
 }
 
 /** My tickets: upcoming (soonest first) and past (most recent first) rows. */
 export function ticketGroups(list: readonly TicketSummary[], now: number): { upcoming: TicketListRow[]; past: TicketListRow[] } {
   const { upcoming, past } = splitTickets(list, now);
-  return { upcoming: upcoming.map(ticketListRow), past: past.map(ticketListRow) };
+  return { upcoming: upcoming.map((t) => ticketListRow(t, now)), past: past.map((t) => ticketListRow(t, now)) };
 }
 
 export interface NextStep {

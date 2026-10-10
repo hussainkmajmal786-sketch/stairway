@@ -37,6 +37,20 @@ describe("statusLabel", () => {
   });
 });
 
+describe("payment rows", () => {
+  it("names refund and cancelled rows without a pass", () => {
+    expect(passLabel({ status: "refunded", ticketType: "qr", token: null })).toBe("No entry pass");
+    expect(passLabel({ status: "refund_needed", ticketType: "token", token: null })).toBe("No entry pass");
+    expect(passLabel({ status: "cancelled", ticketType: "token", token: null })).toBe("No entry pass");
+  });
+  it("carries a live hold's end so the list can count down, and drops an expired one", () => {
+    const live = { ...mk("h", "pending_payment", "2026-10-10T04:00:00Z", "2026-10-10T11:00:00Z"), holdExpiresAt: "2026-10-07T00:10:00Z" };
+    expect(ticketListRow(live, NOW).holdExpiresAt).toBe("2026-10-07T00:10:00Z");
+    expect(ticketListRow({ ...live, holdExpiresAt: "2026-10-06T23:59:00Z" }, NOW).holdExpiresAt).toBeNull();
+    expect(ticketListRow(mk("c", "confirmed", "2026-10-10T04:00:00Z", "2026-10-10T11:00:00Z"), NOW).holdExpiresAt).toBeNull();
+  });
+});
+
 describe("passLabel", () => {
   it("names the token only for a confirmed seat", () => {
     expect(passLabel({ status: "confirmed", ticketType: "token", token: "RAS-01-0007" })).toBe("Token RAS-01-0007");

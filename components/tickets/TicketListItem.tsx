@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { HoldCountdown } from "@/components/payments/HoldCountdown";
 import type { TicketListRow } from "@/lib/tickets/list";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,11 @@ export function TicketListItem({ row }: { row: TicketListRow }) {
         </span>
         <span className="mt-1 block break-words text-xl font-semibold">{row.title}</span>
         <span className="mt-1 block text-sm text-ink-2">{row.pass}</span>
+        {row.holdExpiresAt && (
+          <span className="mt-1 block text-sm font-semibold">
+            Complete payment · <HoldCountdown expiresAt={row.holdExpiresAt} refreshOnExpiry={false} suffix=" left" />
+          </span>
+        )}
       </span>
       <span className="flex flex-wrap items-center gap-3">
         <span className={cn("tag", TONE[row.status.tone])}>{row.status.label}</span>

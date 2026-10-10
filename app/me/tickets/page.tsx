@@ -28,7 +28,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/me/ticke
   // Session first: signed-out (or not onboarded) visitors are redirected before anything is looked up.
   const { user } = await requireOnboarded("/me/tickets");
   const [sp, tickets] = await Promise.all([searchParams, getMyTickets(user.id)]);
-  // getMyTickets returns active registrations only, so a cancelled one simply drops out of both lists.
+  // getMyTickets returns active and refund rows; a cancelled registration drops out of both lists.
   const { upcoming, past } = ticketGroups(tickets, requestNow());
 
   return (

@@ -6,6 +6,8 @@ import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
 import { getAuthState, requireOnboarded } from "@/lib/auth/session";
 import { getSiteData } from "@/lib/site/load";
+import { paymentsConfig } from "@/lib/payments/config";
+import { formatInr } from "@/lib/payments/money";
 import { ticketPath } from "@/lib/registration/cta";
 import { getTicket } from "@/lib/registration/server";
 import { ticketFilename, ticketHeading, ticketView } from "@/lib/tickets/view";
@@ -13,6 +15,8 @@ import { TicketCard } from "@/components/tickets/TicketCard";
 import { TicketActions } from "@/components/tickets/TicketActions";
 import { CancelRegistration } from "@/components/tickets/CancelRegistration";
 import { NewTicketBanner } from "@/components/tickets/NewTicketBanner";
+import { PaymentPanel } from "@/components/payments/PaymentPanel";
+import { AutoRefresh } from "@/components/payments/AutoRefresh";
 
 const ROBOTS = { index: false, follow: false };
 const parseId = (raw: string) => {
@@ -50,9 +54,14 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/m
   if (!ticket) notFound();
 
   const ev = events.find((e) => e.id === ticket.event.id) ?? null;
-  const view = ticketView(ticket, profile.fullName, settings, ev, requestNow());
+  // ?paid=1: Checkout reported success; the server status below is still the authority.
+  const justPaid = sp.paid === "1";
+  const view = ticketView(ticket, profile.fullName, settings, ev, requestNow(), justPaid);
   const confirmed = ticket.status === "confirmed";
   const waitlisted = ticket.status === "waitlisted";
+  const held = ticket.status === "pending_payment";
+  const active = confirmed || waitlisted || held;
+  const here = ticketPath(ticket.id);
 
   return (
     <div className="grid gap-8">
@@ -60,30 +69,51 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/m
         <ArrowLeft size={14} strokeWidth={2} aria-hidden /> All tickets
       </Link>
       <h1 className="text-3xl font-semibold md:text-4xl">{view.heading}</h1>
-      {sp.new === "1" && (confirmed || waitlisted) && (
+      {(sp.new === "1" || justPaid) && (confirmed || waitlisted) && (
         <NewTicketBanner confirmed={confirmed} position={ticket.waitlistPosition} />
       )}
+      {view.notice.kind === "processing" && <AutoRefresh />}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,440px)_1fr] lg:items-start">
         <TicketCard t={view.card} />
         <div className="grid gap-6">
-          <TicketActions
-            ev={ev}
-            png={view.png}
-            filename={ticketFilename(ticket.event.slug)}
-            shareText={`I'm climbing st(AI)rway: ${view.card.eyebrow}, ${ticket.event.title}`}
-            upcoming={view.upcoming}
-          />
+          {view.notice.kind === "pay" &&
+            (paymentsConfig().enabled ? (
+              <PaymentPanel
+                registrationId={ticket.id}
+                holdExpiresAt={view.notice.holdExpiresAt}
+                amountPaise={view.notice.amountPaise}
+                step={ticket.event.step}
+                here={here}
+              />
+            ) : (
+              <p role="status" className="box-2 p-4">
+                Payments are paused right now. Your seat stays held until the timer runs out; please try again shortly.
+              </p>
+            ))}
+          {active && (
+            <TicketActions
+              ev={ev}
+              png={view.png}
+              filename={ticketFilename(ticket.event.slug)}
+              shareText={`I'm climbing st(AI)rway: ${view.card.eyebrow}, ${ticket.event.title}`}
+              upcoming={view.upcoming}
+            />
+          )}
           {ev && (
             <Link href={`/events/${encodeURIComponent(ev.slug)}`} className="btn btn-secondary justify-self-start">
               Session details
             </Link>
           )}
-          <CancelRegistration
-            registrationId={ticket.id}
-            waitlisted={waitlisted}
-            blocked={view.cancelBlocked}
-            here={ticketPath(ticket.id)}
-          />
+          {active && (
+            <CancelRegistration
+              registrationId={ticket.id}
+              waitlisted={waitlisted}
+              hold={held}
+              paidAmount={confirmed && ticket.amountPaise > 0 ? formatInr(ticket.amountPaise) : undefined}
+              blocked={view.cancelBlocked}
+              here={here}
+            />
+          )}
         </div>
       </div>
     </div>

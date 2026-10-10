@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ATTENDEES_SHOWN, rowToAttendee } from "./attending";
-import { ACTIVE_STATUSES, type Attendee, type MyRegistration } from "./types";
+import { ACTIVE_STATUSES, VISIBLE_STATUSES, type Attendee, type MyRegistration } from "./types";
 import { rowToSummary, rowToTicket, TICKET_LIST_SELECT, TICKET_SELECT, type TicketDetail, type TicketListRow, type TicketRow, type TicketSummary } from "./tickets";
 
 // Ids are checked as 8-4-4-4-12 hex (z.guid: Postgres accepts any version) so junk never reaches a query.
@@ -43,7 +43,7 @@ export async function getAttendees(eventId: string, limit: number = ATTENDEES_SH
   return data.map((r) => rowToAttendee(r)).filter((a): a is Attendee => a !== null);
 }
 
-/** All active tickets of the user, without ticket codes, soonest first. Throws if they could not be loaded. */
+/** Active, refund-pending and refunded tickets of the user, without ticket codes, soonest first. Throws if they could not be loaded. */
 export async function getMyTickets(userId: string): Promise<TicketSummary[]> {
   if (!isUuid(userId)) return [];
   const db = await createClient();
@@ -51,7 +51,7 @@ export async function getMyTickets(userId: string): Promise<TicketSummary[]> {
     .from("registrations")
     .select(TICKET_LIST_SELECT)
     .eq("user_id", userId)
-    .in("status", [...ACTIVE_STATUSES]);
+    .in("status", [...VISIBLE_STATUSES]);
   // Server-side only (error boundaries never show this text to the browser in production).
   if (error || !data) throw new Error(`Failed to load tickets: ${error?.message ?? "no data"}`);
   return (data as unknown as TicketListRow[])
@@ -60,7 +60,10 @@ export async function getMyTickets(userId: string): Promise<TicketSummary[]> {
     .sort((a, b) => Date.parse(a.event.start) - Date.parse(b.event.start));
 }
 
-/** One active ticket of the user (with its code), or null when there is no such ticket (not theirs, not active, malformed id). Throws if the read fails. */
+/**
+ * The user's own registration in any status (with its code: ticketView / doorPass show it only for a confirmed seat),
+ * or null when there is no such row (not theirs, malformed id). Throws if the read fails.
+ */
 export async function getTicket(id: string, userId: string): Promise<TicketDetail | null> {
   if (!isUuid(id) || !isUuid(userId)) return null;
   const db = await createClient();
@@ -69,7 +72,6 @@ export async function getTicket(id: string, userId: string): Promise<TicketDetai
     .select(TICKET_SELECT)
     .eq("id", id)
     .eq("user_id", userId)
-    .in("status", [...ACTIVE_STATUSES])
     .maybeSingle();
   // A failed read must reach app/me/tickets/error.tsx (retry), not look like a missing ticket (404).
   if (error) throw new Error(`Failed to load ticket: ${error.message}`);

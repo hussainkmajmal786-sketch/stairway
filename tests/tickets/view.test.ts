@@ -11,7 +11,7 @@ import {
 import { QR_DARK, QR_LIGHT } from "@/lib/tickets/layout";
 import { contrastRatio } from "@/lib/design/contrast";
 import { TOKENS } from "@/lib/design/tokens";
-import { cancelBlock, doorPass, QUIET_ZONE, ticketFilename, ticketView } from "@/lib/tickets/view";
+import { cancelBlock, doorPass, QUIET_ZONE, ticketFilename, ticketHeading, ticketNotice, ticketView } from "@/lib/tickets/view";
 import type { TicketDetail } from "@/lib/registration/tickets";
 import { analyticsPath, gaBootstrap } from "@/lib/analytics";
 
@@ -37,17 +37,57 @@ describe("doorPass", () => {
 });
 
 describe("cancelBlock (mirrors cancel_registration)", () => {
-  const base = { status: "confirmed" as const, checkedInAt: null, event: { start: future, pricePaise: 0 } };
-  it("allows confirmed and waitlisted free registrations before the start", () => {
+  const base = { status: "confirmed" as const, checkedInAt: null, event: { start: future } };
+  it("allows confirmed (free or paid), waitlisted and held registrations before the start", () => {
     expect(cancelBlock(base, NOW)).toBeNull();
     expect(cancelBlock({ ...base, status: "waitlisted" }, NOW)).toBeNull();
+    expect(cancelBlock({ ...base, status: "pending_payment" }, NOW)).toBeNull();
   });
-  it("refuses checked-in, pending, paid and started", () => {
+  it("lets a hold be released even after the start, but nothing else", () => {
+    expect(cancelBlock({ ...base, status: "pending_payment", event: { start: past } }, NOW)).toBeNull();
+    expect(cancelBlock({ ...base, event: { start: past } }, NOW)).toBe("started");
+    expect(cancelBlock({ ...base, event: { start: new Date(NOW).toISOString() } }, NOW)).toBe("started");
+  });
+  it("refuses checked-in and inactive registrations", () => {
     expect(cancelBlock({ ...base, checkedInAt: "2026-10-06T00:00:00Z" }, NOW)).toBe("checked_in");
-    expect(cancelBlock({ ...base, status: "pending_payment" }, NOW)).toBe("pending_payment");
-    expect(cancelBlock({ ...base, event: { start: future, pricePaise: 9900 } }, NOW)).toBe("paid");
-    expect(cancelBlock({ ...base, event: { start: past, pricePaise: 0 } }, NOW)).toBe("started");
-    expect(cancelBlock({ ...base, event: { start: new Date(NOW).toISOString(), pricePaise: 0 } }, NOW)).toBe("started");
+    for (const status of ["cancelled", "refunded", "refund_needed"] as const) {
+      expect(cancelBlock({ ...base, status }, NOW)).toBe("inactive");
+    }
+  });
+});
+
+describe("ticketNotice", () => {
+  const t = (over: Record<string, unknown> = {}) => ({
+    status: "pending_payment" as const, waitlistPosition: null, holdExpiresAt: future, amountPaise: 19900,
+    cancelReason: null, refundedAt: null, event: { pricePaise: 19900 }, ...over,
+  });
+  it("asks for payment while the hold is live, and says it expired afterwards", () => {
+    expect(ticketNotice(t(), NOW)).toEqual({ kind: "pay", holdExpiresAt: future, amountPaise: 19900 });
+    expect(ticketNotice(t({ holdExpiresAt: past }), NOW)).toEqual({ kind: "hold_expired" });
+    expect(ticketNotice(t({ status: "cancelled", cancelReason: "hold_expired" }), NOW)).toEqual({ kind: "hold_expired" });
+    expect(ticketNotice(t({ status: "cancelled", cancelReason: "user" }), NOW)).toEqual({ kind: "cancelled" });
+  });
+  it("shows 'confirming' right after Checkout succeeded", () => {
+    expect(ticketNotice(t(), NOW, true)).toEqual({ kind: "processing" });
+  });
+  it("explains refunds and the waitlist", () => {
+    expect(ticketNotice(t({ status: "refund_needed", cancelReason: "late_payment_no_seat" }), NOW))
+      .toEqual({ kind: "refund_needed", amount: "₹199", latePayment: true });
+    expect(ticketNotice(t({ status: "refund_needed", cancelReason: "user" }), NOW)).toMatchObject({ latePayment: false });
+    expect(ticketNotice(t({ status: "refunded", refundedAt: "2026-10-05T04:30:00Z" }), NOW)).toMatchObject({ kind: "refunded", amount: "₹199" });
+    expect(ticketNotice(t({ status: "waitlisted", waitlistPosition: 2 }), NOW)).toEqual({ kind: "waitlisted", position: 2, paid: true });
+    expect(ticketNotice(t({ status: "confirmed" }), NOW)).toEqual({ kind: "none" });
+  });
+});
+
+describe("ticketHeading", () => {
+  it("names every state", () => {
+    expect(ticketHeading("confirmed")).toBe("Your ticket");
+    expect(ticketHeading("waitlisted")).toBe("Your waitlist place");
+    expect(ticketHeading("pending_payment")).toBe("Complete your payment");
+    expect(ticketHeading("refund_needed")).toBe("Refund pending");
+    expect(ticketHeading("refunded")).toBe("Refunded");
+    expect(ticketHeading("cancelled")).toBe("Registration cancelled");
   });
 });
 
@@ -79,7 +119,7 @@ describe("TicketCard", () => {
   const card = (over: Partial<TicketCardData>): TicketCardData => ({
     eyebrow: "RAS · Step 01", title: "Seeing Machines", when: "Tue", venue: "Hall", name: "Asha",
     status: "confirmed", waitlistPosition: null, pass: { kind: "qr" }, token: null, qrRows: qrRows(CODE),
-    code: CODE, checkedInAt: null, ...over,
+    code: CODE, checkedInAt: null, notice: { kind: "none" }, receipt: null, ...over,
   });
   const html = (t: TicketCardData) => renderToStaticMarkup(createElement(TicketCard, { t }));
 
@@ -109,19 +149,35 @@ describe("TicketCard", () => {
   });
 
   it("keeps the header and perforation for waitlisted and pending tickets, still without QR, code or token", () => {
-    for (const status of ["waitlisted", "pending_payment"] as const) {
-      const out = html(card({ status, waitlistPosition: 2, pass: { kind: "none" }, token: "RAS-01-0007" }));
+    const cases = [
+      { status: "waitlisted" as const, notice: { kind: "waitlisted" as const, position: 2, paid: false }, text: "You&#x27;re on the waitlist" },
+      { status: "pending_payment" as const, notice: { kind: "pay" as const, holdExpiresAt: future, amountPaise: 19900 }, text: "Payment pending" },
+    ];
+    for (const c of cases) {
+      const out = html(card({ status: c.status, notice: c.notice, waitlistPosition: 2, pass: { kind: "none" }, token: "RAS-01-0007" }));
       expect(out).toContain('<header class="ticket-h">');
       expect(out).toContain('class="perf"');
       expect(out).not.toContain("<svg");
       expect(out).not.toContain(CODE);
       expect(out).not.toContain("RAS-01-0007");
-      expect(out).toContain(status === "waitlisted" ? "You&#x27;re on the waitlist" : "Payment pending");
+      expect(out).toContain(c.text);
     }
   });
 
+  it("explains expired holds and refunds, and prints the receipt", () => {
+    const expired = html(card({ status: "cancelled", notice: { kind: "hold_expired" }, pass: { kind: "none" }, qrRows: null, code: null }));
+    expect(expired).toContain("Seat hold expired");
+    const refund = html(card({ status: "refund_needed", notice: { kind: "refund_needed", amount: "₹199", latePayment: true },
+      pass: { kind: "none" }, qrRows: null, code: null, receipt: { number: "STW-2026-000012", amount: "₹199" } }));
+    expect(refund).toContain("Refund pending");
+    expect(refund).toContain("₹199 will be refunded");
+    expect(refund).toContain("STW-2026-000012");
+    const paid = html(card({ receipt: { number: "STW-2026-000013", amount: "₹199" } }));
+    expect(paid).toContain("STW-2026-000013 · ₹199 paid");
+  });
+
   it("shows a waitlist state with no QR, no token and no code", () => {
-    const out = html(card({ status: "waitlisted", waitlistPosition: 3, pass: { kind: "none" }, qrRows: null, code: null }));
+    const out = html(card({ status: "waitlisted", notice: { kind: "waitlisted", position: 3, paid: false }, waitlistPosition: 3, pass: { kind: "none" }, qrRows: null, code: null }));
     expect(out).not.toContain("<svg");
     expect(out).not.toContain(CODE);
     expect(out).toContain("#3");
@@ -245,6 +301,31 @@ describe("ticketView (the page's only source of what to render)", () => {
     });
   }
 
+  it("adds the receipt and the notice", () => {
+    const v = ticketView({ ...base, amountPaise: 19900, receiptNumber: "STW-2026-000012", event: { ...base.event, pricePaise: 19900 } },
+      "Asha", settings, { venue: "Lab 2" }, NOW);
+    expect(v.card.receipt).toEqual({ number: "STW-2026-000012", amount: "₹199" });
+    expect(v.notice).toEqual({ kind: "none" });
+    const p = ticketView({ ...base, status: "pending_payment", amountPaise: 19900, holdExpiresAt: future }, "Asha", settings, null, NOW, true);
+    expect(p.notice).toEqual({ kind: "processing" });
+    expect(p.heading).toBe("Complete your payment");
+  });
+
+  it("refund rows (I-3) carry their notice but never a code, QR, token or PNG, in the view or the markup", () => {
+    for (const status of ["refund_needed", "refunded"] as const) {
+      const v = view({ status, amountPaise: 19900, cancelReason: "late_payment_no_seat", receiptNumber: "STW-2026-000012",
+        refundedAt: "2026-10-05T04:30:00Z", event: { ...base.event, pricePaise: 19900 } });
+      expect(v.notice.kind).toBe(status);
+      expect(v.png).toBeNull();
+      expect(v.card.qrRows).toBeNull();
+      expect(v.card.code).toBeNull();
+      const out = JSON.stringify(v) + renderToStaticMarkup(createElement(TicketCard, { t: v.card }));
+      expect(out).not.toContain(CODE);
+      expect(out).not.toContain("RAS-01-0007");
+      expect(out).not.toContain("<svg");
+    }
+  });
+
   it("titles the waitlist state and explains blocked cancels", () => {
     expect(view({ status: "waitlisted", waitlistPosition: 2 }).heading).toBe("Your waitlist place");
     expect(view({ checkedInAt: "2026-10-06T00:00:00Z" }).cancelBlocked).toMatch(/checked in/);
@@ -256,7 +337,7 @@ describe("TicketCard defence in depth", () => {
   const leaky: TicketCardData = {
     eyebrow: "RAS · Step 01", title: "Seeing Machines", when: "Tue", venue: "Hall", name: "Asha",
     status: "waitlisted", waitlistPosition: 2, pass: { kind: "none" }, token: "RAS-01-0007", qrRows: qrRows(CODE),
-    code: CODE, checkedInAt: null,
+    code: CODE, checkedInAt: null, notice: { kind: "waitlisted", position: 2, paid: false }, receipt: null,
   };
   const html = (t: TicketCardData) => renderToStaticMarkup(createElement(TicketCard, { t }));
 

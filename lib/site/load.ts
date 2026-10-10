@@ -18,7 +18,7 @@ export const getSiteData = cache(async (): Promise<SiteData> => {
     db.from("site_blocks").select("key, data"),
     db.from("societies").select("id, slug, name, short_name, description, color, logo_url, tracks(id, name, description, sort_order)").order("sort_order"),
     db.from("events").select(EVENT_SELECT).eq("status", "published").order("starts_at"),
-    db.from("event_seat_counts").select("event_id, seats_taken"),
+    db.from("event_seat_counts").select("event_id, seats_taken, attending"),
     db.from("speakers").select("slug, name, designation, organization, photo_url, bio, topic, links").order("sort_order"),
     db.from("sponsors").select("name, url, logo_url, tier, tier_size").order("sort_order"),
     db.from("team_members").select('name, role, "group", photo_url, fun_fact, links').order("sort_order"),
@@ -29,6 +29,7 @@ export const getSiteData = cache(async (): Promise<SiteData> => {
 
   const blockMap = new Map(orThrow(blocks, "site_blocks").map((b) => [b.key, b.data]));
   const seatMap = new Map(orThrow(seats, "seat counts").map((s) => [s.event_id, s.seats_taken ?? 0]));
+  const attendingMap = new Map(orThrow(seats, "seat counts").map((s) => [s.event_id, s.attending ?? 0]));
 
   const tiers = new Map<string, SponsorTierView>();
   for (const s of orThrow(sponsors, "sponsors")) {
@@ -52,7 +53,7 @@ export const getSiteData = cache(async (): Promise<SiteData> => {
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((t) => ({ id: t.id, name: t.name, description: t.description })),
     })),
-    events: (orThrow(events, "events") as unknown as EventRow[]).map((r) => rowToEventView(r, seatMap.get(r.id) ?? 0)),
+    events: (orThrow(events, "events") as unknown as EventRow[]).map((r) => rowToEventView(r, seatMap.get(r.id) ?? 0, attendingMap.get(r.id) ?? 0)),
     speakers: orThrow(speakers, "speakers").map((s) => ({
       id: s.slug,
       name: s.name,

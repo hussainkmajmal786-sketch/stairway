@@ -38,7 +38,7 @@ export interface EventRow {
 export const EVENT_SELECT =
   "id, slug, step_number, title, topic, summary, description, starts_at, ends_at, venue, mode, poster_url, video_url, level, formats, agenda, outcomes, prerequisites, bring, capacity, price_paise, ticket_type, token_prefix, registration_opens_at, registration_closes_at, is_finale, resources, winners, society:societies(id, slug, name, short_name, color), track:tracks(name), event_speakers(sort_order, speaker:speakers(slug))";
 
-export function rowToEventView(r: EventRow, seatsTaken: number): EventView {
+export function rowToEventView(r: EventRow, seatsTaken: number, attending: number = seatsTaken): EventView {
   if (!r.society) throw new Error(`Event ${r.slug} has no society`);
   return {
     id: r.id,
@@ -62,6 +62,7 @@ export function rowToEventView(r: EventRow, seatsTaken: number): EventView {
     bring: r.bring,
     seatsTotal: r.capacity,
     seatsFilled: seatsTaken,
+    attending,
     pricePaise: r.price_paise,
     ticketType: r.ticket_type,
     tokenPrefix: r.token_prefix,
