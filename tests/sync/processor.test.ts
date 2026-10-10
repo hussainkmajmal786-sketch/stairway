@@ -58,6 +58,35 @@ describe("processOutbox", () => {
     expect(report).toMatchObject({ claimed: 3, sent: 2, skipped: 1 });
     expect(completes).toHaveLength(2);
   });
+  it("never follows a redirect: any 3xx is a transient 'redirect' error, retried", async () => {
+    const { db, completes } = fakeDb([row(1), row(2)]);
+    const f = vi.fn<FetchLike>(async (_u, init) => {
+      expect(init.redirect).toBe("manual");
+      return new Response(null, { status: f.mock.calls.length === 1 ? 307 : 308, headers: { location: "https://evil.example/x" } });
+    });
+    const report = await processOutbox({ db, fetch: f, url: URL_, secret: SECRET });
+    expect(report).toEqual({ claimed: 2, sent: 0, failed: 2, dead: 0, skipped: 0 });
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(completes.map((c) => [c.p_ok, c.p_permanent, c.p_error])).toEqual([
+      [false, false, "redirect"],
+      [false, false, "redirect"],
+    ]);
+  });
+  it("treats an opaque redirect response as transient too", async () => {
+    const { db, completes } = fakeDb([row(1)]);
+    const f = vi.fn<FetchLike>(async () => ({ type: "opaqueredirect", status: 0, body: null, headers: new Headers() }) as unknown as Response);
+    await processOutbox({ db, fetch: f, url: URL_, secret: SECRET });
+    expect(completes[0]).toMatchObject({ p_ok: false, p_permanent: false, p_error: "redirect" });
+  });
+  it("caps the response body it reads (16 KiB): an oversized error body is ignored, status still decides", async () => {
+    const { db, completes } = fakeDb([row(1), row(2)]);
+    const big = `{"error":"conflict_existing_order","pad":"${"x".repeat(64 * 1024)}"}`;
+    const f = vi.fn<FetchLike>(async () => new Response(big, { status: 422 }));
+    const report = await processOutbox({ db, fetch: f, url: URL_, secret: SECRET });
+    // Oversized: the body is not parsed (no code), 422 is still permanent.
+    expect(completes.map((c) => c.p_error)).toEqual(["HTTP 422", "HTTP 422"]);
+    expect(report.dead).toBe(2);
+  });
   it("throws when the claim fails and ignores a malformed batch row", async () => {
     await expect(processOutbox({ db: fakeDb(null, { code: "XX000", message: "x" }).db, fetch: vi.fn<FetchLike>(), url: URL_, secret: SECRET }))
       .rejects.toThrow(/claim_sync_batch/);

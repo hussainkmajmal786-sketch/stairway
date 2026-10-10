@@ -62,6 +62,8 @@ export async function buildSyncRequest(secret: string, envelope: SyncEnvelope, n
       [IDEMPOTENCY_HEADER]: envelope.idempotency_key,
     },
     body,
+    // Never follow a redirect: a 307/308 would re-POST the signed body (email, ticket code) to a third-party host.
+    redirect: "manual",
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   };
 }

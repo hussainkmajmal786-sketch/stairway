@@ -1,11 +1,14 @@
 import { z } from "zod";
-import type { FetchLike } from "@/lib/payments/razorpay";
+import { readCapped, type FetchLike } from "@/lib/payments/razorpay";
 import type { AdminClient } from "@/lib/supabase/admin";
 import { buildEnvelope, buildSyncRequest, classifyResponse, SYNC_EVENT_TYPES, type DeliveryOutcome } from "./contract";
 
 // Drains the Fund Easy outbox: claim (≤ 10 rows, 2-minute lease) -> signed POST -> complete. Bounded by a wall-clock
 // budget so a cron tick stays short; rows left over keep their lease and are claimed again after it lapses.
 // Never blocks registration or payment: it only runs from the cron tick.
+
+/** The receiver's answers are tiny JSON; we only read an error code out of them. */
+const MAX_SYNC_RESPONSE_BYTES = 16 * 1024;
 
 export interface ProcessReport {
   claimed: number;
@@ -55,7 +58,14 @@ export async function processOutbox(deps: {
     try {
       const init = await buildSyncRequest(deps.secret, buildEnvelope(row), now());
       const res = await deps.fetch(deps.url, init);
-      outcome = classifyResponse(res.status, await res.text().catch(() => ""));
+      if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+        // Redirects are never followed (redirect: "manual"); a receiver that redirects is misconfigured: retry.
+        await res.body?.cancel().catch(() => undefined);
+        outcome = { ok: false, permanent: false, error: "redirect" };
+      } else {
+        const text = await readCapped(res, MAX_SYNC_RESPONSE_BYTES).catch(() => null);
+        outcome = classifyResponse(res.status, text ?? "");
+      }
     } catch (e) {
       outcome = { ok: false, permanent: false, error: e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network" };
     }

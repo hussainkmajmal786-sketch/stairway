@@ -42,6 +42,7 @@ describe("signing", () => {
     expect(headers[SIGNATURE_HEADER]).toBe(await signBody(SECRET, 1760000000, String(init.body)));
     expect(JSON.parse(String(init.body))).toEqual(env);
     expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(init.redirect).toBe("manual");
   });
 });
 
