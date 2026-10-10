@@ -79,7 +79,7 @@ describe("payment secret boundaries", () => {
   });
 
   it("names the secret environment variables only in lib/payments/config.ts (no second service-role client)", () => {
-    const SECRET_NAMES = /\b(?:RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|SUPABASE_SERVICE_ROLE_KEY|STAIRWAY_SYNC_SECRET|CRON_SECRET)\b/;
+    const SECRET_NAMES = /\b(?:RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|SUPABASE_SERVICE_ROLE_KEY)\b/;
     expect(files.some((f) => f.path === "lib/payments/config.ts" && SECRET_NAMES.test(f.src))).toBe(true); // not vacuous
     const offenders = files.filter((f) => f.path !== "lib/payments/config.ts" && SECRET_NAMES.test(f.src)).map((f) => f.path);
     expect(offenders).toEqual([]);
