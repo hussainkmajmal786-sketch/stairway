@@ -3,7 +3,7 @@ import type { ImageResponse } from "next/og";
 type OgFontList = NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"];
 
 /** How long loading one font (css + TTF) may take before the card falls back to the built-in font. */
-const FETCH_TIMEOUT_MS = 2500;
+const FETCH_TIMEOUT_MS = 4000;
 /** Subsets already fetched by this isolate/process, keyed by family + glyph set (bounded so it can't grow forever). */
 const cache = new Map<string, ArrayBuffer>();
 const CACHE_MAX = 64;
