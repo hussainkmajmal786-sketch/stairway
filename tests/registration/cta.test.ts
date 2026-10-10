@@ -41,7 +41,10 @@ describe("ctaState", () => {
   it("treats cancelled or refunded registrations as not registered", () => {
     expect(ctaState(at({ registration: { id: "r3", status: "cancelled", waitlistPosition: null } })).kind).toBe("register");
     expect(ctaState(at({ registration: { id: "r3", status: "refunded", waitlistPosition: null } })).kind).toBe("register");
-    expect(ctaState(at({ registration: { id: "r3", status: "refund_needed", waitlistPosition: null } })).kind).toBe("register");
+  });
+  it("shows a pending refund instead of a new registration (the RPC refuses with refund_pending)", () => {
+    expect(ctaState(at({ registration: { id: "r3", status: "refund_needed", waitlistPosition: null } })))
+      .toEqual({ kind: "refund_pending", registrationId: "r3" });
   });
   it("closes at the start time or the closing time, whichever is first", () => {
     expect(ctaState(at({ now: Date.parse(EVENT.start) })).kind).toBe("closed");
@@ -105,5 +108,53 @@ describe("path helpers", () => {
     expect(ticketPath("r1")).toBe("/me/tickets/r1");
     expect(ticketPath("../x")).toBe("/me/tickets/..%2Fx");
     expect(loginPath("/events/x/register")).toBe("/login?next=%2Fevents%2Fx%2Fregister");
+  });
+});
+
+describe("ctaState with payments", () => {
+  const paid = (p: Partial<CtaInput> = {}, e: Partial<CtaEvent> = {}) => at({ paymentsEnabled: true, ...p }, { pricePaise: 19900, ...e });
+  const LATER = new Date(NOW + 10 * 60_000).toISOString();
+  const EARLIER = new Date(NOW - 60_000).toISOString();
+  const hold = (holdExpiresAt: string) => ({ id: "r1", status: "pending_payment" as const, waitlistPosition: null, holdExpiresAt });
+
+  it("keeps 'paid soon' while payments are off", () => {
+    expect(ctaState(at({}, { pricePaise: 19900 }))).toEqual({ kind: "paid_soon" });
+    expect(ctaState(at({ paymentsEnabled: false }, { pricePaise: 19900 }))).toEqual({ kind: "paid_soon" });
+  });
+  it("offers Pay with the price, the waitlist when full, and sign-in when signed out", () => {
+    expect(ctaState(paid())).toEqual({ kind: "pay", href: "/events/seeing-machines/register", pricePaise: 19900 });
+    expect(ctaState(paid({}, { seatsLeft: 0 }))).toEqual({ kind: "join_waitlist", href: "/events/seeing-machines/register" });
+    expect(ctaState(paid({ signedIn: false })).kind).toBe("sign_in");
+  });
+  it("never offers Pay for a free event, whatever the flag", () =>
+    expect(ctaState(paid({}, { pricePaise: 0 }))).toEqual({ kind: "register", href: "/events/seeing-machines/register" }));
+  it("shows Complete payment for a live hold and Pay again once it expired", () => {
+    expect(ctaState(paid({ registration: hold(LATER) }))).toEqual({ kind: "complete_payment", registrationId: "r1", holdExpiresAt: LATER });
+    expect(ctaState(paid({ registration: hold(EARLIER) })).kind).toBe("pay");
+    // Exactly at the end the hold is over (the DB counts a hold while hold_expires_at > now()).
+    expect(ctaState(paid({ registration: hold(new Date(NOW).toISOString()) })).kind).toBe("pay");
+  });
+  it("shows a live hold even if payments were switched off meanwhile", () =>
+    expect(ctaState(at({ registration: hold(LATER) }, { pricePaise: 19900 })).kind).toBe("complete_payment"));
+  it("shows the refund state and blocks a new registration while a refund is pending", () => {
+    expect(ctaState(paid({ registration: { id: "r1", status: "refund_needed", waitlistPosition: null } })))
+      .toEqual({ kind: "refund_pending", registrationId: "r1" });
+    expect(ctaState(paid({ now: Date.parse("2026-12-01T00:00:00Z"), registration: { id: "r1", status: "refund_needed", waitlistPosition: null } })).kind)
+      .toBe("refund_pending");
+  });
+  it("lets a refunded or cancelled member register again", () => {
+    expect(ctaState(paid({ registration: { id: "r1", status: "refunded", waitlistPosition: null } })).kind).toBe("pay");
+    expect(ctaState(paid({ registration: { id: "r1", status: "cancelled", waitlistPosition: null } })).kind).toBe("pay");
+  });
+  it("still prefers the ticket over closed / external states", () => {
+    expect(ctaState(paid({ now: Date.parse("2026-12-01T00:00:00Z"), registration: { id: "r1", status: "confirmed", waitlistPosition: null } })))
+      .toEqual({ kind: "registered", registrationId: "r1" });
+    expect(ctaState(paid({ externalUrl: "https://forms.gle/abc", registration: { id: "r1", status: "confirmed", waitlistPosition: null } })).kind)
+      .toBe("registered");
+  });
+  it("keeps closed, external and not-yet-open ahead of Pay", () => {
+    expect(ctaState(paid({ now: Date.parse(EVENT.start) })).kind).toBe("closed");
+    expect(ctaState(paid({ externalUrl: "https://forms.gle/abc" })).kind).toBe("external");
+    expect(ctaState(paid({}, { registrationOpensAt: "2026-10-08T09:00:00+05:30" })).kind).toBe("opens");
   });
 });

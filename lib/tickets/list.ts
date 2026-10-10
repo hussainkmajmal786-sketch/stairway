@@ -16,8 +16,9 @@ export function statusLabel(status: RegistrationStatus, waitlistPosition: number
       return { label: "Payment pending", tone: "orange" };
     case "cancelled":
       return { label: "Cancelled", tone: "outline" };
-    case "refunded":
     case "refund_needed":
+      return { label: "Refund pending", tone: "orange" };
+    case "refunded":
       return { label: "Refunded", tone: "outline" };
   }
 }

@@ -60,9 +60,9 @@ export default async function RegisterPage({ params }: PageProps<"/events/[slug]
     </>
   );
 
-  // Already registered / waitlisted, not open, closed or paid. (Not a redirect: after a successful registration the
+  // Already registered / waitlisted / holding a seat / refund pending, not open, closed or paid (payments off). (Not a redirect: after a successful registration the
   // action re-renders this route, and a render-time redirect would race the form's own navigation to the ticket.)
-  if (state.kind !== "register" && state.kind !== "join_waitlist") {
+  if (state.kind !== "register" && state.kind !== "join_waitlist" && state.kind !== "pay") {
     return page(<RegistrationUnavailable state={state} slug={ev.slug} />);
   }
 

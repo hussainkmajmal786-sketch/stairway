@@ -1,7 +1,9 @@
 "use client";
 
-import { ArrowRight, Check, Clock, ExternalLink, Hourglass, Lock, LogIn } from "lucide-react";
+import { ArrowRight, Check, Clock, CreditCard, ExternalLink, Hourglass, Lock, LogIn } from "lucide-react";
+import { HoldCountdown } from "@/components/payments/HoldCountdown";
 import { Button } from "@/components/ui/Button";
+import { formatInr } from "@/lib/payments/money";
 import { ticketPath, type CtaState } from "@/lib/registration/cta";
 import { longDate, timeOf } from "@/lib/weekends";
 
@@ -66,6 +68,35 @@ export function RegisterCta({ state, step }: { state: CtaState; step: number }) 
           </p>
           <Button href={ticketPath(state.registrationId)} variant="secondary" size="lg" className="w-full">
             <Hourglass size={18} strokeWidth={2} aria-hidden /> {state.position > 0 ? `Waitlisted #${state.position}` : "Waitlisted"} · View status
+          </Button>
+        </div>
+      );
+    case "pay":
+      return (
+        <Button href={state.href} variant="ink" size="lg" className="w-full" trackAs="register_click" trackProps={trackProps}>
+          Pay {formatInr(state.pricePaise)} · Register <ArrowRight size={18} strokeWidth={2} aria-hidden />
+        </Button>
+      );
+    case "complete_payment":
+      // Not a live region itself: the countdown's own timer announces (minute-level), so nothing is read twice.
+      return (
+        <div className="grid gap-2">
+          <p className="mono font-bold">
+            Seat held for you · <HoldCountdown expiresAt={state.holdExpiresAt} suffix=" left to pay" />
+          </p>
+          <Button href={ticketPath(state.registrationId)} variant="primary" size="lg" className="w-full">
+            <CreditCard size={18} strokeWidth={2} aria-hidden /> Complete payment
+          </Button>
+        </div>
+      );
+    case "refund_pending":
+      return (
+        <div className="grid gap-2">
+          <p role="status" className={note}>
+            <Hourglass size={18} strokeWidth={2} aria-hidden /> Your refund for this session is being processed
+          </p>
+          <Button href={ticketPath(state.registrationId)} variant="secondary" size="lg" className="w-full">
+            View status
           </Button>
         </div>
       );

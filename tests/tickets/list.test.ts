@@ -32,7 +32,8 @@ describe("statusLabel", () => {
     expect(statusLabel("pending_payment", null).label).toBe("Payment pending");
     expect(statusLabel("cancelled", null)).toEqual({ label: "Cancelled", tone: "outline" });
     expect(statusLabel("refunded", null).label).toBe("Refunded");
-    expect(statusLabel("refund_needed", null).label).toBe("Refunded");
+    expect(statusLabel("refund_needed", null)).toEqual({ label: "Refund pending", tone: "orange" });
+    expect(statusLabel("refunded", null)).toEqual({ label: "Refunded", tone: "outline" });
   });
 });
 

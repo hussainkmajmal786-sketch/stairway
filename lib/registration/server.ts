@@ -10,19 +10,19 @@ import { rowToSummary, rowToTicket, TICKET_LIST_SELECT, TICKET_SELECT, type Tick
 
 const isUuid = (v: unknown): v is string => z.guid().safeParse(v).success;
 
-/** The user's active registration for an event, or null (none, or it could not be read). */
+/** The user's active (or refund-pending) registration for an event, or null (none, or it could not be read). */
 export async function getMyRegistration(eventId: string, userId: string): Promise<MyRegistration | null> {
   if (!isUuid(eventId) || !isUuid(userId)) return null;
   const db = await createClient();
   const { data, error } = await db
     .from("registrations")
-    .select("id, status, waitlist_position")
+    .select("id, status, waitlist_position, hold_expires_at")
     .eq("event_id", eventId)
     .eq("user_id", userId)
-    .in("status", [...ACTIVE_STATUSES])
+    .in("status", [...ACTIVE_STATUSES, "refund_needed"])
     .maybeSingle();
   if (error || !data) return null;
-  return { id: data.id, status: data.status, waitlistPosition: data.waitlist_position };
+  return { id: data.id, status: data.status, waitlistPosition: data.waitlist_position, holdExpiresAt: data.hold_expires_at };
 }
 
 /**

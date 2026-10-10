@@ -201,6 +201,7 @@ describe("ticketView (the page's only source of what to render)", () => {
   const base: TicketDetail = {
     id: "33333333-3333-4333-8333-333333333333", status: "confirmed", waitlistPosition: null, token: "RAS-01-0007",
     ticketType: "qr", ticketCode: CODE, checkedInAt: null,
+    amountPaise: 0, holdExpiresAt: null, receiptNumber: null, paidAt: null, refundedAt: null, cancelReason: null,
     event: {
       id: "e1", slug: "seeing-machines", title: "Seeing Machines", topic: "CV", step: 1, start: future,
       end: "2026-10-20T11:00:00Z", pricePaise: 0, societyShort: "RAS", societyColor: "green",

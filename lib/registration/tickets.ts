@@ -4,7 +4,7 @@ import type { RegistrationStatus } from "./types";
 
 /** Registrations select with the event (RLS hides unpublished events, which then come back as null). */
 export const TICKET_SELECT =
-  "id, status, waitlist_position, ticket_code, token_number, checked_in_at, event:events(id, slug, title, topic, step_number, starts_at, ends_at, price_paise, ticket_type, token_prefix, society:societies(short_name, color))";
+  "id, status, waitlist_position, ticket_code, token_number, checked_in_at, amount_paise, hold_expires_at, receipt_number, paid_at, refunded_at, cancel_reason, event:events(id, slug, title, topic, step_number, starts_at, ends_at, price_paise, ticket_type, token_prefix, society:societies(short_name, color))";
 
 /** Lists never select the ticket code (the QR secret). */
 export const TICKET_LIST_SELECT = TICKET_SELECT.replace("ticket_code, ", "").replace("checked_in_at, ", "");
@@ -16,6 +16,13 @@ export interface TicketRow {
   ticket_code: string;
   token_number: number | null;
   checked_in_at: string | null;
+  // Phase 4 payment columns (optional so Phase 3 shaped rows and fixtures still map).
+  amount_paise?: number;
+  hold_expires_at?: string | null;
+  receipt_number?: string | null;
+  paid_at?: string | null;
+  refunded_at?: string | null;
+  cancel_reason?: string | null;
   event: {
     id: string;
     slug: string;
@@ -40,6 +47,10 @@ export interface TicketSummary {
   /** Door token (confirmed seats only). */
   token: string | null;
   ticketType: "qr" | "token";
+  /** Amount charged for this seat in paise (0 for free sessions). */
+  amountPaise: number;
+  /** End of a live payment hold (pending_payment only), else null. */
+  holdExpiresAt: string | null;
   event: {
     id: string;
     slug: string;
@@ -57,6 +68,10 @@ export interface TicketSummary {
 export interface TicketDetail extends TicketSummary {
   ticketCode: string;
   checkedInAt: string | null;
+  receiptNumber: string | null;
+  paidAt: string | null;
+  refundedAt: string | null;
+  cancelReason: string | null;
 }
 
 /** Null when RLS hides the event (e.g. unpublished) or its society: such tickets are not shown. */
@@ -72,6 +87,12 @@ export function rowToTicket(r: TicketRow): TicketDetail | null {
     ticketType: e.ticket_type,
     ticketCode: r.ticket_code,
     checkedInAt: r.checked_in_at,
+    amountPaise: r.amount_paise ?? 0,
+    holdExpiresAt: r.status === "pending_payment" ? r.hold_expires_at ?? null : null,
+    receiptNumber: r.receipt_number ?? null,
+    paidAt: r.paid_at ?? null,
+    refundedAt: r.refunded_at ?? null,
+    cancelReason: r.cancel_reason ?? null,
     event: {
       id: e.id,
       slug: e.slug,
@@ -94,7 +115,7 @@ export function rowToSummary(r: TicketListRow): TicketSummary | null {
   return t && toSummary(t);
 }
 
-/** Drops the ticket code (and check-in time) so lists never carry the QR secret. */
+/** Drops the ticket code (and check-in time, receipt and refund details) so lists never carry the QR secret. */
 export function toSummary(t: TicketDetail): TicketSummary {
   return {
     id: t.id,
@@ -102,6 +123,8 @@ export function toSummary(t: TicketDetail): TicketSummary {
     waitlistPosition: t.waitlistPosition,
     token: t.token,
     ticketType: t.ticketType,
+    amountPaise: t.amountPaise,
+    holdExpiresAt: t.holdExpiresAt,
     event: t.event,
   };
 }

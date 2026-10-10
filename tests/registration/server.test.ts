@@ -50,11 +50,19 @@ describe("server reads", () => {
     expect(createClient).not.toHaveBeenCalled();
   });
 
-  it("getMyRegistration filters to the user's active rows", async () => {
-    const calls = fakeDb({ data: { id: RID, status: "waitlisted", waitlist_position: 2 }, error: null });
-    expect(await getMyRegistration(EID, UID)).toEqual({ id: RID, status: "waitlisted", waitlistPosition: 2 });
+  it("getMyRegistration filters to the user's active and refund-pending rows", async () => {
+    const calls = fakeDb({ data: { id: RID, status: "waitlisted", waitlist_position: 2, hold_expires_at: null }, error: null });
+    expect(await getMyRegistration(EID, UID)).toEqual({ id: RID, status: "waitlisted", waitlistPosition: 2, holdExpiresAt: null });
     expect(calls).toContainEqual(["eq", "user_id", UID]);
-    expect(calls).toContainEqual(["in", "status", ["pending_payment", "confirmed", "waitlisted"]]);
+    expect(calls).toContainEqual(["in", "status", ["pending_payment", "confirmed", "waitlisted", "refund_needed"]]);
+    // Only what the CTA needs: never the ticket code.
+    expect(calls).toContainEqual(["select", "id, status, waitlist_position, hold_expires_at"]);
+  });
+  it("getMyRegistration carries the hold end of a pending payment", async () => {
+    fakeDb({ data: { id: RID, status: "pending_payment", waitlist_position: null, hold_expires_at: "2026-10-10T10:15:00+00:00" }, error: null });
+    expect(await getMyRegistration(EID, UID)).toEqual({
+      id: RID, status: "pending_payment", waitlistPosition: null, holdExpiresAt: "2026-10-10T10:15:00+00:00",
+    });
   });
 
   it("getAttendees drops rows without a handle and sanitises avatars; null on error", async () => {
