@@ -17,8 +17,8 @@ const findEvent = async (slug: string) => {
 export async function generateMetadata({ params }: PageProps<"/events/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const { data, ev } = await findEvent(slug);
-  // throwing here (before the page streams) makes the server HTML carry the full 404 page, not just a streamed body
-  if (!ev) notFound();
+  // the page itself calls notFound(); app/not-found.tsx supplies the "Step not found" title
+  if (!ev) return {};
   const title = `${ev.society.shortName} Step ${pad2(ev.step)}: ${ev.title} — ${ev.topic}`;
   return {
     title,
