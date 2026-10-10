@@ -9,15 +9,17 @@ const FACTS = [
   { Icon: Lightbulb, k: "60+", v: "Events run by IEEE SB CEK", c: "text-purple-ink" },
 ];
 
-/** Organiser band on the field: cream copy on cobalt, facts on a cream panel. */
+/** Organiser band on the field: cream heading on cobalt, the copy and the facts on cream panels. */
 export async function AboutIEEE() {
   const { settings: event } = await getSiteData();
   return (
-    <FieldBand id="ieee" labelledBy="ieee-title" ghost={false} bands="top" className="section border-y-2 border-ink">
+    // no border-y: the FAQ band above (section-alt) and the CTA band below already draw the ink lines
+    <FieldBand id="ieee" labelledBy="ieee-title" ghost={false} bands="top" className="section">
       <div className="wrap grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:items-center">
         <div>
-          <SectionHeader id="ieee-title" eyebrow="Organised by" title="IEEE Student Branch, [[CEK.]]" tone="field" className="!mb-6" />
-          <div className="space-y-4" data-reveal>
+          <SectionHeader id="ieee-title" eyebrow="Organised by" title="IEEE Student Branch, [[CEK.]]" tone="field" rule={false} className="!mb-6" />
+          {/* reading copy sits on cream, never directly on the field */}
+          <div className="box space-y-4 p-5 shadow-[8px_8px_0_0_var(--ink)] sm:p-6" data-reveal>
             <p><strong>IEEE</strong> is the world&apos;s largest technical professional organisation, dedicated to advancing technology for the benefit of humanity.</p>
             <p>The <strong>IEEE Student Branch at College of Engineering Kidangoor</strong> brings that mission to campus — workshops, hackathons, industrial visits and technical talks through its societies, including Computer Society, Robotics &amp; Automation, Power &amp; Energy and Women in Engineering.</p>
             <p>st(AI)rway is our most ambitious series yet: a structured climb into artificial intelligence, open to every student.</p>
