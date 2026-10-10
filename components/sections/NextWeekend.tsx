@@ -84,7 +84,7 @@ export function NextWeekend() {
               </ul>
             )}
 
-            <SeatsBar seatsLeft={next.seatsLeft} seatsTotal={next.seatsTotal} className="mt-6" />
+            <SeatsBar seatsLeft={next.seatsLeft} seatsTotal={next.seatsTotal} onYellow className="mt-6" />
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Button href={registerHref(openSlug(next), event.registration)} variant="ink" trackAs="register_click" trackProps={{ from: "spotlight", step: next.step }}>

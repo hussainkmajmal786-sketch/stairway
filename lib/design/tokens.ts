@@ -80,6 +80,7 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: "paper", bg: "ink", min: 4.5, use: "top bar and ink buttons" },
   { fg: "yellow", bg: "ink", min: 4.5, use: "countdown units and the focus ring in the top bar" },
   { fg: "ink", bg: "yellow", min: 4.5, use: "primary buttons and the (AI) block" },
+  { fg: "ink3", bg: "yellow", min: 4.5, use: "seat labels ('% full') on the yellow next-step card" },
   { fg: "blueInk", bg: "paper", min: 4.5, use: "links and coloured text on cream" },
   { fg: "field", bg: "paper2", min: 4.5, use: "field-coloured text on alternate bands" },
   { fg: "field", bg: "white", min: 3, use: "input focus ring" },
@@ -100,6 +101,8 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
 /** Pairs the design forbids for text; the test proves they really fail so nobody "fixes" the rule away. */
 export const FORBIDDEN_PAIRS: ContrastPair[] = [
   { fg: "ink", bg: "field", min: 3, use: "ink type on the cobalt field (ink is decoration only there)" },
+  { fg: "ink4", bg: "yellow", min: 4.5, use: "faint labels on yellow (3.88:1; use ink-3)" },
+  { fg: "redInk", bg: "yellow", min: 4.5, use: "urgent text on yellow (3.67:1; SeatsBar onYellow uses ink)" },
   { fg: "ink", bg: "field2", min: 3, use: "ink type on the deep field (1.65:1)" },
   { fg: "greenInk", bg: "paper2", min: 4.5, use: "success text on alternate bands (4.21:1, cream only)" },
   { fg: "redInk", bg: "paper3", min: 4.5, use: "error text on paper-3 chips or disabled fills (4.00:1)" },
