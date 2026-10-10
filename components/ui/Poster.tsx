@@ -4,10 +4,10 @@ import { FRAME_ORG } from "@/lib/design/brand";
 import { GHOST_DEFAULT, ghostRows } from "@/lib/design/ghost";
 
 /** Huge rotated background word (CLIMB, STEP 04, SUMMIT). Decorative: never read, never over photos or forms. */
-export function Ghost({ word, className }: { word: string; className?: string }) {
+export function Ghost({ word, rows = 6, className }: { word: string; rows?: number; className?: string }) {
   return (
     <div className={cn("ghost", className)} aria-hidden="true">
-      {ghostRows(word).map((row, i) => (
+      {ghostRows(word, rows).map((row, i) => (
         <span key={i}>{row}</span>
       ))}
     </div>
@@ -53,6 +53,8 @@ export interface FieldBandProps {
   label?: string;
   /** Background word; defaults to CLIMB. Pass ghostWord({ kind: "session", … }) on session pages, or false for none. */
   ghost?: string | false;
+  /** Tall headers (event pages): 14 ghost rows on phones so the word fills the header, the usual 6 from 640px. */
+  tallGhost?: boolean;
   bands?: "none" | "top" | "both";
   /** Deeper cobalt (#122C99) for variety. */
   deep?: boolean;
@@ -71,6 +73,7 @@ export function FieldBand({
   labelledBy,
   label,
   ghost = GHOST_DEFAULT,
+  tallGhost = false,
   bands = "none",
   deep = false,
   className,
@@ -81,7 +84,7 @@ export function FieldBand({
   const role = Tag === "div" && (label || labelledBy) ? "region" : undefined;
   return (
     <Tag id={id} role={role} aria-labelledby={labelledBy} aria-label={label} className={cn("field on-field", deep && "field-2", className)}>
-      {ghost && <Ghost word={ghost} />}
+      {ghost && (tallGhost ? <Ghost word={ghost} rows={14} className="ghost-tall" /> : <Ghost word={ghost} />)}
       {bands !== "none" && <Bands edge="top" />}
       {bands === "both" && <Bands edge="bottom" />}
       <div className={cn("field-content", innerClassName)}>{children}</div>

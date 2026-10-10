@@ -82,6 +82,13 @@ describe("FieldBand", () => {
     expect(r(createElement(FieldBand, { as: "div", ghost: false, children: "x" }))).toMatch(/^<div class="field on-field">/);
     expect(r(createElement(FieldBand, { label: "Hero", ghost: false, children: "x" }))).toMatch(/^<section aria-label="Hero"/);
   });
+  it("renders 6 ghost rows by default and 14 for tall (event) headers, the extras hidden from 640px by .ghost-tall", () => {
+    const rows = (html: string) => html.match(/<span>STEP 04 STEP 04 STEP 04<\/span>/g)?.length;
+    expect(rows(r(createElement(FieldBand, { ghost: "STEP 04", children: "x" })))).toBe(6);
+    const tall = r(createElement(FieldBand, { ghost: "STEP 04", tallGhost: true, children: "x" }));
+    expect(tall).toContain('<div class="ghost ghost-tall" aria-hidden="true">');
+    expect(rows(tall)).toBe(14);
+  });
   it("uses the deep cobalt when asked", () => {
     expect(r(createElement(FieldBand, { deep: true, ghost: false, children: "x" }))).toMatch(/^<section class="field on-field field-2">/);
   });

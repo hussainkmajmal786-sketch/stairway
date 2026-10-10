@@ -63,6 +63,7 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
       <FieldBand
         as="header"
         ghost={ghostWord({ kind: "session", step: w.step, finale: w.isFinale })}
+        tallGhost
         bands="top"
         className="border-b-2 border-ink pb-12 pt-[clamp(72px,10vw,120px)]"
       >

@@ -197,6 +197,8 @@
   }
   .ghost span { display: block; }
   .ghost span:nth-child(even) { margin-left: -0.6em; opacity: 0.7; }
+  /* tall phone headers carry extra rows; from 640px the word is big enough that 6 rows cover the header */
+  @media (min-width: 640px) { .ghost-tall span:nth-child(n + 7) { display: none; } }
 
   /* ───────── signature 3 · diagonal corner bands ───────── */
   .bands { position: absolute; left: 0; right: 0; height: clamp(44px, 9vw, 120px); z-index: auto; pointer-events: none; }
