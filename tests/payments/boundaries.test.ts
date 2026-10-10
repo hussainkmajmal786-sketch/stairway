@@ -81,10 +81,21 @@ describe("payment secret boundaries", () => {
   });
 
   it("keeps Node-only modules out of the payment runtime code", () => {
-    for (const f of ["lib/payments/crypto.ts", "lib/payments/razorpay.ts", "lib/payments/money.ts", "lib/payments/config.ts", "lib/supabase/admin.ts"]) {
+    for (const f of [
+      "lib/payments/crypto.ts", "lib/payments/razorpay.ts", "lib/payments/money.ts", "lib/payments/config.ts", "lib/supabase/admin.ts",
+      "lib/payments/confirm.ts", "lib/payments/actions.ts",
+    ]) {
       const src = readFileSync(join(ROOT, f), "utf8");
       expect(src, f).not.toMatch(/from\s+["'](?:node:|crypto["']|buffer["'])/);
       expect(src, f).not.toMatch(/\bBuffer\.(?:from|alloc|concat|byteLength)\b/);
     }
+  });
+
+  it("exports only async functions (and erased types) from the payment server actions file", () => {
+    const src = readFileSync(join(ROOT, "lib/payments/actions.ts"), "utf8");
+    expect(src.trimStart().startsWith('"use server";')).toBe(true);
+    const valueExports = [...src.matchAll(/^export\s+(?!type\s|interface\s)(\S+(?:\s+\S+)?)/gm)].map((m) => m[1]);
+    expect(valueExports.length).toBeGreaterThan(0);
+    for (const e of valueExports) expect(e).toMatch(/^async function$/);
   });
 });

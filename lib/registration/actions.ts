@@ -5,6 +5,7 @@ import { redirect, RedirectType } from "next/navigation";
 import { z } from "zod";
 import { getAuthState } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { paymentsConfig } from "@/lib/payments/config";
 import { CANCELLED_PATH, registrationWindow } from "./cta";
 import { errorFromDb, JWT_ERROR_CODES, registrationError, type RegistrationError, type RegistrationErrorCode } from "./errors";
 import { parseQuestions, type Question } from "./questions";
@@ -15,7 +16,7 @@ import { registrationFieldErrors, registrationSchema } from "./schema";
 // runs as the signed-in user (RLS + the RPCs; no service role) and returns UI-shaped data only, never DB error text.
 
 export type RegisterResult =
-  | { ok: true; registrationId: string; status: "confirmed" | "waitlisted" }
+  | { ok: true; registrationId: string; status: "confirmed" | "waitlisted" | "pending_payment" }
   | { ok: false; error: RegistrationError; fieldErrors?: Record<string, string> };
 
 /** Only failures come back: a successful cancel redirects to this fixed path (never a client-supplied URL). */
@@ -26,7 +27,7 @@ const SlugSchema = z.string().regex(/^[a-z0-9-]{2,80}$/);
 const IdSchema = z.guid();
 const RegisterRpcResult = z.object({
   registration_id: z.guid(),
-  status: z.enum(["confirmed", "waitlisted"]),
+  status: z.enum(["confirmed", "waitlisted", "pending_payment"]),
   waitlist_position: z.number().int().nullable(),
 });
 const CancelRpcResult = z.object({ promoted: z.number().int().nonnegative() });
@@ -67,7 +68,9 @@ function revalidateEvent(slug: string | null) {
 
 /**
  * Saves the edited profile fields back to the profile, then registers through the RPC (which re-checks
- * publication, price, window, answers, capacity and one-per-user under the event row lock).
+ * publication, price, window, answers, capacity and one-per-user under the event row lock). A paid session (payments
+ * on) returns `pending_payment`: a 15-minute seat hold whose amount the RPC takes from the event price; the client
+ * then calls `createPaymentOrder` (lib/payments/actions.ts). No price ever comes from the client.
  */
 export async function registerForEvent(slug: string, values: unknown): Promise<RegisterResult> {
   try {
@@ -88,7 +91,8 @@ export async function registerForEvent(slug: string, values: unknown): Promise<R
     if (!ev) return fail("event_not_found");
 
     // Cheap pre-checks so a doomed request writes nothing; the RPC stays the authority.
-    if (ev.price_paise > 0) return fail("paid_event");
+    // Paid sessions need payments switched on (the RPC also checks its own database flag).
+    if (ev.price_paise > 0 && !paymentsConfig().enabled) return fail("paid_event");
     const win = registrationWindow(
       { start: ev.starts_at, registrationOpensAt: ev.registration_opens_at, registrationClosesAt: ev.registration_closes_at },
       Date.now(),
