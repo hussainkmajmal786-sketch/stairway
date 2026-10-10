@@ -3487,6 +3487,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `interface WebhookRequest { rawBody: string; signature: string | null; eventId: string | null }`
   - `handleRazorpayWebhook(deps, req): Promise<{ status: number; body: { ok: boolean; result: string } }>` — 413 too large, 401 bad signature, 400 unparseable JSON, 200 for handled or ignored events (`result` = outcome or `ignored:<reason>`), 503 when an `order.paid` payment is not captured yet (Razorpay retries); throws on DB failure (route answers 500 so Razorpay retries).
   - `POST /api/payments/webhook` (404 while payments are off; no other methods).
+- **AMENDMENT (as built in Task 7 + Tasks 5-7 review):** `ConfirmOutcome` also has `rejected` (confirm_payment raised a permanent `invalid_source` / `invalid_payment` / `invalid_event` / `payment_conflict`), `payment_failed` and `payment_refunded` (Razorpay's final payment states; no DB call). All three are final: answer 200 with `result` = the outcome (only `not_captured` → 503). Razorpay responses over 256 KiB throw `RazorpayError` (`BAD_RESPONSE`).
 
 - [ ] **Step 1: Write the failing tests**
 
