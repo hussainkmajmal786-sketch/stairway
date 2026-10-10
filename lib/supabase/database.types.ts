@@ -851,6 +851,33 @@ export type Database = {
         Args: { p_registration_id: string }
         Returns: Json
       }
+      claim_refund: { Args: { p_registration_id: string }; Returns: Json }
+      confirm_payment: {
+        Args: {
+          p_amount_paise: number
+          p_currency: string
+          p_details?: Json
+          p_event_id?: string
+          p_event_name?: string
+          p_order_id: string
+          p_payment_id: string
+          p_registration_id: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      expire_holds: { Args: { p_limit?: number }; Returns: Json }
+      mark_refunded: {
+        Args: {
+          p_amount_paise: number
+          p_event_id?: string
+          p_payment_id: string
+          p_refund_id: string
+          p_registration_id: string
+          p_source: string
+        }
+        Returns: Json
+      }
       register_for_event: {
         Args: { p_answers?: Json; p_event_id: string }
         Returns: Json
