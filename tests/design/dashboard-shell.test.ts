@@ -57,6 +57,10 @@ describe("DashboardShell", () => {
     for (const a of items) expect(a).toContain("h-12");
   });
 
+  it("leaves 6px inside the scrolling strip so the 3px focus ring + 3px offset is not clipped", () => {
+    expect(out).toMatch(/<nav [^>]*class="[^"]*-m-1\.5[^"]*\bp-1\.5\b/);
+  });
+
   it("marks My tickets as the current section on a ticket page", () => {
     expect(currentHrefs(out)).toEqual(["/me/tickets"]);
   });

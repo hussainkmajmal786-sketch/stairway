@@ -47,7 +47,8 @@ export function DashboardShell({ variant, children }: { variant: DashboardVarian
           </Link>
           <div className="side-strip mb-3 hidden lg:block" aria-hidden="true" />
           <p className="mono mb-3 hidden font-bold text-ink-3 lg:block">{title}</p>
-          <nav aria-label={title} className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-col lg:overflow-visible">
+          {/* -m-1.5 p-1.5: the scrolling strip clips at its padding box, so leave room for the 3px ring + 3px offset */}
+          <nav aria-label={title} className="no-scrollbar -m-1.5 flex gap-2 overflow-x-auto p-1.5 lg:flex-col lg:overflow-visible">
             {items.map(({ href, label, Icon, exact }) => {
               const active = isNavActive(pathname, href, exact);
               return (
