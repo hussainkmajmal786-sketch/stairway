@@ -839,6 +839,14 @@ export type Database = {
       }
     }
     Functions: {
+      attach_payment_order: {
+        Args: {
+          p_amount_paise: number
+          p_order_id: string
+          p_registration_id: string
+        }
+        Returns: Json
+      }
       cancel_registration: {
         Args: { p_registration_id: string }
         Returns: Json
