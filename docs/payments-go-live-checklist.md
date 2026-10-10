@@ -4,7 +4,7 @@ Nothing here is done by the assistant. Never paste a secret in chat, a commit or
 
 ## 1. Upgrade Cloudflare to Workers Paid
 
-Workers & Pages -> Plans -> Workers Paid ($5/month). Pre-condition for everything below: Free gives 10 ms CPU per request (error 1102 already happens) and the Worker bundle is about 17 KiB gzip over the Free 3072 KiB cap. Afterwards the assistant can add `"limits": { "cpu_ms": 5000 }` to `wrangler.jsonc` as a runaway guard.
+Workers & Pages -> Plans -> Workers Paid ($5/month). Pre-condition for everything below: Free gives 10 ms CPU per request (error 1102 already happens) (the Worker bundle itself now fits the Free 3072 KiB cap thanks to `minify`, about 2774 KiB gzip). Afterwards the assistant can add `"limits": { "cpu_ms": 5000 }` to `wrangler.jsonc` as a runaway guard.
 
 ## 2. Add the secrets in Cloudflare
 

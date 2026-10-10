@@ -95,7 +95,7 @@ Sign-in is **Google only** for now. The email-code form is built but hidden: fli
 
 **Pre-flight: the Cloudflare account must be on Workers Paid** before payments are switched on.
 - **CPU:** on Workers Free every request gets 10 ms of CPU and full page renders already exceed it intermittently (error 1102); a payment must never fail that way.
-- **Bundle size:** the OpenNext Worker is about 17 KiB gzip over the Workers **Free** bundle cap (3072 KiB; Workers Paid allows 10 MiB), so with the Phase 4 code the Worker may not deploy on the Free plan at all. Upgrading fixes both.
+- **Bundle size:** the unminified OpenNext Worker with the Phase 4 code was about 3104 KiB gzip, 32 KiB over the Workers **Free** cap (3072 KiB). `"minify": true` in `wrangler.jsonc` brings it to about 2774 KiB, so it deploys on Free as well (Workers Paid allows 10 MiB). Keep an eye on this number (`npx wrangler deploy --dry-run --outdir <tmp>` prints it) when adding dependencies.
 
 What it does:
 - Paid sessions (`events.price_paise > 0`) are registered and paid **on st(AI)rway** with Razorpay Checkout. Members are never sent to Fund Easy.
