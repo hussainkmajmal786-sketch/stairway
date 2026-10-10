@@ -1,8 +1,9 @@
 import Image from "next/image";
+import { TOKENS } from "@/lib/design/tokens";
 import { cn, hueFrom, initials } from "@/lib/utils";
 
 // Flat block colours for generated monograms (ink text stays AA on all of them).
-const FILLS = ["#FFB200", "#2A8CFF", "#1BE349", "#FF5A5A", "#C07CFF", "#FF5C38", "#E2D8C8"];
+const FILLS = [TOKENS.yellow, TOKENS.blue, TOKENS.green, TOKENS.red, TOKENS.purple, TOKENS.orange, TOKENS.paper3];
 
 /**
  * Portrait with graceful fallback: the real photo if `photo` is set,

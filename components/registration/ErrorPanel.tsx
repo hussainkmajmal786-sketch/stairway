@@ -49,19 +49,19 @@ export function ErrorPanel({
         );
       case "focus_fields":
         return (
-          <button key={a.kind} type="button" className="btn btn-sm btn-ghost" onClick={onFixFields}>
+          <button key={a.kind} type="button" className="btn btn-sm btn-secondary" onClick={onFixFields}>
             {a.label}
           </button>
         );
       case "link":
         return (
-          <Link key={a.href} href={a.href} className={cn("btn btn-sm", a.primary ? "btn-primary" : "btn-ghost")}>
+          <Link key={a.href} href={a.href} className={cn("btn btn-sm", a.primary ? "btn-primary" : "btn-secondary")}>
             {a.label}
           </Link>
         );
       case "external":
         return (
-          <a key={a.href} className="btn btn-sm btn-ghost" href={a.href} target="_blank" rel="noopener noreferrer">
+          <a key={a.href} className="btn btn-sm btn-secondary" href={a.href} target="_blank" rel="noopener noreferrer">
             {a.label} <ExternalLink size={14} strokeWidth={2} aria-hidden />
             <span className="sr-only">(opens in a new tab)</span>
           </a>
@@ -76,7 +76,7 @@ export function ErrorPanel({
       ref={ref}
       tabIndex={-1}
       role="alert"
-      className="border-2 border-ink bg-red/15 p-5 outline-none focus-visible:outline focus-visible:outline-3 focus-visible:outline-blue-ink"
+      className="border-2 border-ink bg-red/15 p-5"
     >
       <p className="flex items-start gap-2 font-semibold">
         <AlertTriangle size={18} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden /> {error.message}

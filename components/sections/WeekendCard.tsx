@@ -10,6 +10,7 @@ import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { SOCIETY_FILL } from "@/lib/events/colors";
 import { cn } from "@/lib/utils";
 import { SmartLink } from "@/components/ui/SmartLink";
+import { StepNumber } from "@/components/ui/StepNumber";
 
 /** One step of the stairway, laid out like an event listing. */
 export function WeekendRow({ w }: { w: WeekendWithStatus }) {
@@ -36,13 +37,13 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
         )}
       >
         <span className="mono font-bold">Step</span>
-        <span className="font-mono text-4xl font-bold leading-none sm:text-6xl">{pad2(w.step)}</span>
+        <StepNumber n={w.step} tone="ink" className="[--stepnum-size:2.4rem] sm:[--stepnum-size:3.4rem]" />
         {summit && <Mountain size={22} strokeWidth={2} aria-hidden className="max-sm:hidden" />}
       </div>
 
       <div className="p-5 md:p-6">
         <div className="flex flex-wrap gap-2">
-          <span className="tag tag-ink">{w.society.shortName}</span>
+          <span className="tag tag-field">{w.society.shortName}</span>
           <LevelChip level={w.level} />
           {w.formats.map((f) => (
             <FormatChip key={f} format={f} />
@@ -86,7 +87,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
 
         <div className="mt-5 flex flex-wrap gap-3">
           {done ? (
-            <Link href={`/events/${w.slug}#resources`} className="btn btn-sm btn-ghost">
+            <Link href={`/events/${w.slug}#resources`} className="btn btn-sm btn-secondary">
               <FolderOpen size={16} strokeWidth={2} aria-hidden /> Resources
             </Link>
           ) : (
@@ -94,7 +95,7 @@ export function WeekendRow({ w }: { w: WeekendWithStatus }) {
               {w.status === "next" ? "Claim your step" : "Register"} <ArrowUpRight size={16} strokeWidth={2} aria-hidden />
             </SmartLink>
           )}
-          <Link href={`/events/${w.slug}`} className="btn btn-sm btn-ghost">
+          <Link href={`/events/${w.slug}`} className="btn btn-sm btn-secondary">
             <Clock size={16} strokeWidth={2} aria-hidden /> Details
           </Link>
         </div>

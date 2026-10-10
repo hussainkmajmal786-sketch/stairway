@@ -6,12 +6,14 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 import { OnboardingSchema, fieldErrors } from "@/lib/profile/schema";
 import { BRANCHES, YEARS } from "@/lib/profile/options";
-import { Field, inputCls } from "@/components/ui/Field";
+import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
 import { AvatarUploader } from "./AvatarUploader";
 
 export interface OnboardingInitial {
   fullName: string; handle: string; college: string; branch: string; year: string; avatarUrl: string | null;
 }
+
+const HANDLE_HINT = "Your profile lives at /u/your-handle.";
 
 export function OnboardingForm({ userId, initial, next }: { userId: string; initial: OnboardingInitial; next: string }) {
   const router = useRouter();
@@ -20,10 +22,10 @@ export function OnboardingForm({ userId, initial, next }: { userId: string; init
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const set = (k: keyof OnboardingInitial, v: string | null) => setD((x) => ({ ...x, [k]: v }));
-  const aria = (k: string) => ({
+  const aria = (k: string, hint?: string) => ({
     "aria-required": true,
     "aria-invalid": !!errors[k],
-    "aria-describedby": errors[k] ? `${k}-err` : undefined,
+    "aria-describedby": fieldDescribedBy(k, { error: errors[k], hint }),
   });
 
   async function submit(e: React.FormEvent) {
@@ -73,10 +75,10 @@ export function OnboardingForm({ userId, initial, next }: { userId: string; init
       <Field id="fullName" label="Full name" required error={errors.fullName} className="md:col-span-2">
         <input id="fullName" className={inputCls} autoComplete="name" value={d.fullName} onChange={(e) => set("fullName", e.target.value)} {...aria("fullName")} />
       </Field>
-      <Field id="handle" label="Handle" required error={errors.handle} hint="Your profile lives at /u/your-handle." className="md:col-span-2">
+      <Field id="handle" label="Handle" required error={errors.handle} hint={HANDLE_HINT} className="md:col-span-2">
         <input
           id="handle" className={inputCls} autoComplete="username" autoCapitalize="none" spellCheck={false}
-          value={d.handle} onChange={(e) => set("handle", e.target.value.toLowerCase())} {...aria("handle")}
+          value={d.handle} onChange={(e) => set("handle", e.target.value.toLowerCase())} {...aria("handle", HANDLE_HINT)}
         />
       </Field>
       <Field id="college" label="College" required error={errors.college} className="md:col-span-2">

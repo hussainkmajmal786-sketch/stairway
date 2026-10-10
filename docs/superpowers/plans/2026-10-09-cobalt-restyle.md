@@ -21,7 +21,7 @@
 - The frame's logo row shows the **text** `IEEE SB CE KIDANGOOR` from the single constant `FRAME_ORG` in `lib/design/brand.ts` (rendered by `LogoRow` in `components/ui/Poster.tsx`), so real logo SVGs can replace it later in one place.
 - Ghost word: `CLIMB` on home and general pages, `STEP NN` (zero-padded) on session/event pages, `SUMMIT` on the finale session; always `aria-hidden`, opacity ≤ .08, never over photos or forms. Chosen through `ghostWord()`; `FieldBand`'s `ghost` prop defaults to `CLIMB`.
 - Light only (`color-scheme: light`, no dark mode). Motion stays calm: the only new animation is the stair lettering's one-off climb (transform/opacity only), gated by `prefers-reduced-motion: no-preference`; never animate `text-shadow`.
-- Keep every a11y guarantee: skip link, `#main` focus after navigation, 3px focus ring from the `--focus` token (ink on cream, yellow on field/top bar/footer), ≥44px touch targets, `aria-*` on forms, `role="timer"`/live-region behaviour of the countdown unchanged, reduced-motion mode.
+- Keep every a11y guarantee: skip link, `#main` focus after navigation, 3px focus ring from the `--focus` token (ink on cream, yellow on field/top bar/footer), ≥44px touch targets, `aria-*` on forms, the countdown's sr-only `role="timer"` with explicit `aria-live="polite"` minute-level text (no per-tick announcements), reduced-motion mode.
 - QR codes stay **black `#000000` modules on a white `#FFFFFF` 4-module quiet zone**, never on cobalt and never under the grain overlay (cream panels inside a field sit at `z-index: 6`, above the grain at 5). No texture in ticket PNGs.
 - Keep the site name exactly `st(AI)rway`; `(AI)` always sits on the yellow block with ink text.
 - Every dashboard keeps its back/close button as the **first** control of the left sidebar (`DashboardShell`).
@@ -485,7 +485,7 @@ git commit -m "feat(design): Cobalt Circuit tokens, Anton display font and a con
 
 **Interfaces:**
 - Consumes: tokens and `--focus` from Task 1.
-- Produces (CSS classes later tasks use): `.h-display`, `.h2` (Anton), `.mono-wide`, `.tagline`, `.presents`, `.rule-h` (+ `.left`), `.soon`, `.panel`, `.field`, `.field-2`, `.field-content`, `.on-field`, `.ghost`, `.bands.top`/`.bands.bottom`, `.frame`, `.logo-row` (+ `.lm`, `.mid`, `.ieee`, `.diamond`), `.stair` (+ `.g`, `.ai`), `.extrude`, `.stair-cap`, `.stair-num`, `.stepnum` (+ `.stepnum-ink`, `--stepnum-size`), `.btn-secondary`, `.btn-ghost` (transparent), `.tag-field`, `.tag-cream`, `.topbar`, `.ticket-h`, `.perf`, `.side-strip`; `Button` `variant: "primary" | "secondary" | "ghost" | "ink"`.
+- Produces (CSS classes later tasks use): `.h-display`, `.h2` (Anton), `.mono-wide`, `.tagline`, `.presents`, `.rule-h` (+ `.left`), `.soon`, `.panel`, `.field`, `.field-2`, `.field-content`, `.on-field`, `.ghost`, `.bands.top`/`.bands.bottom`, `.frame`, `.logo-row` (+ `.lm`, `.mid`, `.diamond`; no `.ieee` — user decision: no separate IEEE mark), `.stair` (+ `.g`, `.ai`), `.extrude`, `.stair-cap`, `.stair-num`, `.stepnum` (+ `.stepnum-ink`, `--stepnum-size`), `.btn-secondary`, `.btn-ghost` (transparent), `.tag-field`, `.tag-cream`, `.topbar`, `.ticket-h`, `.perf`, `.side-strip`; `Button` `variant: "primary" | "secondary" | "ghost" | "ink"`.
 
 - [ ] **Step 1: Write the failing CSS contract and Button tests**
 
@@ -658,7 +658,6 @@ Replace everything from the line `/* z-index scale: 40 header · 50 dock · 60 m
   }
   .logo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid rgba(244, 239, 230, 0.35); }
   .logo-row .lm { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.2; }
-  .logo-row .ieee { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; letter-spacing: 0.06em; line-height: 1; }
   .diamond { width: 22px; height: 22px; flex: none; border: 2px solid var(--paper); transform: rotate(45deg); display: grid; place-items: center; }
   .diamond::after { content: ""; width: 8px; height: 8px; background: var(--paper); }
   @media (max-width: 480px) {
@@ -1115,10 +1114,10 @@ export function Bands({ edge }: { edge: "top" | "bottom" }) {
 }
 
 /**
- * The frame's logo row. Text for now (no logo files yet): when the branch supplies cream IEEE SB CEK / IEEE logo
+ * The frame's logo row: diamond + FRAME_ORG text only (user decision: no separate IEEE mark). When the branch supplies a cream logo
  * SVGs, swap this body for them and keep FRAME_ORG as their accessible name.
  */
-export function LogoRow({ org = FRAME_ORG, middle = "Kerala Section · Region 10" }: { org?: string; middle?: string }) {
+export function LogoRow({ org = FRAME_ORG, middle }: { org?: string; middle?: string }) {
   return (
     <div className="logo-row">
       <span className="lm">
@@ -1126,7 +1125,6 @@ export function LogoRow({ org = FRAME_ORG, middle = "Kerala Section · Region 10
         {org}
       </span>
       <span className="lm mid" aria-hidden="true">{middle}</span>
-      <span className="lm ieee" aria-hidden="true">IEEE</span>
     </div>
   );
 }
@@ -1842,6 +1840,8 @@ export function Footer() {
 
 Start the `stairway-dev` preview (Browser pane `preview_start` with name `stairway-dev`). At 375 (`resize_window` preset `mobile`) and 1280 (`resize_window` width 1280, height 900), screenshot `/` top and bottom. Check: ink top bar with the cobalt stair mark and the yellow (AI) block; the cobalt announcement strip (when an announcement is enabled); the dock's active "Home" item is cobalt with a cream icon/label (not red); the footer is cobalt with cream text, cream icon tiles with ink icons, and Tab moves a **yellow** ring through the footer links. Reset with `resize_window` preset `desktop`. Fix anything off before committing.
 
+Also at **320×800** (`resize_window` width 320): the ink top bar must fit — `document.documentElement.scrollWidth` → `320` (review of Tasks 1-4, item 13: the old bar measured 374px with its actions ending at x=356, which also widened the mobile layout viewport for the whole page). Hide or shorten the wordmark text and/or the register button label below ~360px so the mark, the primary action and the account chip fit with 44px targets.
+
 - [ ] **Step 10: Run the checks**
 
 Run: `npx vitest run && npx tsc --noEmit && npx eslint .`
@@ -2122,7 +2122,7 @@ Expected: PASS.
 
 - [ ] **Step 7: Visual smoke check (375 and 1280)**
 
-With the `stairway-dev` preview: at 375 the stair lettering `st(AI)rway` fits inside the frame with **no horizontal scroll** (`javascript_tool`: `document.documentElement.scrollWidth` → `375`), the glyphs step up left to right, `(AI)` is on yellow with an ink extrusion, the rotated caption fits on one line, the rule head "STEP 04 OPENS SAT 17 OCT" (yellow verb) fits on one line, and "Explore the societies" is a cream-outlined transparent button. At 1280 the frame, the logo row (`IEEE SB CE KIDANGOOR` · `Kerala Section · Region 10` · `IEEE`), the top and bottom corner bands and the faint CLIMB ghost match `mockup-desktop-1280.png`. Tab through: the focus ring is **yellow** inside the field. Compare against the mock-up screenshots side by side; fix drift before committing.
+With the `stairway-dev` preview: at 375 the stair lettering `st(AI)rway` fits inside the frame with **no horizontal scroll** (`javascript_tool`: `document.documentElement.scrollWidth` → `375`), the glyphs step up left to right, `(AI)` is on yellow with an ink extrusion, the rotated caption fits on one line, the rule head "STEP 04 OPENS SAT 17 OCT" (yellow verb) fits on one line, and "Explore the societies" is a cream-outlined transparent button. At 1280 the frame, the logo row (only `IEEE SB CE KIDANGOOR` with the diamond; no separate IEEE mark, by user decision), the top and bottom corner bands and the faint CLIMB ghost match `mockup-desktop-1280.png`. Tab through: the focus ring is **yellow** inside the field. Compare against the mock-up screenshots side by side; fix drift before committing.
 
 - [ ] **Step 8: Run the checks**
 
@@ -3603,9 +3603,9 @@ export function OgFrame({ eyebrow, title, subtitle, accent = T.yellow }: { eyebr
     <div style={{ width: "100%", height: "100%", display: "flex", padding: 28, background: T.field, color: T.paper, fontFamily: OG_MONO }}>
       <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1, border: `6px solid ${T.paper}`, padding: "30px 44px" }}>
         <div style={{ position: "absolute", top: 8, left: 8, right: 8, bottom: 8, display: "flex", border: `2px solid ${T.paper}` }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 12, borderBottom: "2px solid rgba(244,239,230,0.35)" }}>
+        {/* logo row: FRAME_ORG text only — user decision: no separate "IEEE" mark */}
+        <div style={{ display: "flex", alignItems: "center", paddingBottom: 12, borderBottom: "2px solid rgba(244,239,230,0.35)" }}>
           <div style={{ display: "flex", fontSize: 20, fontWeight: 700, letterSpacing: 3 }}>{FRAME_ORG}</div>
-          <div style={{ display: "flex", fontFamily: OG_DISPLAY, fontSize: 34, letterSpacing: 2 }}>IEEE</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {title === null ? <StairWordmarkOg size={150} /> : null}
@@ -3652,7 +3652,7 @@ const SUBTITLE = "Climb into AI · one weekend at a time";
 export default async function Image() {
   return new ImageResponse(<OgFrame eyebrow={EYEBROW} title={null} subtitle={SUBTITLE} />, {
     ...size,
-    fonts: await ogFonts({ display: "st(AI)rwayIEEE", mono: `${EYEBROW.toUpperCase()}${SUBTITLE}${FRAME_ORG}` }),
+    fonts: await ogFonts({ display: "st(AI)rway", mono: `${EYEBROW.toUpperCase()}${SUBTITLE}${FRAME_ORG}` }),
   });
 }
 ```
@@ -3680,7 +3680,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const subtitle = ev?.topic ?? "";
   return new ImageResponse(<OgFrame eyebrow={eyebrow} title={title} subtitle={subtitle} accent={ogAccent(!!ev?.isFinale)} />, {
     ...size,
-    fonts: await ogFonts({ display: `${title.toUpperCase()}IEEE`, mono: `${eyebrow.toUpperCase()}${subtitle}${FRAME_ORG}` }),
+    fonts: await ogFonts({ display: title.toUpperCase(), mono: `${eyebrow.toUpperCase()}${subtitle}${FRAME_ORG}` }),
   });
 }
 ```
@@ -3770,7 +3770,7 @@ curl -s -o .shots/apple-icon.png http://localhost:8787/apple-icon
 curl -s http://localhost:8787/manifest.webmanifest
 ```
 
-Open both PNGs with the Read tool. Expected: cobalt card, cream double frame, `IEEE SB CE KIDANGOOR` row, Anton lettering (condensed, not the default font) — the stepped `st(AI)rway` on home; the summit card's title extruded with an **orange** eyebrow chip; cream/yellow/orange step bars. If the text is in the default font, the Worker could not fetch Google Fonts: check `wrangler` output for fetch errors; the fallback is acceptable to ship but report it. The manifest shows `"theme_color":"#0B1026"`. Also open `http://localhost:8787/` in the Browser pane and run `[...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family)` with `javascript_tool`: the next/font families for Urbanist and Anton (and Space Mono once a label renders) are loaded from `/_next/static/media/` on workerd, proving the self-hosted fonts survive the OpenNext build. Stop the preview afterwards.
+Open both PNGs with the Read tool. Expected: cobalt card, cream double frame, `IEEE SB CE KIDANGOOR` row (text only, no separate IEEE mark), Anton lettering (condensed, not the default font) — the stepped `st(AI)rway` on home; the summit card's title extruded with an **orange** eyebrow chip; cream/yellow/orange step bars. If the text is in the default font, the Worker could not fetch Google Fonts: check `wrangler` output for fetch errors; the fallback is acceptable to ship but report it. The manifest shows `"theme_color":"#0B1026"`. Also open `http://localhost:8787/` in the Browser pane and run `[...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family)` with `javascript_tool`: the next/font families for Urbanist and Anton (and Space Mono once a label renders) are loaded from `/_next/static/media/` on workerd, proving the self-hosted fonts survive the OpenNext build. Stop the preview afterwards.
 
 - [ ] **Step 9: Run the checks**
 

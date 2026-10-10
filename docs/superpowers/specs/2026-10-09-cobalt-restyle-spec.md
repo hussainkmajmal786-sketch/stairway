@@ -80,7 +80,7 @@ Define `--extrude` **on `.stair`**, not on `:root`. A custom property resolves `
 @media (max-width: 480px) { .frame { border-width: 5px; outline-offset: -11px; } }
 .logo-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid rgb(244 239 230 / .35); }
 ```
-The logo row holds the IEEE SB CEK mark, a middle line (hidden <480px) and the IEEE mark. **Use the official logo SVGs supplied by the branch.** The mockup uses text placeholders only.
+The logo row holds the decorative diamond and the text `IEEE SB CE KIDANGOOR` (`FRAME_ORG`), plus an optional middle line (hidden <480px). **User decision (review of Tasks 1-4): there is no separate "IEEE" mark** — not in the logo row and not on the OG cards; the mock-up's right-hand `IEEE` placeholder is dropped. If the branch later supplies an official cream logo SVG, it replaces the row's text in one place (`LogoRow`).
 
 ### 3.3 Diagonal corner bands
 ```css
@@ -152,7 +152,7 @@ Copy the full data URIs from `mockup.html`. The overlays sit above content (`z-i
 | **Ink on field** | **2.39** | **FAIL → never put ink type on the field** (ink is decoration there only: extrusion, bands, shadows) |
 | Disabled btn: ink-4 on paper-3 | 4.23 | exempt; dashed border also signals the state |
 
-The rest follows the current MASTER rules. Colour never stands alone: every chip has a word, and urgency chips get an icon. Under deuteranopia simulation, green, orange and red chips converge to olive (see `palette-options.html`), so **labels and icons are mandatory** for beginner / summit / urgent. Touch targets stay ≥44px. Reduced motion keeps the stair lettering static (it renders in final position because the animation is gated by `no-preference`). The countdown updates text only (`role="timer"`, `aria-live="off"`).
+The rest follows the current MASTER rules. Colour never stands alone: every chip has a word, and urgency chips get an icon. Under deuteranopia simulation, green, orange and red chips converge to olive (see `palette-options.html`), so **labels and icons are mandatory** for beginner / summit / urgent. Touch targets stay ≥44px. Reduced motion keeps the stair lettering static (it renders in final position because the animation is gated by `no-preference`). The countdown updates text only: the visual cells are `aria-hidden`, and an sr-only `role="timer"` element carries minute-level text with an explicit `aria-live="polite"` (a bare timer is `aria-live="off"`, so nothing would ever be announced), giving at most one polite update a minute and never one per tick.
 
 ## 6. Performance notes
 - Texture: two inline-SVG data URIs (~0.6 KB each), rasterised once per tile. Apply them only to `.field` sections (absolute overlays), **never to `position: fixed` full-page layers**, which forces repaints on scroll on low-end Android. `mix-blend-mode` creates a stacking context per section, which is fine at ≤ 5 field bands per page. If profiling shows jank on low-end phones, pre-render `noise.png` (220px, ~15 KB, ≤ 4 bit grey) and drop the blend for `opacity` only.

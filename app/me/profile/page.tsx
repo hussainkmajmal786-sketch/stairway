@@ -29,7 +29,7 @@ export default async function EditProfilePage() {
           <p className="font-semibold">We couldn&apos;t load your profile right now.</p>
           <p className="mt-1 text-ink-2">Nothing was changed. Reload the page to try again.</p>
           {/* Plain <a>: a full reload re-runs the read. */}
-          <a href="/me/profile" className="btn btn-sm btn-ghost mt-4">Try again</a>
+          <a href="/me/profile" className="btn btn-sm btn-secondary mt-4">Try again</a>
         </div>
       </div>
     );
@@ -43,7 +43,7 @@ export default async function EditProfilePage() {
     <div className="grid gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold md:text-4xl">Your profile</h1>
-        <Link href={`/u/${profile.handle}`} className="btn btn-sm btn-ghost">View public profile</Link>
+        <Link href={`/u/${profile.handle}`} className="btn btn-sm btn-secondary">View public profile</Link>
       </div>
       <ProfileForm userId={user.id} initial={initial} />
       <ProjectsEditor userId={user.id} initial={projects ?? []} />

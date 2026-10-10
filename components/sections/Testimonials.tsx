@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, MessageSquareQuote, Pause, Play } from "lucide-react";
 import { useSiteData } from "@/components/providers/SiteDataProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { FieldBand } from "@/components/ui/Poster";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/hooks";
@@ -28,11 +29,11 @@ export function Testimonials() {
   const btn = "grid h-11 w-11 place-items-center border-2 border-ink bg-paper hover:bg-yellow";
 
   return (
-    <section id="testimonials" aria-labelledby="testimonials-title" className="section section-alt">
+    <FieldBand id="testimonials" labelledBy="testimonials-title" ghost={false} bands="top" className="section border-y-2 border-ink">
       <div className="wrap">
-        <SectionHeader id="testimonials-title" Icon={MessageSquareQuote} eyebrow="From the climbers" title="Heard on the [[stairway.]]" />
+        <SectionHeader id="testimonials-title" Icon={MessageSquareQuote} eyebrow="From the climbers" title="Heard on the [[stairway.]]" tone="field" />
         <div
-          className="box shadow-[6px_6px_0_0_var(--ink)]"
+          className="box shadow-[8px_8px_0_0_var(--ink)]"
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
           onFocus={() => setHover(true)}
@@ -68,7 +69,7 @@ export function Testimonials() {
           <div className="flex flex-wrap items-center justify-between gap-4 border-t-2 border-ink px-6 py-3">
             <div className="flex gap-1" role="tablist" aria-label="Choose testimonial">
               {testimonials.map((_, k) => (
-                <button key={k} role="tab" aria-selected={k === i} aria-label={`Testimonial ${k + 1}`} onClick={() => setI(k)} className="grid h-11 w-8 place-items-center">
+                <button key={k} role="tab" aria-selected={k === i} aria-label={`Testimonial ${k + 1}`} onClick={() => setI(k)} className="grid h-11 w-11 place-items-center">
                   <span className={cn("block h-3 border-2 border-ink transition-all duration-200", k === i ? "w-7 bg-ink" : "w-3 bg-paper")} />
                 </button>
               ))}
@@ -87,6 +88,6 @@ export function Testimonials() {
           </div>
         </div>
       </div>
-    </section>
+    </FieldBand>
   );
 }

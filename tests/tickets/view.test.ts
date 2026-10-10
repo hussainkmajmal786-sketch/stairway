@@ -1,9 +1,16 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TicketCard, type TicketCardData } from "@/components/tickets/TicketCard";
 import { qrRows } from "@/lib/tickets/qr";
-import { qrLayout, wrapText } from "@/lib/tickets/png";
+import {
+  FONT_FALLBACK, PNG_COLORS, fontStack, loadCanvasFonts, qrLayout, setCanvasFont, wrapText,
+} from "@/lib/tickets/png";
+import { QR_DARK, QR_LIGHT } from "@/lib/tickets/layout";
+import { contrastRatio } from "@/lib/design/contrast";
+import { TOKENS } from "@/lib/design/tokens";
 import { cancelBlock, doorPass, QUIET_ZONE, ticketFilename, ticketView } from "@/lib/tickets/view";
 import type { TicketDetail } from "@/lib/registration/tickets";
 import { analyticsPath, gaBootstrap } from "@/lib/analytics";
@@ -82,9 +89,35 @@ describe("TicketCard", () => {
     expect(out).toContain(`viewBox="-4 -4 ${n + 8} ${n + 8}"`);
     expect(out).toContain('shape-rendering="crispEdges"');
     expect(out).toContain('role="img"');
-    const label = /aria-label="([^"]*)"/.exec(out)?.[1] ?? "";
+    const label = /<svg[^>]*aria-label="([^"]*)"/.exec(out)?.[1] ?? "";
+    expect(label).toBe("QR code ticket for Seeing Machines");
     expect(label).not.toContain(CODE);
     expect(out).toContain(CODE); // human-readable fallback beneath
+  });
+
+  it("has a cobalt header and a perforation, and keeps the QR black on white outside any field", () => {
+    const out = html(card({}));
+    expect(out).toContain('<header class="ticket-h">');
+    expect(out).toContain('<span class="sr-only">st(AI)rway ticket</span>');
+    expect(out).toContain('class="perf"');
+    expect(out).toContain('fill="#ffffff"');
+    expect(out).toContain('fill="#000000"');
+    expect(out.indexOf('class="perf"')).toBeLessThan(out.indexOf("<svg"));
+    expect(out).not.toMatch(/class="[^"]*field/);
+    // No ticket code in any accessible name (the code is a bearer secret; it is only the visible fallback text).
+    for (const [, value] of out.matchAll(/(?:aria-label|alt|title)="([^"]*)"/g)) expect(value).not.toContain(CODE);
+  });
+
+  it("keeps the header and perforation for waitlisted and pending tickets, still without QR, code or token", () => {
+    for (const status of ["waitlisted", "pending_payment"] as const) {
+      const out = html(card({ status, waitlistPosition: 2, pass: { kind: "none" }, token: "RAS-01-0007" }));
+      expect(out).toContain('<header class="ticket-h">');
+      expect(out).toContain('class="perf"');
+      expect(out).not.toContain("<svg");
+      expect(out).not.toContain(CODE);
+      expect(out).not.toContain("RAS-01-0007");
+      expect(out).toContain(status === "waitlisted" ? "You&#x27;re on the waitlist" : "Payment pending");
+    }
   });
 
   it("shows a waitlist state with no QR, no token and no code", () => {
@@ -99,6 +132,66 @@ describe("TicketCard", () => {
     const out = html(card({ pass: { kind: "token", token: "RAS-01-0042" }, token: "RAS-01-0042", qrRows: null, code: null }));
     expect(out).not.toContain("<svg");
     expect(out).toContain("RAS-01-0042");
+  });
+});
+
+describe("ticket PNG colours", () => {
+  it("takes the card colours from the tokens and keeps the QR pure black on white", () => {
+    expect(PNG_COLORS).toEqual({
+      ink: TOKENS.ink, paper: TOKENS.paper, yellow: TOKENS.yellow, field: TOKENS.field, qrDark: "#000000", qrLight: "#ffffff",
+    });
+    expect([QR_DARK, QR_LIGHT]).toEqual([TOKENS.black.toLowerCase(), TOKENS.white.toLowerCase()]);
+  });
+
+  it("keeps every text colour readable on its background (luminance contrast also holds in greyscale print)", () => {
+    expect(contrastRatio(PNG_COLORS.paper, PNG_COLORS.field)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(PNG_COLORS.ink, PNG_COLORS.yellow)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(PNG_COLORS.ink, PNG_COLORS.paper)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(PNG_COLORS.qrDark, PNG_COLORS.qrLight)).toBeCloseTo(21, 5);
+  });
+
+  it("has no hard-coded colours in the PNG renderer", () => {
+    const src = readFileSync(resolve(__dirname, "../../lib/tickets/png.ts"), "utf8");
+    expect(src).not.toMatch(/["'`]#[0-9a-f]{3,8}["'`]/i);
+    // Client-only canvas code: no server modules and no QR encoder (rows arrive precomputed).
+    expect(src).not.toMatch(/from\s+["'](?:server-only|node:|@\/lib\/supabase|\.\/qr|uqr)/);
+  });
+});
+
+describe("ticket PNG fonts", () => {
+  it("puts the site face first and always ends in the system stack", () => {
+    expect(fontStack("'Urbanist', 'Urbanist Fallback'", FONT_FALLBACK.sans)).toBe(
+      `'Urbanist', 'Urbanist Fallback', ${FONT_FALLBACK.sans}`,
+    );
+    expect(fontStack("  ", FONT_FALLBACK.mono)).toBe(FONT_FALLBACK.mono);
+    expect(fontStack(undefined, FONT_FALLBACK.mono)).toBe(FONT_FALLBACK.mono);
+  });
+
+  it("keeps the fallback when the canvas rejects the site family (never the 10px default)", () => {
+    // A canvas ignores font strings it can't parse; this fake rejects anything mentioning "bad".
+    const ctx = {
+      value: "10px sans-serif",
+      get font() { return this.value; },
+      set font(v: string) { if (!v.includes("bad")) this.value = v; },
+    };
+    setCanvasFont(ctx, "bold 32px", `"bad, ${FONT_FALLBACK.mono}`, FONT_FALLBACK.mono);
+    expect(ctx.font).toBe(`bold 32px ${FONT_FALLBACK.mono}`);
+    setCanvasFont(ctx, "600 60px", `Urbanist, ${FONT_FALLBACK.sans}`, FONT_FALLBACK.sans);
+    expect(ctx.font).toBe(`600 60px Urbanist, ${FONT_FALLBACK.sans}`);
+  });
+
+  it("waits for the faces but never throws or hangs", async () => {
+    const asked: string[] = [];
+    const ok = { load: (s: string) => (asked.push(s), Promise.resolve([] as FontFace[])) };
+    await expect(loadCanvasFonts(ok, ["600 60px Anton", "24px Mono"])).resolves.toBe(true);
+    expect(asked).toEqual(["600 60px Anton", "24px Mono"]);
+    const failing = { load: () => Promise.reject(new SyntaxError("bad font")) };
+    await expect(loadCanvasFonts(failing, ["x"])).resolves.toBe(false);
+    const throwing = { load: () => { throw new SyntaxError("bad font"); } };
+    await expect(loadCanvasFonts(throwing, ["x"])).resolves.toBe(false);
+    const never = { load: () => new Promise<FontFace[]>(() => {}) };
+    await expect(loadCanvasFonts(never, ["x"], 20)).resolves.toBe(false);
+    await expect(loadCanvasFonts(undefined, ["x"])).resolves.toBe(false);
   });
 });
 

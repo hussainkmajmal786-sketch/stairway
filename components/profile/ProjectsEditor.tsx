@@ -9,6 +9,7 @@ import { RowList, rowAria } from "./RowList";
 export interface ProjectRow { id?: string; title: string; description: string; url: string }
 
 const COLS = "id, title, description, url";
+const URL_HINT = "Demo, repository or write-up (https://…)";
 
 export function ProjectsEditor({ userId, initial }: { userId: string; initial: ProjectRow[] }) {
   return (
@@ -54,8 +55,8 @@ export function ProjectsEditor({ userId, initial }: { userId: string; initial: P
           <Field id="project-title" label="Title" required error={e.title}>
             <input id="project-title" className={inputCls} maxLength={100} value={r.title} onChange={(ev) => set({ title: ev.target.value })} {...rowAria("project-title", e.title)} />
           </Field>
-          <Field id="project-url" label="Link" error={e.url} hint="Demo, repository or write-up (https://…)">
-            <input id="project-url" type="url" inputMode="url" placeholder="https://" className={inputCls} value={r.url} onChange={(ev) => set({ url: ev.target.value })} {...rowAria("project-url", e.url)} />
+          <Field id="project-url" label="Link" error={e.url} hint={URL_HINT}>
+            <input id="project-url" type="url" inputMode="url" placeholder="https://" className={inputCls} value={r.url} onChange={(ev) => set({ url: ev.target.value })} {...rowAria("project-url", e.url, URL_HINT)} />
           </Field>
           <Field id="project-description" label="What did you build?" error={e.description}>
             <textarea id="project-description" className={textareaCls} maxLength={500} value={r.description} onChange={(ev) => set({ description: ev.target.value })} {...rowAria("project-description", e.description)} />

@@ -4,7 +4,7 @@ The website for **st(AI)rway**, a weekend AI series by the IEEE Student Branch, 
 
 > Climb into the future of AI, one weekend at a time.
 
-Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Lucide icons. The look is "paper brutalism": cream graph paper, ink outlines, hard shadows and flat colour blocks (see `design-system/MASTER.md`).
+Built with Next.js 16 (App Router, TypeScript), Tailwind CSS 4 and Lucide icons. The look is "Cobalt Circuit" poster brutalism: a cobalt poster field with a cream double frame and extruded stair-step lettering for heroes and key bands, cream panels with ink outlines and hard shadows for reading (see `design-system/MASTER.md`). Type is Anton (display), Urbanist (body) and Space Mono (labels).
 
 **Architecture.** The site is Next.js running as a Cloudflare Worker through OpenNext (`@opennextjs/cloudflare`). Supabase provides the data (Postgres with row-level security), auth and storage. Every page is rendered per request from the database, so content edits show up without a rebuild.
 
@@ -24,6 +24,8 @@ Copy `.env.example` to `.env.local` and fill in the Supabase URL and publishable
 npm run dev      # http://localhost:3000
 npm test         # unit tests + anonymous RLS checks against the live database
 ```
+
+Visual check (needs Chrome): with the dev server on port 3123, `node scripts/visual-check.mjs [baseUrl] [outDir=.shots] [--keyboard]` screenshots every page type at 320, 375 and 1280 px, reports horizontal overflow (exit 1 if any) and, with `--keyboard`, walks the Tab order and flags clipped focus rings. Set `CHROME_PATH` if Chrome is not at the default Windows path.
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be present at **build time** as well as at runtime, because `lib/env.ts` validates them on import. Locally they come from `.env.local`; on Cloudflare Workers Builds, set them as build variables. The RLS tests in `tests/rls/` skip themselves when these are missing.
 
@@ -46,7 +48,8 @@ The leaderboard (`data/leaderboard.ts`) and the quiz (`data/tracks.ts`) are stil
 - **Speaker / team photos:** put files in `public/speakers/` or `public/team/`, then reference the path (e.g. `/speakers/anjali.webp`) in the row's photo field. Without a photo, a gradient monogram is shown.
 - **Gallery photos:** put files in `public/gallery/` and reference the path in the gallery row (keep the alt text descriptive). Items without `src` show generated artwork.
 - **Sponsor logos:** `logo: "/sponsors/nimbus.svg"` in the sponsor content. Without one, the name is shown as a wordmark.
-- **Favicon:** `app/icon.svg`. The app icon (`app/apple-icon.tsx`) and Open Graph images (`app/opengraph-image.tsx`, `app/events/[slug]/opengraph-image.tsx`) are generated automatically.
+- **Favicon:** `app/icon.svg`. The app icon (`app/apple-icon.tsx`) and Open Graph images (`app/opengraph-image.tsx`, `app/events/[slug]/opengraph-image.tsx`) are generated automatically as cobalt poster cards; Anton and Space Mono are fetched from Google Fonts at render time (the card falls back to the built-in font if that fails).
+- **Poster frame logos:** the frame's logo row shows only the text `IEEE SB CE KIDANGOOR` (`FRAME_ORG` in `lib/design/brand.ts`). There is no IEEE mark yet; when official cream logo SVGs exist, replace `LogoRow` in `components/ui/Poster.tsx`.
 - **Sponsorship deck:** put the PDF in `public/` and set `sponsorDeckUrl` in the settings block. While it's empty, the button becomes "Request the deck" (email).
 
 Use WebP/AVIF where you can; `next/image` handles resizing and lazy loading.
@@ -125,7 +128,7 @@ components/
   profile/           onboarding, profile and settings forms, avatar uploader, public profile view
   layout/            top bar, bottom dock, announcement strip, footer, easter egg
   sections/          every landing-page section (Hero, Stairway, Speakers, FAQ, ...)
-  ui/                Button, Countdown, Modal, Badges, Heading, Avatar, Logo, ...
+  ui/                Poster (FieldBand, Frame, Ghost, Bands), Logo (stair wordmark), Button, Countdown, Modal, Badges, Heading, Avatar, ...
   weekend/           event detail page
   registration/      registration form, questions, CTA, attending panel
   tickets/           ticket card, actions, list items
@@ -138,23 +141,25 @@ lib/
   registration/      registration schemas, CTA states, errors, server reads and actions
   tickets/           token format, QR matrix, PNG export
   dashboard/         dashboard nav active-state helper
+  design/            design tokens (tokens.ts, the colour source of truth), contrast maths, ghost words, hero, dock and title helpers, brand constants
   profile/           profile schema (zod), handle rules, form options, avatar crop, view mappers
   supabase/          browser, server, public and middleware clients, generated database types
 supabase/            migrations, seed-data, the generated seed.sql and tests/ (SQL assertion scripts)
-tests/               vitest unit tests (auth, profile, events, site, registration, tickets); tests/rls checks anonymous access against Supabase
-design-system/       MASTER.md - tokens, motion and accessibility rules
+scripts/             generate-seed.ts, visual-check.mjs (screenshots + overflow/focus-ring report)
+tests/               vitest unit tests (auth, profile, events, site, registration, tickets, design incl. contrast guards); tests/rls checks anonymous access against Supabase
+design-system/       MASTER.md - the Cobalt Circuit tokens, signatures, motion and accessibility rules
 ```
 
 ---
 
 ## 6. Design decisions
 
-- **Paper brutalism, calm motion.** Cream graph paper, 2px ink outlines, hard offset shadows and flat colour blocks make the site feel like a printed event board: readable, friendly and unmistakably student-made. Motion is limited to a blur-in wordmark, gentle fade-up reveals, a ticker and a blinking "next up" square.
+- **Poster brutalism, calm motion.** The hero is a framed cobalt poster: stair-step `st(AI)rway` lettering that climbs one step per glyph, a faint ghost word (CLIMB, STEP 04, SUMMIT), diagonal corner bands and a light print grain. Reading content, forms, dashboards and tickets stay on cream panels with 2px ink outlines and hard shadows. Motion is limited to the one-off stair climb-in, gentle fade-up reveals, a ticker and a blinking "next up" square.
 - **The stairway is still the idea.** The roadmap is a list of twelve steps; on wide screens each row sits a little further right than the last, so the column reads as a staircase. The stair mark, the favicon and the 404 page all reuse the shape. "(AI)" always sits on a yellow block.
-- **Colour carries meaning.** Green means climbed or beginner, blue intermediate, purple advanced, orange the Summit, red urgency ("In 06 days", errors, the active dock item), and yellow means "act here". Every tag has a text label, so colour is never the only signal.
+- **Colour carries meaning.** Cobalt is the poster field, yellow means "act here" and holds the (AI) block, green means climbed or beginner, sky blue intermediate, purple advanced, orange the Summit and red urgency or errors only. Ink text never sits on cobalt. Every tag has a text label, so colour is never the only signal. Colours live in `lib/design/tokens.ts`, and a test checks every documented text/background pair against WCAG.
 - **Dock-first navigation.** A floating bottom dock works the same on phones and desktops, keeping Register one tap away everywhere.
 - **Content lives in the database, and time drives state.** Statuses, the countdown, the announcement strip and the spotlight all derive from dates, so the site stays correct week to week without anyone editing components.
 - **Light and fast.** There's no animation library, no canvas and no smooth-scroll library. Pages are rendered on demand at the edge and the only client JavaScript is the interactive pieces.
-- **Accessibility is designed in.** There's a skip link, a 3px blue focus ring, focus-trapped modals, semantic accordions, 44px touch targets, labelled forms that focus the first error, AA contrast throughout, a polite minute-level countdown announcement, and a full reduced-motion mode.
+- **Accessibility is designed in.** There's a skip link, a 3px focus ring that turns yellow on cobalt, focus-trapped modals, semantic accordions, 44px touch targets, labelled forms that focus the first error, AA contrast throughout (tested), a polite minute-level countdown announcement, and a full reduced-motion mode in which the stair lettering renders in place. Ticket QR codes are always black on white with a 4-module quiet zone.
 
 Easter egg: type **AI** anywhere on the page.

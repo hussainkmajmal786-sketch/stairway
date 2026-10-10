@@ -9,7 +9,7 @@ import { isExternalHref } from "@/lib/registration/external";
 interface Props {
   href?: string;
   onClick?: (e: MouseEvent<HTMLElement>) => void;
-  variant?: "primary" | "ghost" | "ink";
+  variant?: "primary" | "secondary" | "ghost" | "ink";
   size?: "sm" | "md" | "lg";
   children: ReactNode;
   className?: string;

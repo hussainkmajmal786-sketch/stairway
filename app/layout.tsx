@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import { Space_Mono, Urbanist } from "next/font/google";
+import { Anton, Space_Mono, Urbanist } from "next/font/google";
 import "./globals.css";
 import { getSiteData } from "@/lib/site/load";
 import { getAuthState } from "@/lib/auth/session";
@@ -15,9 +15,13 @@ import { Footer } from "@/components/layout/Footer";
 import { EasterEgg } from "@/components/layout/EasterEgg";
 import { GaPageViews } from "@/components/layout/GaPageViews";
 import { gaBootstrap } from "@/lib/analytics";
+import { TOKENS } from "@/lib/design/tokens";
 
 const urbanist = Urbanist({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--font-urbanist", display: "swap" });
-const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-space-mono", display: "swap" });
+// Display face: hero stair lettering, section titles, countdown digits, step numbers. One weight (~20 KB latin).
+const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
+// Labels only, so it isn't preloaded (spec §6: preload Urbanist + Anton).
+const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-space-mono", display: "swap", preload: false });
 
 export async function generateMetadata(): Promise<Metadata> {
   const { settings } = await getSiteData();
@@ -43,7 +47,7 @@ export const dynamic = "force-dynamic";
 const requestTime = () => Date.now();
 
 export const viewport: Viewport = {
-  themeColor: "#F4EFE6",
+  themeColor: TOKENS.ink,
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -55,7 +59,7 @@ const bootScript = `document.documentElement.classList.add('js');`;
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [data, auth] = await Promise.all([getSiteData(), getAuthState()]);
   return (
-    <html lang="en-IN" className={`${urbanist.variable} ${spaceMono.variable}`} suppressHydrationWarning>
+    <html lang="en-IN" className={`${urbanist.variable} ${anton.variable} ${spaceMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: bootScript }} />
       </head>

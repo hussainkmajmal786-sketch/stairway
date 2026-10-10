@@ -13,6 +13,7 @@ import { pad2, shortDate } from "@/lib/weekends";
 import { cn } from "@/lib/utils";
 import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import { SmartLink } from "@/components/ui/SmartLink";
+import { FieldBand } from "@/components/ui/Poster";
 
 function Quiz() {
   const { weekends } = useClock();
@@ -55,8 +56,8 @@ function Quiz() {
             <p className="mt-2 text-ink-3">{rec.topic}. {rec.summary}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <SmartLink href={registerHref(rec.slug)} className="btn btn-primary">Claim this step <ArrowRight size={16} strokeWidth={2} /></SmartLink>
-              <Link href={`/events/${rec.slug}`} className="btn btn-ghost">Details</Link>
-              <button onClick={() => { setI(0); setScore(0); setDone(false); }} className="btn btn-ghost"><RotateCcw size={16} strokeWidth={2} /> Retake</button>
+              <Link href={`/events/${rec.slug}`} className="btn btn-secondary">Details</Link>
+              <button onClick={() => { setI(0); setScore(0); setDone(false); }} className="btn btn-secondary"><RotateCcw size={16} strokeWidth={2} /> Retake</button>
             </div>
           </div>
         ) : (
@@ -72,14 +73,14 @@ export function Societies() {
   const { societies } = useSiteData();
   const { weekends } = useClock();
   return (
-    <section id="societies" aria-labelledby="societies-title" className="section section-alt">
+    <FieldBand id="societies" labelledBy="societies-title" ghost={false} bands="top" className="section border-b-2 border-ink">
       <div className="wrap">
-        <SectionHeader id="societies-title" Icon={Layers} eyebrow="Five societies · five stairways" title="Pick your [[stairway.]]" lead="Every IEEE society at CEK runs its own weekly climb. Follow one, or hop between them." />
+        <SectionHeader id="societies-title" Icon={Layers} eyebrow="Five societies · five stairways" title="Pick your [[stairway.]]" lead="Every IEEE society at CEK runs its own weekly climb. Follow one, or hop between them." tone="field" />
         <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {societies.map((s, i) => {
             const next = nextForSociety(weekends, s.slug);
             return (
-              <li key={s.slug} data-reveal style={{ ["--d" as string]: i }} className="box flex flex-col shadow-hard">
+              <li key={s.slug} data-reveal style={{ ["--d" as string]: i }} className="box flex min-w-0 flex-col shadow-hard">
                 <div className={cn("flex items-center justify-between border-b-2 border-ink px-5 py-3", SOCIETY_FILL[s.color])}>
                   <span className="mono font-bold">{s.shortName}</span>
                   <span className="mono font-bold">{weekends.filter((w) => w.society.slug === s.slug).length} steps</span>
@@ -88,7 +89,7 @@ export function Societies() {
                   <h3 className="text-2xl font-semibold">{s.name}</h3>
                   <p className="mt-2 text-ink-2">{s.description}</p>
                   <ul className="mt-4 flex flex-wrap gap-1.5" aria-label="Tracks">
-                    {s.tracks.map((t) => <li key={t.id} className="tag">{t.name}</li>)}
+                    {s.tracks.map((t) => <li key={t.id} className="tag max-w-full !whitespace-normal">{t.name}</li>)}
                   </ul>
                   <div className="mt-auto pt-5">
                     {next ? (
@@ -99,7 +100,7 @@ export function Societies() {
                     ) : (
                       <p className="border-2 border-dashed border-ink p-3 text-sm text-ink-3">New steps announced soon.</p>
                     )}
-                    <Link href={`/s/${s.slug}`} className="btn btn-sm btn-ghost mt-3 w-full">View {s.shortName} stairway <ArrowRight size={16} strokeWidth={2} /></Link>
+                    <Link href={`/s/${s.slug}`} className="btn btn-sm btn-secondary mt-3 w-full">View {s.shortName} stairway <ArrowRight size={16} strokeWidth={2} /></Link>
                   </div>
                 </div>
               </li>
@@ -108,6 +109,6 @@ export function Societies() {
         </ul>
         <div className="mt-12"><Quiz /></div>
       </div>
-    </section>
+    </FieldBand>
   );
 }

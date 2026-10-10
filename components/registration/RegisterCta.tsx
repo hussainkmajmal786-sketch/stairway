@@ -64,7 +64,7 @@ export function RegisterCta({ state, step }: { state: CtaState; step: number }) 
           <p role="status" className="mono font-bold">
             {state.position > 0 ? `You're number ${state.position} on the waitlist` : "You're on the waitlist"}
           </p>
-          <Button href={ticketPath(state.registrationId)} variant="ghost" size="lg" className="w-full">
+          <Button href={ticketPath(state.registrationId)} variant="secondary" size="lg" className="w-full">
             <Hourglass size={18} strokeWidth={2} aria-hidden /> {state.position > 0 ? `Waitlisted #${state.position}` : "Waitlisted"} · View status
           </Button>
         </div>

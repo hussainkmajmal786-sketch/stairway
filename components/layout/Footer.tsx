@@ -7,6 +7,8 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import { openSlug } from "@/lib/weekends";
 import { StairMark, Wordmark } from "@/components/ui/Logo";
+import { FieldBand } from "@/components/ui/Poster";
+import { ghostWord } from "@/lib/design/ghost";
 import { Instagram, Linkedin, Whatsapp, Youtube, Github } from "@/components/ui/BrandIcons";
 import { SmartLink } from "@/components/ui/SmartLink";
 
@@ -18,8 +20,9 @@ const SOCIALS = [
   { key: "github", Icon: Github, label: "GitHub" },
 ] as const;
 
-const link = "inline-flex min-h-11 items-center underline-offset-4 hover:underline lg:min-h-9";
+const link = "inline-flex min-h-11 items-center underline-offset-4 hover:underline";
 
+/** Cobalt footer: cream text and a yellow focus ring; icon tiles and the map stay on cream/ink. */
 export function Footer() {
   const { settings: event, societies } = useSiteData();
   const { next } = useClock();
@@ -27,26 +30,26 @@ export function Footer() {
   const socials = SOCIALS.map(({ key, Icon, label }) => ({ href: event.social[key], Icon, label }));
   return (
     // extra bottom padding keeps content clear of the floating dock
-    <footer className="border-t-2 border-ink bg-paper-2 pb-[calc(var(--dock-h)+48px)] pt-16">
+    <FieldBand as="footer" ghost={false} className="border-t-2 border-ink pb-[calc(var(--dock-h)+48px)] pt-16">
       <div className="wrap">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.3fr]">
           <div>
-            <Link href="/" className="flex items-center gap-2.5 text-3xl" aria-label="st(AI)rway home">
-              <StairMark size={32} />
+            <Link href="/" className="flex min-h-11 items-center gap-2.5 text-3xl" aria-label="st(AI)rway home">
+              <StairMark size={32} tone="field" />
               <Wordmark />
             </Link>
-            <p className="mt-4 max-w-xs text-ink-2">{event.tagline}</p>
-            <p className="mt-4 text-sm text-ink-3">
+            <p className="mt-4 max-w-xs">{event.tagline}</p>
+            <p className="mt-4 text-sm">
               Organised by{" "}
-              <a className="font-semibold text-ink underline underline-offset-4" href={event.organizer.url} target="_blank" rel="noopener noreferrer">
+              <a className="font-semibold underline underline-offset-4" href={event.organizer.url} target="_blank" rel="noopener noreferrer">
                 {event.organizer.name}
               </a>
               .
             </p>
-            <ul className="mt-6 flex flex-wrap gap-2">
+            <ul className="relative z-[6] mt-6 flex flex-wrap gap-2">
               {socials.map(({ href, Icon, label }) => (
                 <li key={label}>
-                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="grid h-11 w-11 place-items-center border-2 border-ink bg-paper hover:bg-yellow">
+                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="grid h-11 w-11 place-items-center border-2 border-ink bg-paper text-ink hover:bg-yellow">
                     <Icon size={18} />
                   </a>
                 </li>
@@ -77,7 +80,7 @@ export function Footer() {
             <ul className="grid grid-cols-2 gap-x-4 text-sm lg:grid-cols-1">
               {societies.map((s) => (
                 <li key={s.slug} className="min-w-0">
-                  <Link href={`/s/${s.slug}`} className="flex min-h-11 w-full min-w-0 items-center gap-2 underline-offset-4 hover:underline lg:min-h-9">
+                  <Link href={`/s/${s.slug}`} className="flex min-h-11 w-full min-w-0 items-center gap-2 underline-offset-4 hover:underline">
                     <span className="font-mono font-bold">{s.shortName}</span>
                     <span className="truncate">— {s.name}</span>
                   </Link>
@@ -98,7 +101,7 @@ export function Footer() {
                   <Phone size={18} strokeWidth={2} className="mt-3 shrink-0" aria-hidden />
                   <span>
                     <a href={`tel:${c.phone.replace(/\s/g, "")}`} className={link}>{c.phone}</a>
-                    <span className="block text-ink-3">{c.name} · {c.role}</span>
+                    <span className="block">{c.name} · {c.role}</span>
                   </span>
                 </li>
               ))}
@@ -107,18 +110,18 @@ export function Footer() {
                 <span>{event.venue.name}, {event.venue.address}</span>
               </li>
             </ul>
-            <div className="mt-5 border-2 border-ink shadow-[4px_4px_0_0_var(--ink)]">
+            <div className="relative z-[6] mt-5 border-2 border-ink shadow-[4px_4px_0_0_var(--ink)]">
               <iframe title={`Map of ${event.venue.name}`} src={event.venue.mapEmbed} loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="block h-44 w-full grayscale" />
             </div>
           </div>
         </div>
 
-        <p aria-hidden className="mt-16 select-none overflow-hidden whitespace-nowrap text-[18vw] font-semibold leading-[0.8] tracking-[-0.05em] text-ink/[0.07] lg:text-[13rem]">
-          st(AI)rway
+        <p aria-hidden className="mt-16 select-none overflow-hidden whitespace-nowrap font-display text-[18vw] uppercase leading-[0.8] text-paper/[0.08] lg:text-[13rem]">
+          {ghostWord({ kind: "general" })}
         </p>
 
-        <div className="mt-6 flex flex-col-reverse items-start justify-between gap-6 border-t-2 border-ink pt-6 sm:flex-row sm:items-center">
-          <div className="text-sm text-ink-3">
+        <div className="mt-6 flex flex-col-reverse items-start justify-between gap-6 border-t-2 border-paper/40 pt-6 sm:flex-row sm:items-center">
+          <div className="text-sm">
             <p>© 2026 IEEE SB CEK · Made with ⚡ by the st(AI)rway team</p>
             <p className="flex gap-6">
               <Link href="/code-of-conduct" className={link}>Code of Conduct</Link>
@@ -130,12 +133,12 @@ export function Footer() {
               window.scrollTo({ top: 0 });
               document.getElementById("main")?.focus({ preventScroll: true });
             }}
-            className="btn btn-ghost"
+            className="btn btn-secondary relative z-[6]"
           >
             <ArrowUp size={16} strokeWidth={2} /> Back to top
           </button>
         </div>
       </div>
-    </footer>
+    </FieldBand>
   );
 }

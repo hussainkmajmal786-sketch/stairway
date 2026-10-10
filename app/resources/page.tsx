@@ -13,7 +13,7 @@ export default function ResourcesPage() {
     <>
       <PageHero eyebrow="Resources hub" title="Everything from the steps [[behind you.]]" lead="Slides, code, notebooks and recordings — searchable by topic and level." />
       <div className="wrap pb-[var(--section-y)]">
-        <ResourceHub showAll />
+        <ResourceHub showAll cardHeading="h2" />
       </div>
     </>
   );

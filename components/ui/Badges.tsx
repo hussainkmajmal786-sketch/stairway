@@ -45,11 +45,14 @@ export function SeatsBar({
   seatsTotal,
   className,
   showLabel = true,
+  onYellow = false,
 }: {
   seatsLeft: number;
   seatsTotal: number;
   className?: string;
   showLabel?: boolean;
+  /** on the yellow next-step card red-ink text fails (3.67:1), so urgent labels turn ink there */
+  onYellow?: boolean;
 }) {
   const tone = seatsTone({ seatsLeft, seatsTotal });
   const filled = (seatsTotal - seatsLeft) / seatsTotal;
@@ -57,14 +60,14 @@ export function SeatsBar({
     <div className={cn("w-full", className)}>
       {showLabel && (
         <div className="mb-2 flex items-center justify-between gap-3 font-mono text-xs font-bold uppercase tracking-[0.08em]">
-          <span className={cn(tone === "ok" ? "text-ink-3" : "text-red-ink")}>
+          <span className={cn(tone === "ok" ? "text-ink-3" : onYellow ? "text-ink" : "text-red-ink")}>
             {tone === "full"
               ? "Step full — join the waitlist"
               : tone === "low"
                 ? `Only ${seatsLeft} seats left`
                 : `${seatsLeft} / ${seatsTotal} seats left`}
           </span>
-          <span className="text-ink-4 tabular">{Math.round(filled * 100)}% full</span>
+          <span className="text-ink-3 tabular">{Math.round(filled * 100)}% full</span>
         </div>
       )}
       <div className="seats-track" role="progressbar" aria-label="Seats filled" aria-valuemin={0} aria-valuemax={seatsTotal} aria-valuenow={seatsTotal - seatsLeft}>

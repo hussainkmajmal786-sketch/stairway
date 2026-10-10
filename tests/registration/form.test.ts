@@ -27,8 +27,9 @@ describe("registration form helpers", () => {
     expect(formLevelError({ "q-gone": "Stale" }, order)).toBe("Stale");
   });
 
-  it("describes a field by its error, else its hint", () => {
-    expect(fieldDescribedBy("phone", { error: "Bad", hint: "Private" })).toBe("phone-err");
+  it("describes a field by its error and its hint, in render order", () => {
+    expect(fieldDescribedBy("phone", { error: "Bad", hint: "Private" })).toBe("phone-err phone-hint");
+    expect(fieldDescribedBy("phone", { error: "Bad" })).toBe("phone-err");
     expect(fieldDescribedBy("phone", { hint: "Private" })).toBe("phone-hint");
     expect(fieldDescribedBy("phone", {})).toBeUndefined();
   });

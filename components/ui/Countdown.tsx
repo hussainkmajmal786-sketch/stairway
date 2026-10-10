@@ -10,7 +10,15 @@ function split(ms: number) {
   return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
 }
 
-/** Flip-board countdown: each unit is an ink-bordered tile with mono digits. */
+// Preferred cell widths. Cells are square, may shrink (min-w-0) when the container is narrower than four of them
+// (320px phones, narrow rails), and size their digits from their own width (cqi), so nothing overflows.
+const CELL = { sm: "w-16", md: "w-16 md:w-24", lg: "w-20 md:w-28" };
+
+/**
+ * Poster countdown: ink cells, cream Anton digits, yellow mono units. The visual cells are hidden from assistive tech;
+ * a role="timer" element carries minute-level text and is explicitly polite (a timer is aria-live="off" by default),
+ * so screen readers hear at most one update a minute, never every tick.
+ */
 export function Countdown({
   target,
   size = "md",
@@ -32,27 +40,29 @@ export function Countdown({
 
   // the shared clock jumps to real time right after hydration; ticks refine it per second
   const t = split(new Date(target).getTime() - Math.max(tick, clockNow));
-  const units: [string, number, string][] = [
-    ["Days", t.d, "bg-yellow"],
-    ["Hours", t.h, "bg-paper"],
-    ["Min", t.m, "bg-paper"],
-    ["Sec", t.s, "bg-paper"],
+  const units: [string, number][] = [
+    ["Days", t.d],
+    ["Hours", t.h],
+    ["Min", t.m],
+    ["Sec", t.s],
   ];
-  const digit = { sm: "text-2xl w-14 h-14", md: "text-3xl md:text-4xl w-16 h-16 md:w-20 md:h-20", lg: "text-4xl md:text-6xl w-20 h-20 md:w-28 md:h-28" };
 
   return (
-    <div className={cn("inline-flex flex-col", className)}>
-      <div className="flex items-start gap-2 md:gap-3" aria-hidden="true">
-        {units.map(([u, v, bg]) => (
-          <div key={u} className="flex flex-col items-center">
-            <span className={cn("grid place-items-center overflow-hidden border-2 border-ink font-mono font-bold tabular shadow-[3px_3px_0_0_var(--ink)]", bg, digit[size])}>
+    <div className={cn("inline-flex max-w-full flex-col", className)}>
+      <div className="flex max-w-full items-start gap-1.5 md:gap-2" aria-hidden="true">
+        {units.map(([u, v]) => (
+          <div
+            key={u}
+            className={cn("@container flex aspect-square min-w-0 shrink flex-col items-center justify-center border-2 border-ink bg-ink text-paper", CELL[size])}
+          >
+            <span className="block overflow-hidden font-display text-[length:46cqi] leading-none tabular">
               <span key={pad2(v)} className="block animate-[roll_0.25s_var(--ease)]">{pad2(v)}</span>
             </span>
-            <span className="mono mt-2 text-[0.65rem] font-bold text-ink-4">{u}</span>
+            <span className="mt-[6cqi] font-mono text-[length:clamp(0.5rem,13cqi,0.7rem)] font-bold uppercase tracking-[0.12em] text-yellow">{u}</span>
           </div>
         ))}
       </div>
-      <p className="sr-only" aria-live="polite">
+      <p className="sr-only" role="timer" aria-live="polite" aria-atomic="true">
         {t.d} days, {t.h} hours and {t.m} minutes {label}
       </p>
     </div>

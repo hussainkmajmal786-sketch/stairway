@@ -4,8 +4,14 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 import { PrivateSchema, fieldErrors } from "@/lib/profile/schema";
-import { Field, inputCls } from "@/components/ui/Field";
+import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
 import { cn } from "@/lib/utils";
+
+const HINTS = {
+  email: "From your Google account.",
+  phone: "Only you and event organisers can see this.",
+  ieeeMemberId: "Optional. Members get free entry and priority seats.",
+};
 
 export function SettingsForm({
   userId, email, initial,
@@ -48,21 +54,21 @@ export function SettingsForm({
 
   return (
     <form onSubmit={submit} noValidate className="grid gap-6 md:grid-cols-2">
-      <Field id="email" label="Email" hint="From your Google account." className="md:col-span-2">
-        <input id="email" className={cn(inputCls, "bg-paper-2")} value={email} readOnly aria-readonly />
+      <Field id="email" label="Email" hint={HINTS.email} className="md:col-span-2">
+        <input id="email" className={cn(inputCls, "!bg-paper-2")} value={email} readOnly aria-readonly aria-describedby={fieldDescribedBy("email", { hint: HINTS.email })} />
       </Field>
-      <Field id="phone" label="Phone (WhatsApp)" error={errors.phone} hint="Only you and event organisers can see this.">
+      <Field id="phone" label="Phone (WhatsApp)" error={errors.phone} hint={HINTS.phone}>
         <input
           id="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210"
           className={inputCls} value={d.phone} onChange={(e) => setD({ ...d, phone: e.target.value })}
-          aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "phone-err" : undefined}
+          aria-invalid={!!errors.phone} aria-describedby={fieldDescribedBy("phone", { error: errors.phone, hint: HINTS.phone })}
         />
       </Field>
-      <Field id="ieeeMemberId" label="IEEE membership ID" error={errors.ieeeMemberId} hint="Optional. Members get free entry and priority seats.">
+      <Field id="ieeeMemberId" label="IEEE membership ID" error={errors.ieeeMemberId} hint={HINTS.ieeeMemberId}>
         <input
           id="ieeeMemberId" inputMode="numeric" autoComplete="off"
           className={inputCls} value={d.ieeeMemberId} onChange={(e) => setD({ ...d, ieeeMemberId: e.target.value })}
-          aria-invalid={!!errors.ieeeMemberId} aria-describedby={errors.ieeeMemberId ? "ieeeMemberId-err" : undefined}
+          aria-invalid={!!errors.ieeeMemberId} aria-describedby={fieldDescribedBy("ieeeMemberId", { error: errors.ieeeMemberId, hint: HINTS.ieeeMemberId })}
         />
       </Field>
       <div className="flex flex-wrap items-center gap-4 md:col-span-2">

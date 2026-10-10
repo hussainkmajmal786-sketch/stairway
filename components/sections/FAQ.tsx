@@ -65,7 +65,7 @@ export function FAQ() {
         </div>
         <div className="mt-12 flex flex-col items-center gap-4 text-center" data-reveal>
           <p className="text-ink-2">Still have questions?</p>
-          <a href={`mailto:${event.contact.email}`} className="btn btn-ghost"><Mail size={16} strokeWidth={2} /> Contact the team</a>
+          <a href={`mailto:${event.contact.email}`} className="btn btn-secondary"><Mail size={16} strokeWidth={2} /> Contact the team</a>
         </div>
       </div>
     </section>

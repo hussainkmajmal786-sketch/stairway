@@ -1,0 +1,93 @@
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { FRAME_ORG } from "@/lib/design/brand";
+import { GHOST_DEFAULT, ghostRows } from "@/lib/design/ghost";
+
+/** Huge rotated background word (CLIMB, STEP 04, SUMMIT). Decorative: never read, never over photos or forms. */
+export function Ghost({ word, rows = 6, className }: { word: string; rows?: number; className?: string }) {
+  return (
+    <div className={cn("ghost", className)} aria-hidden="true">
+      {ghostRows(word, rows).map((row, i) => (
+        <span key={i}>{row}</span>
+      ))}
+    </div>
+  );
+}
+
+/** Diagonal paper/ink corner band along the top or bottom edge of a field. Decorative. */
+export function Bands({ edge }: { edge: "top" | "bottom" }) {
+  return <div className={`bands ${edge}`} aria-hidden="true" />;
+}
+
+/**
+ * The frame's logo row: the decorative diamond and the text FRAME_ORG ("IEEE SB CE KIDANGOOR"), nothing else (no
+ * separate "IEEE" mark). When the branch supplies a cream logo SVG, swap the body for it and keep FRAME_ORG as its
+ * accessible name. `middle` is optional (hidden on phones) and renders nothing unless a caller passes real copy.
+ */
+export function LogoRow({ org = FRAME_ORG, middle }: { org?: string; middle?: string }) {
+  return (
+    <div className="logo-row">
+      <span className="lm">
+        <span className="diamond" aria-hidden="true" />
+        {org}
+      </span>
+      {middle && <span className="lm mid">{middle}</span>}
+    </div>
+  );
+}
+
+/** Cream double frame (6px border + inset 2px outline) with the logo row on top. */
+export function Frame({ children, logoRow = true, className }: { children: ReactNode; logoRow?: boolean; className?: string }) {
+  return (
+    <div className={cn("frame", className)}>
+      {logoRow && <LogoRow />}
+      {children}
+    </div>
+  );
+}
+
+export interface FieldBandProps {
+  as?: "section" | "header" | "footer" | "div";
+  id?: string;
+  labelledBy?: string;
+  label?: string;
+  /** Background word; defaults to CLIMB. Pass ghostWord({ kind: "session", … }) on session pages, or false for none. */
+  ghost?: string | false;
+  /** Tall headers (event pages): 14 ghost rows on phones so the word fills the header, the usual 6 from 640px. */
+  tallGhost?: boolean;
+  bands?: "none" | "top" | "both";
+  /** Deeper cobalt (#122C99) for variety. */
+  deep?: boolean;
+  className?: string;
+  innerClassName?: string;
+  children: ReactNode;
+}
+
+/**
+ * A cobalt poster band: cream text, yellow focus ring, print grain, optional ghost word and corner bands.
+ * Anything with ink text inside must sit on a cream .box / .box-2 / .panel (ink on cobalt is 2.39:1).
+ */
+export function FieldBand({
+  as: Tag = "section",
+  id,
+  labelledBy,
+  label,
+  ghost = GHOST_DEFAULT,
+  tallGhost = false,
+  bands = "none",
+  deep = false,
+  className,
+  innerClassName,
+  children,
+}: FieldBandProps) {
+  // a named <div> needs a landmark role (ARIA prohibits naming a generic element)
+  const role = Tag === "div" && (label || labelledBy) ? "region" : undefined;
+  return (
+    <Tag id={id} role={role} aria-labelledby={labelledBy} aria-label={label} className={cn("field on-field", deep && "field-2", className)}>
+      {ghost && (tallGhost ? <Ghost word={ghost} rows={14} className="ghost-tall" /> : <Ghost word={ghost} />)}
+      {bands !== "none" && <Bands edge="top" />}
+      {bands === "both" && <Bands edge="bottom" />}
+      <div className={cn("field-content", innerClassName)}>{children}</div>
+    </Tag>
+  );
+}

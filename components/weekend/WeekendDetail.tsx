@@ -22,6 +22,10 @@ import { useRegisterHref } from "@/components/registration/useRegisterHref";
 import type { CtaState } from "@/lib/registration/cta";
 import { downloadIcs, googleCalendarUrl } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
+import { FieldBand } from "@/components/ui/Poster";
+import { StairText } from "@/components/ui/Logo";
+import { ghostWord } from "@/lib/design/ghost";
+import { displayTitleClass } from "@/lib/design/title";
 
 function Block({ title, Icon, children, id, fill = "bg-paper-2" }: { title: string; Icon: typeof Check; children: React.ReactNode; id?: string; fill?: string }) {
   return (
@@ -56,23 +60,28 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
 
   return (
     <article>
-      <header className="pb-10 pt-10 md:pt-14">
+      <FieldBand
+        as="header"
+        ghost={ghostWord({ kind: "session", step: w.step, finale: w.isFinale })}
+        tallGhost
+        bands="top"
+        className="border-b-2 border-ink pb-12 pt-[clamp(72px,10vw,120px)]"
+      >
         <div className="wrap">
-          <nav aria-label="Breadcrumb" className="mono mb-8 font-bold text-ink-3">
-            <Link href="/" className="underline-offset-4 hover:underline">Home</Link> <span aria-hidden>/</span>{" "}
-            <Link href={`/s/${w.society.slug}`} className="underline-offset-4 hover:underline">{w.society.shortName}</Link> <span aria-hidden>/</span>{" "}
-            <span className="text-ink" aria-current="page">Step {pad2(w.step)}</span>
+          <nav aria-label="Breadcrumb" className="mono mb-8 font-bold">
+            <Link href="/" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Home</Link> <span aria-hidden>/</span>{" "}
+            <Link href={`/s/${w.society.slug}`} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">{w.society.shortName}</Link> <span aria-hidden>/</span>{" "}
+            <span aria-current="page">Step {pad2(w.step)}</span>
           </nav>
           <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-end">
-            <div className={cn("grid h-36 w-36 place-items-center border-2 border-ink shadow-[6px_6px_0_0_var(--ink)] md:h-44 md:w-44", done ? "bg-paper-3" : SOCIETY_FILL[w.society.color])}>
-              <span className="text-center font-mono font-bold">
-                <span className="mono block">{w.society.shortName} · Step</span>
-                <span className="block text-6xl md:text-7xl">{pad2(w.step)}</span>
-                <span className="mono block text-ink-3">/ {pad2(stairway.length)}</span>
-              </span>
+            <div className="panel grid w-40 justify-items-center gap-1 px-3 py-4 text-center md:w-48">
+              <span className="mono font-bold" aria-hidden>{w.society.shortName} · Step</span>
+              <StairText as="p" glyphs={pad2(w.step).split("")} label={`Step ${w.step} of ${stairway.length}`} className="stair-num" />
+              <span className="mono font-bold text-ink-3" aria-hidden>/ {pad2(stairway.length)}</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap gap-2">
+                <span className={cn("tag", SOCIETY_FILL[w.society.color])}>{w.society.shortName}</span>
                 <StatusChip status={w.status} />
                 <LevelChip level={w.level} />
                 {w.formats.map((f) => <FormatChip key={f} format={f} />)}
@@ -80,11 +89,11 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
                   <span className="tag tag-red"><Hourglass size={12} strokeWidth={2.5} aria-hidden /> {days === 0 ? "Today" : `In ${pad2(days)} days`}</span>
                 )}
               </div>
-              <h1 className="mt-4 text-[clamp(2.6rem,7vw,5.5rem)] font-medium leading-[0.95] tracking-[-0.04em]">{w.title}</h1>
-              <p className="mono mt-3 text-sm font-bold text-ink-3">{w.topic}</p>
+              <h1 className={cn("h-display extrude mt-4 break-words pt-[0.14em]", displayTitleClass(w.title))}>{w.title}</h1>
+              <p className="mono mt-3 text-sm font-bold">{w.topic}</p>
             </div>
           </div>
-          <dl className="mt-10 grid border-2 border-ink bg-paper sm:grid-cols-3">
+          <dl className="panel mt-10 grid sm:grid-cols-3">
             <div className="border-ink p-4 max-sm:border-b-2 sm:border-r-2">
               <dt className="meta-label text-blue-ink"><CalendarDays size={14} strokeWidth={2} aria-hidden /> When</dt>
               <dd className="mt-1">{longDate(w.start)}</dd>
@@ -99,9 +108,9 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
             </div>
           </dl>
         </div>
-      </header>
+      </FieldBand>
 
-      <div className="wrap grid gap-8 pb-20 lg:grid-cols-[1fr_360px] lg:items-start">
+      <div className="wrap grid gap-8 pb-20 pt-12 md:pt-16 lg:grid-cols-[1fr_360px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-8">
           <section className="box p-6 shadow-hard md:p-8" data-reveal>
             <p className="text-lg leading-relaxed text-ink-2">{w.description}</p>
@@ -161,10 +170,10 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
           {done && Object.keys(w.resources).length > 0 && (
             <Block title="Resources" Icon={FileText} id="resources" fill="bg-green">
               <div className="flex flex-wrap gap-3">
-                {w.resources.slides && <a className="btn btn-sm btn-ghost" href={w.resources.slides} target="_blank" rel="noopener noreferrer"><FileText size={16} strokeWidth={2} /> Slides</a>}
-                {w.resources.code && <a className="btn btn-sm btn-ghost" href={w.resources.code} target="_blank" rel="noopener noreferrer"><Github size={16} /> Code</a>}
-                {w.resources.notebook && <a className="btn btn-sm btn-ghost" href={w.resources.notebook} target="_blank" rel="noopener noreferrer"><NotebookPen size={16} strokeWidth={2} /> Notebook</a>}
-                {w.resources.reading?.map((r) => <a key={r.href} className="btn btn-sm btn-ghost" href={r.href} target="_blank" rel="noopener noreferrer">{r.label}</a>)}
+                {w.resources.slides && <a className="btn btn-sm btn-secondary" href={w.resources.slides} target="_blank" rel="noopener noreferrer"><FileText size={16} strokeWidth={2} /> Slides</a>}
+                {w.resources.code && <a className="btn btn-sm btn-secondary" href={w.resources.code} target="_blank" rel="noopener noreferrer"><Github size={16} /> Code</a>}
+                {w.resources.notebook && <a className="btn btn-sm btn-secondary" href={w.resources.notebook} target="_blank" rel="noopener noreferrer"><NotebookPen size={16} strokeWidth={2} /> Notebook</a>}
+                {w.resources.reading?.map((r) => <a key={r.href} className="btn btn-sm btn-secondary" href={r.href} target="_blank" rel="noopener noreferrer">{r.label}</a>)}
               </div>
               {w.resources.recording && (
                 <div id="recording" className="mt-6 aspect-video border-2 border-ink">
@@ -209,8 +218,8 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
         </div>
 
         {/* sticky action rail */}
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
-          <div className={cn("border-2 border-ink p-6 shadow-[6px_6px_0_0_var(--ink)]", done ? "bg-paper-2" : "bg-yellow")} data-reveal>
+        <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24">
+          <div className={cn("border-2 border-ink p-6 shadow-[6px_6px_0_0_var(--ink)]", done ? "bg-paper" : "bg-yellow")} data-reveal>
             {done ? (
               <>
                 <p className="mono font-bold text-green-ink">Climbed ✓</p>
@@ -232,10 +241,10 @@ export function WeekendDetail({ slug, cta, attending }: { slug: string; cta: Cta
                   <RegisterCta state={cta} step={w.step} />
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost !px-2">
+                  <a href={googleCalendarUrl(w, event)} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary !px-2">
                     <CalendarPlus size={16} strokeWidth={2} /> Google
                   </a>
-                  <button onClick={() => downloadIcs(w, event)} className="btn btn-sm btn-ghost !px-2">
+                  <button onClick={() => downloadIcs(w, event)} className="btn btn-sm btn-secondary !px-2">
                     <Download size={16} strokeWidth={2} /> .ics
                   </button>
                 </div>

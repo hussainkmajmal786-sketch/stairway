@@ -7,7 +7,8 @@ import type { NextStep } from "@/lib/tickets/list";
 export function NextTicketCard({ next, failed = false }: { next: NextStep | null; failed?: boolean }) {
   return (
     <section className="box shadow-hard" aria-labelledby="next-ticket-title">
-      <div className="border-b-2 border-ink bg-yellow px-5 py-3">
+      {/* print drops backgrounds: fall back to ink on white instead of cream on white */}
+      <div className="border-b-2 border-ink bg-field px-5 py-3 text-paper print:bg-transparent print:text-ink">
         <h2 id="next-ticket-title" className="mono font-bold">Your next step</h2>
       </div>
       {next ? (
@@ -35,14 +36,14 @@ export function NextTicketCard({ next, failed = false }: { next: NextStep | null
       ) : failed ? (
         <div className="p-5">
           <p className="text-ink-2">We couldn&apos;t load your tickets just now.</p>
-          <Link href="/me/tickets" className="btn btn-ghost mt-4">
+          <Link href="/me/tickets" className="btn btn-secondary mt-4">
             Go to My tickets <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>
       ) : (
         <div className="p-5">
           <p className="text-ink-2">You haven&apos;t registered for an upcoming session yet.</p>
-          <Link href="/#societies" className="btn btn-ghost mt-4">
+          <Link href="/#societies" className="btn btn-secondary mt-4">
             Find your next step <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Link>
         </div>

@@ -58,7 +58,7 @@ export function RegistrationUnavailable({ state, slug }: { state: UnavailableSta
               {action.label} <ArrowRight size={16} strokeWidth={2} aria-hidden />
             </Link>
           ))}
-        <Link href={`/events/${encodeURIComponent(slug)}`} className="btn btn-ghost">
+        <Link href={`/events/${encodeURIComponent(slug)}`} className="btn btn-secondary">
           <ArrowLeft size={16} strokeWidth={2} aria-hidden /> Back to the session
         </Link>
       </div>

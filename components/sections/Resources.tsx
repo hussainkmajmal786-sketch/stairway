@@ -8,10 +8,13 @@ import { useClock } from "@/components/providers/ClockProvider";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { LevelChip } from "@/components/ui/Badges";
 import { pad2 } from "@/lib/weekends";
+import { inputBase } from "@/components/ui/Field";
+import { cn } from "@/lib/utils";
 
 const LEVELS = ["All", "Beginner", "Intermediate", "Advanced", "All levels"];
 
-export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
+/** `cardHeading`: h3 under the home section's h2; h2 on /resources, where the cards sit right under the page h1. */
+export function ResourceHub({ showAll = false, cardHeading: CardHeading = "h3" }: { showAll?: boolean; cardHeading?: "h2" | "h3" }) {
   const { weekends } = useClock();
   const [q, setQ] = useState("");
   const [level, setLevel] = useState("All");
@@ -37,7 +40,7 @@ export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by topic — e.g. regression"
-            className="h-12 w-full border-2 border-ink bg-paper pl-11 pr-4 shadow-[3px_3px_0_0_var(--ink)] outline-none placeholder:text-ink-4 focus:bg-paper-2"
+            className={cn("h-12 w-full pl-11 pr-4", inputBase)}
           />
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by level">
@@ -70,7 +73,7 @@ export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
                   <LevelChip level={w.level} />
                 </div>
                 <div className="p-5">
-                  <h3 className="text-xl font-semibold">{w.title}</h3>
+                  <CardHeading className="text-xl font-semibold">{w.title}</CardHeading>
                   <p className="text-sm text-ink-3">{w.topic}</p>
                   <ul className="mt-5 grid grid-cols-2 gap-2">
                     {links.map(({ href, label, Icon }) => (
@@ -101,7 +104,7 @@ export function Resources() {
       <div className="wrap">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <SectionHeader id="resources-title" Icon={FolderOpen} eyebrow="Resources hub" title="Missed a step? [[Catch up.]]" lead="Slides, code, notebooks and recordings from every weekend we've climbed." className="!mb-0" />
-          <Link href="/resources" className="btn btn-ghost shrink-0">All resources <ArrowRight size={16} strokeWidth={2} /></Link>
+          <Link href="/resources" className="btn btn-secondary shrink-0">All resources <ArrowRight size={16} strokeWidth={2} /></Link>
         </div>
         <div className="mt-10"><ResourceHub /></div>
       </div>

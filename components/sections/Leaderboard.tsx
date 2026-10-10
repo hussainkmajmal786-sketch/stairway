@@ -30,7 +30,7 @@ export function Leaderboard() {
         />
 
         <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
-          <div className="box shadow-hard" data-reveal>
+          <div className="box min-w-0 shadow-hard" data-reveal>
             <ol className="flex items-end justify-center gap-3 px-4 pt-8 md:gap-5" aria-label="Top three climbers">
               {PODIUM.map((p) => {
                 const c = top[p.place - 1];
@@ -50,10 +50,10 @@ export function Leaderboard() {
             </ol>
             <ol className="border-t-2 border-ink" start={4}>
               {rest.map((c, i) => (
-                <li key={c.name} className="flex items-center gap-4 border-b-2 border-ink px-5 py-3 last:border-b-0">
+                <li key={c.name} className="flex items-center gap-3 border-b-2 border-ink px-4 py-3 last:border-b-0 sm:gap-4 sm:px-5">
                   <span className="w-6 font-mono font-bold">{i + 4}</span>
                   <Avatar name={c.name} size={36} />
-                  <span className="flex-1">
+                  <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{c.name}</span>
                     <span className="block text-xs text-ink-3">{c.detail}</span>
                   </span>
@@ -61,13 +61,13 @@ export function Leaderboard() {
                     <Flame size={12} strokeWidth={2.5} aria-hidden /> {c.streak}
                     <span className="sr-only">week streak</span>
                   </span>
-                  <span className="w-12 text-right font-mono font-bold tabular">{c.points}</span>
+                  <span className="w-10 text-right font-mono font-bold tabular sm:w-12">{c.points}</span>
                 </li>
               ))}
             </ol>
           </div>
 
-          <div className="flex flex-col gap-8">
+          <div className="flex min-w-0 flex-col gap-8">
             <div data-reveal>
               <h3 className="mono mb-4 font-bold">Streak badges</h3>
               <ul className="grid grid-cols-2 gap-3">

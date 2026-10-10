@@ -12,6 +12,7 @@ import { getMyRegistration } from "@/lib/registration/server";
 import type { Registrant } from "@/lib/registration/schema";
 import { longDate, pad2, timeOf } from "@/lib/weekends";
 import { PageHero } from "@/components/ui/PageHero";
+import { ghostWord } from "@/lib/design/ghost";
 import { ErrorPanel } from "@/components/registration/ErrorPanel";
 import { RegistrationForm } from "@/components/registration/RegistrationForm";
 import { RegistrationUnavailable } from "@/components/registration/RegistrationUnavailable";
@@ -53,6 +54,7 @@ export default async function RegisterPage({ params }: PageProps<"/events/[slug]
         eyebrow={`${ev.society.shortName} · Step ${pad2(ev.step)} · Registration`}
         title={ev.title}
         lead={`${longDate(ev.start)} · ${timeOf(ev.start)} – ${timeOf(ev.end)} IST`}
+        ghost={ghostWord({ kind: "session", step: ev.step, finale: ev.isFinale })}
       />
       <div className="wrap pb-[var(--section-y)]">{body}</div>
     </>

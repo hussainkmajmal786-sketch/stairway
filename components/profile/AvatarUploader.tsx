@@ -55,7 +55,7 @@ export function AvatarUploader({
       <Avatar name={name || "You"} photo={preview ?? undefined} size={88} />
       <div>
         <input ref={input} type="file" accept="image/*" className="sr-only" id="avatar-input" aria-label="Upload profile photo" tabIndex={-1} onChange={pick} />
-        <button type="button" className="btn btn-sm btn-ghost" disabled={busy} onClick={() => input.current?.click()}>
+        <button type="button" className="btn btn-sm btn-secondary" disabled={busy} onClick={() => input.current?.click()}>
           {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Camera size={16} strokeWidth={2} aria-hidden />}
           {preview ? "Change photo" : "Add photo"}
         </button>

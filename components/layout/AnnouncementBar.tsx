@@ -21,7 +21,7 @@ export function AnnouncementBar() {
   const text = event.announcement.text.replace("{step}", pad2(next.step)).replace("{title}", next.title);
 
   return (
-    <div className="relative border-b-2 border-ink bg-ink text-paper">
+    <div className="on-field relative border-b-2 border-ink bg-field text-paper">
       <div className="wrap flex min-h-10 items-center justify-center py-1.5 pr-12 text-center">
         <SmartLink href={registerHref(openSlug(next), event.registration)} className="mono inline-flex min-h-9 items-center gap-2 text-[0.7rem] font-bold hover:text-yellow">
           <span className="tag tag-yellow !py-0.5">Open</span>

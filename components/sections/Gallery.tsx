@@ -86,11 +86,13 @@ export function GalleryGrid({ limit }: { limit?: number }) {
           <li key={`${filter}-${g.id}`} className="break-inside-avoid" data-reveal style={{ ["--d" as string]: i % 3 }}>
             <button
               onClick={() => setOpen(i)}
-              className={cn("lift relative block w-full overflow-hidden border-2 border-ink shadow-hard", ratioCls[g.ratio])}
+              className="lift block w-full border-2 border-ink bg-paper p-2 text-left shadow-hard"
               aria-label={`Open photo: ${g.caption}`}
             >
-              <GalleryArt item={g} />
-              <span className="absolute inset-x-0 bottom-0 border-t-2 border-ink bg-paper px-3 py-2 text-left text-sm font-medium">{g.caption}</span>
+              <span className={cn("relative block overflow-hidden border-2 border-ink", ratioCls[g.ratio])}>
+                <GalleryArt item={g} />
+              </span>
+              <span className="block px-1 pb-1 pt-2 text-sm font-medium">{g.caption}</span>
             </button>
           </li>
         ))}
@@ -129,7 +131,7 @@ export function Gallery() {
       <div className="wrap">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <SectionHeader id="gallery-title" Icon={Camera} eyebrow="Gallery & highlights" title="Proof of the [[climb.]]" className="!mb-0" />
-          <Link href="/gallery" className="btn btn-ghost shrink-0" data-reveal>
+          <Link href="/gallery" className="btn btn-secondary shrink-0" data-reveal>
             Full gallery <ArrowRight size={16} strokeWidth={2} />
           </Link>
         </div>

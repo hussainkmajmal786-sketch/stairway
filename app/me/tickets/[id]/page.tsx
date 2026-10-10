@@ -74,7 +74,7 @@ export default async function TicketPage({ params, searchParams }: PageProps<"/m
             upcoming={view.upcoming}
           />
           {ev && (
-            <Link href={`/events/${encodeURIComponent(ev.slug)}`} className="btn btn-ghost justify-self-start">
+            <Link href={`/events/${encodeURIComponent(ev.slug)}`} className="btn btn-secondary justify-self-start">
               Session details
             </Link>
           )}
