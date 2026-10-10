@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUp } from "lucide-react";
 import { FieldBand } from "@/components/ui/Poster";
 import { ghostWord } from "@/lib/design/ghost";
 import { TOKENS } from "@/lib/design/tokens";
+
+export const metadata: Metadata = { title: "Step not found" };
 
 /** 404 as a poster: cobalt field, CLIMB ghost (general page), extruded Anton title, a staircase with loose steps. */
 export default function NotFound() {

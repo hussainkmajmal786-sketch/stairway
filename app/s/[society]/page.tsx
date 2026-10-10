@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 export async function generateMetadata({ params }: PageProps<"/s/[society]">): Promise<Metadata> {
   const { society } = await params;
   const s = (await getSiteData()).societies.find((x) => x.slug === society);
-  if (!s) return {};
+  // throwing here (before the page streams) makes the server HTML carry the full 404 page, not just a streamed body
+  if (!s) notFound();
   return { title: `${s.shortName} stairway`, description: s.description, alternates: { canonical: `/s/${s.slug}` } };
 }
 
