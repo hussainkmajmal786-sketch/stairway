@@ -13,8 +13,11 @@ const ERROR_CODE = /^[A-Z][A-Z0-9_]{0,59}$/;
 /** Razorpay responses are a few KB; anything larger is not one we parse (CPU budget on Workers). */
 export const MAX_RESPONSE_BYTES = 256 * 1024;
 
-/** Reads at most `max` bytes of the body; returns null when it is larger. Throws if the stream fails mid-read. */
-async function readCapped(res: Response, max: number): Promise<string | null> {
+/**
+ * Reads at most `max` bytes of a Response or Request body (UTF-8); returns null when it is larger, without reading
+ * the rest. Throws if the stream fails mid-read. Also used by the webhook route to cap incoming bodies.
+ */
+export async function readCapped(res: Pick<Response, "headers" | "body">, max: number): Promise<string | null> {
   const declared = Number(res.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > max) {
     await res.body?.cancel().catch(() => undefined);
