@@ -68,7 +68,7 @@ function razorpay(handler: (url: string, init: RequestInit) => Response | Promis
 }
 const pendingRow = (over: Record<string, unknown> = {}): Res => ({
   data: { id: RID, event_id: EID, status: "pending_payment", amount_paise: 19900, hold_expires_at: future(), razorpay_order_id: null,
-          event: { title: "Seeing Machines", slug: "seeing-machines" }, ...over },
+          event: { title: "Seeing Machines", slug: "seeing-machines", status: "published", starts_at: inMs(864e5) }, ...over },
   error: null,
 });
 const orderJson = (over: Record<string, unknown> = {}) =>
@@ -122,6 +122,34 @@ describe("createPaymentOrder", () => {
     }
     expect(f).not.toHaveBeenCalled();
     expect(createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("refuses an order once the session is unpublished or has started", async () => {
+    const f = razorpay(() => orderJson());
+    adminDb(attachOk());
+    const ev = { title: "Seeing Machines", slug: "seeing-machines", status: "published", starts_at: inMs(864e5) };
+    const cases: [Record<string, unknown>, string][] = [
+      [{ event: { ...ev, status: "cancelled" } }, "event_not_found"],
+      [{ event: { ...ev, status: "draft" } }, "event_not_found"],
+      [{ event: null }, "event_not_found"],
+      [{ event: { ...ev, starts_at: inMs(-1000) } }, "registration_closed"],
+      [{ event: { ...ev, starts_at: inMs(-1000) }, razorpay_order_id: ORDER }, "registration_closed"],
+    ];
+    for (const [over, code] of cases) {
+      sessionDb(pendingRow(over));
+      expect(await createPaymentOrder(RID)).toMatchObject({ ok: false, error: { code } });
+    }
+    expect(f).not.toHaveBeenCalled();
+    expect(createAdminClient).not.toHaveBeenCalled();
+  });
+
+  it("maps a Razorpay timeout during order creation to a network error", async () => {
+    sessionDb(pendingRow());
+    adminDb(attachOk());
+    razorpay(() => {
+      throw Object.assign(new Error("The operation timed out"), { name: "TimeoutError" });
+    });
+    expect(await createPaymentOrder(RID)).toMatchObject({ ok: false, error: { code: "network" } });
   });
 
   it("refuses to create or hand out an order when less than 120 s remain on the hold", async () => {
@@ -246,7 +274,8 @@ describe("verifyPayment", () => {
       url.includes("/payments/")
         ? Response.json({ id: PAY, order_id: ORDER, amount: 19900, currency: "INR", status: "captured", method: "upi", notes: {}, ...payment })
         : Response.json({ id: ORDER, amount: 19900, currency: "INR", status: "paid", notes: { source: "stairway", registration_id: RID }, ...order }));
-  const own = () => sessionDb({ data: { id: RID, event: { slug: "seeing-machines" } }, error: null });
+  const own = (over: Record<string, unknown> = {}) =>
+    sessionDb({ data: { id: RID, status: "pending_payment", razorpay_payment_id: null, event: { slug: "seeing-machines" }, ...over }, error: null });
   const confirmed = { confirm_payment: { data: { outcome: "confirmed", registration_id: RID, status: "confirmed" }, error: null } };
 
   it("rejects malformed input, extra keys and bad or replayed signatures before any service-role call", async () => {
@@ -307,10 +336,73 @@ describe("verifyPayment", () => {
     rzpOk();
     adminDb(confirmed);
     expect(await verifyPayment(good())).toEqual({ ok: true, status: "confirmed" });
+    // Second call: the row now carries the payment, so no Razorpay fetch and no admin call at all.
+    vi.mocked(createAdminClient).mockClear();
+    own({ status: "confirmed", razorpay_payment_id: PAY });
+    const f = rzpOk();
+    expect(await verifyPayment(good())).toEqual({ ok: true, status: "confirmed" });
+    expect(f).not.toHaveBeenCalled();
+    expect(createAdminClient).not.toHaveBeenCalled();
+    // If the row was read before the first confirm landed, the database still answers already_processed.
     own();
     rzpOk();
     adminDb({ confirm_payment: { data: { outcome: "already_processed", registration_id: RID, status: "confirmed" }, error: null } });
     expect(await verifyPayment(good())).toEqual({ ok: true, status: "confirmed" });
+  });
+
+  it("answers a replay of an already-applied payment from the row: zero Razorpay fetches, zero service-role calls", async () => {
+    const cases: [string, unknown][] = [
+      ["confirmed", { ok: true, status: "confirmed" }],
+      ["refund_needed", { ok: true, status: "refund_needed" }],
+      ["refunded", { ok: true, status: "refund_needed" }],
+    ];
+    for (const [status, expected] of cases) {
+      own({ status, razorpay_payment_id: PAY });
+      const f = rzpOk();
+      expect(await verifyPayment(good())).toEqual(expected);
+      expect(f).not.toHaveBeenCalled();
+      expect(createAdminClient).not.toHaveBeenCalled();
+    }
+    // A different payment on an already-paid seat still reaches the database (duplicate_payment is recorded).
+    own({ status: "confirmed", razorpay_payment_id: "pay_EARLIER000001" });
+    rzpOk();
+    const rpc = adminDb({ confirm_payment: { data: { outcome: "duplicate_payment", registration_id: RID, status: "confirmed" }, error: null } });
+    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_review" } });
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps a failed payment to payment_failed and a refunded one to unverified, without confirm_payment", async () => {
+    own();
+    rzpOk({ status: "failed" });
+    let rpc = adminDb(confirmed);
+    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_failed" } });
+    expect(rpc).not.toHaveBeenCalled();
+    own();
+    rzpOk({ status: "refunded" });
+    rpc = adminDb(confirmed);
+    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_unverified" } });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("treats permanent Razorpay refusals as unverified and transient ones as processing", async () => {
+    for (const status of [400, 401, 403, 404]) {
+      own();
+      razorpay(() => Response.json({ error: { code: "BAD_REQUEST_ERROR" } }, { status }));
+      expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_unverified" } });
+    }
+    own();
+    razorpay(() => Response.json({ unexpected: true }));
+    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_unverified" } });
+    for (const status of [408, 429, 500, 502, 503]) {
+      own();
+      razorpay(() => new Response("oops", { status }));
+      expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_processing" } });
+    }
+    own();
+    razorpay(() => {
+      throw Object.assign(new Error("timed out"), { name: "TimeoutError" });
+    });
+    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_processing" } });
   });
 
   it("refuses a foreign order (Fund Easy or another registration) without calling confirm_payment", async () => {
@@ -374,9 +466,9 @@ describe("verifyPayment", () => {
     expect(JSON.stringify(res)).not.toContain("secret detail");
   });
 
-  it("is refused while payments are off", async () => {
+  it("says processing (never 'opens soon') when payments were switched off after the user paid", async () => {
     vi.mocked(paymentsConfig).mockReturnValue({ enabled: false });
-    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "paid_event" } });
+    expect(await verifyPayment(good())).toMatchObject({ ok: false, error: { code: "payment_processing", recovery: "tickets" } });
     expect(createClient).not.toHaveBeenCalled();
     expect(createAdminClient).not.toHaveBeenCalled();
   });

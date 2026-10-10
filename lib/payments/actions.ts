@@ -62,6 +62,12 @@ function fromThrown(e: unknown): Failure {
   return fail(e instanceof Error && NETWORK_RE.test(e.message) ? "network" : "unknown");
 }
 
+/** 4xx other than 408 / 429, an invalid id or an unparseable success body: retrying the same request cannot help. */
+function isPermanentRazorpayError(e: RazorpayError): boolean {
+  if (e.code === "BAD_RESPONSE" || e.code === "BAD_ID") return true;
+  return e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429;
+}
+
 function refresh(slug: string | null) {
   try {
     if (slug) {
@@ -94,12 +100,17 @@ export async function createPaymentOrder(registrationId: string): Promise<Create
     const db = await createClient();
     const { data: row, error } = await db
       .from("registrations")
-      .select("id, event_id, status, amount_paise, hold_expires_at, razorpay_order_id, event:events(title, slug)")
+      .select("id, event_id, status, amount_paise, hold_expires_at, razorpay_order_id, event:events(title, slug, status, starts_at)")
       .eq("id", id.data)
       .eq("user_id", user.id)
       .maybeSingle();
     if (error) return { ok: false, error: errorFromDb(error) };
     if (!row) return fail("registration_not_found");
+    // Never take money for a session that was unpublished or has started (confirm_payment would only refund it).
+    const ev = row.event as { title?: unknown; status?: unknown; starts_at?: unknown } | null;
+    if (!ev || ev.status !== "published") return fail("event_not_found");
+    const starts = typeof ev.starts_at === "string" ? Date.parse(ev.starts_at) : NaN;
+    if (!(starts > Date.now())) return fail("registration_closed");
     const holdEnd = row.hold_expires_at ? Date.parse(row.hold_expires_at) : NaN;
     // Too little time left to pay safely: the user starts again with a fresh hold.
     if (row.status !== "pending_payment" || !row.hold_expires_at || !(holdEnd - Date.now() >= MIN_HOLD_LEFT_MS)) {
@@ -130,7 +141,7 @@ export async function createPaymentOrder(registrationId: string): Promise<Create
       orderId = parsed.data.order_id;
     }
 
-    const title = (row.event as { title?: unknown } | null)?.title;
+    const title = ev.title;
     return {
       ok: true,
       checkout: {
@@ -165,6 +176,11 @@ function fromOutcome(outcome: ConfirmOutcome, status: string | null): VerifyResu
       return { ok: true, status: "processing" };
     case "not_captured":
       return { ok: true, status: "processing" };
+    case "payment_failed":
+      return fail("payment_failed");
+    case "payment_refunded":
+      // Refunded before it was ever applied here: nothing to confirm; My tickets / the organisers have the record.
+      return fail("payment_unverified");
     case "duplicate_payment":
     case "amount_mismatch":
       return fail("payment_review");
@@ -183,7 +199,9 @@ function fromOutcome(outcome: ConfirmOutcome, status: string | null): VerifyResu
 export async function verifyPayment(input: unknown): Promise<VerifyResult> {
   try {
     const cfg = paymentsConfig();
-    if (!cfg.enabled) return fail("paid_event");
+    // Payments switched off (kill switch) after the user may already have paid: never say "opens soon" here. The
+    // webhook / an admin settles it later; My tickets shows the outcome.
+    if (!cfg.enabled) return fail("payment_processing");
     const v = VerifyInput.safeParse(input);
     if (!v.success) return fail("payment_unverified");
     const { user } = await getAuthState();
@@ -195,12 +213,16 @@ export async function verifyPayment(input: unknown): Promise<VerifyResult> {
     const db = await createClient();
     const { data: own, error } = await db
       .from("registrations")
-      .select("id, event:events(slug)")
+      .select("id, status, razorpay_payment_id, event:events(slug)")
       .eq("id", v.data.registrationId)
       .eq("user_id", user.id)
       .maybeSingle();
     if (error) return { ok: false, error: errorFromDb(error) };
     if (!own) return fail("registration_not_found");
+    // Replay of a payment already applied to this registration: answer from the row, with no Razorpay call (the
+    // account is shared with Fund Easy, so its rate limit is too) and no service-role call (each confirm_payment call
+    // appends a ledger row).
+    if (own.razorpay_payment_id === v.data.paymentId) return fromOutcome("already_processed", own.status);
 
     const res = await confirmVerifiedPayment(
       { creds: { keyId: cfg.keyId, keySecret: cfg.keySecret }, fetch: httpFetch, db: createAdminClient(cfg.serviceRoleKey) },
@@ -208,7 +230,9 @@ export async function verifyPayment(input: unknown): Promise<VerifyResult> {
     );
     if (res.outcome !== "foreign" && res.outcome !== "not_captured") refresh(slugOf(own.event));
     return fromOutcome(res.outcome, res.status);
-  } catch {
+  } catch (e) {
+    // A permanent Razorpay refusal (bad key, unknown payment, junk response) will not fix itself: say so.
+    if (e instanceof RazorpayError && isPermanentRazorpayError(e)) return fail("payment_unverified");
     // Razorpay or the database was unreachable (retryable): the webhook still confirms; My tickets shows the outcome.
     return fail("payment_processing");
   }

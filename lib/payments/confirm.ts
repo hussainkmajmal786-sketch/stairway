@@ -12,6 +12,10 @@ import { fetchOrder, fetchPayment, type FetchLike, type RazorpayCredentials } fr
 export type ConfirmOutcome =
   | "confirmed" | "late_confirmed" | "refund_needed" | "already_processed" | "duplicate_payment"
   | "amount_mismatch" | "duplicate_event" | "unknown_order" | "not_captured" | "foreign"
+  /** Razorpay says the payment failed (final): nothing to confirm, no retry. */
+  | "payment_failed"
+  /** Razorpay says the payment was refunded before we applied it: nothing to confirm, no retry. */
+  | "payment_refunded"
   /** confirm_payment raised a permanent refusal (invalid_source / invalid_payment / invalid_event / payment_conflict). */
   | "rejected";
 
@@ -54,6 +58,9 @@ export async function confirmVerifiedPayment(
     notes = order.notes;
   }
   if (notes.source !== "stairway" || notes.registration_id !== input.registrationId) return { outcome: "foreign", status: null };
+  if (payment.status === "failed") return { outcome: "payment_failed", status: null };
+  if (payment.status === "refunded") return { outcome: "payment_refunded", status: null };
+  // created / authorized (capture pending): may still become captured, so the caller retries / says "processing".
   if (payment.status !== "captured") return { outcome: "not_captured", status: null };
 
   const { data, error } = await deps.db.rpc("confirm_payment", {

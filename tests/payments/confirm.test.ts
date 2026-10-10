@@ -61,10 +61,19 @@ describe("confirmVerifiedPayment", () => {
   });
 
   it("does not confirm a payment that is not captured yet", async () => {
-    for (const status of ["authorized", "created", "failed", "refunded"]) {
+    for (const status of ["authorized", "created"]) {
       const db = fakeDb(ok);
       const res = await confirmVerifiedPayment({ creds: CREDS, fetch: razorpay({ status }), db: db as never }, input);
       expect(res).toEqual({ outcome: "not_captured", status: null });
+      expect(db.rpc).not.toHaveBeenCalled();
+    }
+  });
+
+  it("reports failed and refunded payments as final outcomes, without touching the DB", async () => {
+    for (const [status, outcome] of [["failed", "payment_failed"], ["refunded", "payment_refunded"]]) {
+      const db = fakeDb(ok);
+      const res = await confirmVerifiedPayment({ creds: CREDS, fetch: razorpay({ status }), db: db as never }, input);
+      expect(res).toEqual({ outcome, status: null });
       expect(db.rpc).not.toHaveBeenCalled();
     }
   });
