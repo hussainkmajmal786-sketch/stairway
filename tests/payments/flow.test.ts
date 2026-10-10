@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afterCheckout, afterRegister, afterVerify } from "@/lib/payments/flow";
+import { abandonHref, afterCheckout, afterRegister, afterVerify } from "@/lib/payments/flow";
 import { registrationError } from "@/lib/registration/errors";
 
 const ID = "33333333-3333-4333-8333-333333333333";
@@ -42,5 +42,13 @@ describe("afterRegister (U-1)", () => {
   it("sends confirmed and waitlisted seats to the ticket with ?new=1", () => {
     expect(afterRegister({ registrationId: ID, status: "confirmed" })).toEqual({ kind: "navigate", href: `${T}?new=1` });
     expect(afterRegister({ registrationId: ID, status: "waitlisted" })).toEqual({ kind: "navigate", href: `${T}?new=1` });
+  });
+});
+
+describe("abandonHref (M-c)", () => {
+  it("sends a dismissed hold to the plain ticket page, without ?new=1", () => {
+    expect(abandonHref(ID)).toBe(T);
+    expect(afterCheckout("dismissed", abandonHref(ID))).toEqual({ kind: "navigate", href: T });
+    expect(abandonHref(ID)).not.toContain("new=1");
   });
 });

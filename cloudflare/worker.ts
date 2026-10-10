@@ -20,6 +20,9 @@ export default {
     ctx.waitUntil(
       handler.fetch(cronRequest(env), env, ctx).then((res: Response) => {
         if (!res.ok) console.error("cron tick failed:", res.status);
+      }).catch(() => {
+        // Short non-secret marker only: never log the error object (it could carry request details).
+        console.error("cron tick threw");
       }),
     );
   },

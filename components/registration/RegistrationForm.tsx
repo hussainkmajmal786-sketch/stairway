@@ -11,7 +11,7 @@ import { registrationFieldErrors, registrationSchema, type Registrant } from "@/
 import { registrationError, type RegistrationError } from "@/lib/registration/errors";
 import { registerForEvent, type RegisterResult } from "@/lib/registration/actions";
 import { formatInr } from "@/lib/payments/money";
-import { afterRegister } from "@/lib/payments/flow";
+import { abandonHref, afterRegister } from "@/lib/payments/flow";
 import { usePayFlow } from "@/components/payments/usePayFlow";
 import { ticketPath } from "@/lib/registration/cta";
 import { FORM_ERROR_ID, fieldOrder, firstInvalid, formLevelError, submitGate } from "@/lib/registration/form";
@@ -40,7 +40,7 @@ export function RegistrationForm({
   const [busy, startTransition] = useTransition();
   // Paid sessions: after the hold is created, Checkout opens straight away. Closing it lands on the ticket page,
   // which shows "Complete payment" with the hold's countdown (the form itself cannot register twice).
-  const abandonTo = useCallback((id: string) => `${ticketPath(id)}?new=1`, []);
+  const abandonTo = useCallback((id: string) => abandonHref(id), []);
   const { pay, error: payError } = usePayFlow({ step: paid?.step ?? 0, abandonTo });
   // The hold this form created, so "Try again" after a failed order retries the payment, not the registration.
   const [heldId, setHeldId] = useState<string | null>(null);

@@ -41,3 +41,6 @@ export function afterRegister(res: {
   if (res.status === "pending_payment") return { kind: "pay", registrationId: res.registrationId };
   return { kind: "navigate", href: `${ticketPath(res.registrationId)}?new=1` };
 }
+
+/** Where a dismissed Checkout of a fresh hold goes: the plain ticket page (Pay + countdown), never the ?new=1 copy. */
+export const abandonHref = (registrationId: string): string => ticketPath(registrationId);
