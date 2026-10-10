@@ -853,6 +853,16 @@ export type Database = {
         Returns: Json
       }
       claim_refund: { Args: { p_registration_id: string }; Returns: Json }
+      claim_sync_batch: { Args: { p_limit?: number }; Returns: Json }
+      complete_sync: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_ok: boolean
+          p_permanent?: boolean
+        }
+        Returns: string
+      }
       confirm_payment: {
         Args: {
           p_amount_paise: number
