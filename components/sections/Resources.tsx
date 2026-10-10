@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 
 const LEVELS = ["All", "Beginner", "Intermediate", "Advanced", "All levels"];
 
-export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
+/** `cardHeading`: h3 under the home section's h2; h2 on /resources, where the cards sit right under the page h1. */
+export function ResourceHub({ showAll = false, cardHeading: CardHeading = "h3" }: { showAll?: boolean; cardHeading?: "h2" | "h3" }) {
   const { weekends } = useClock();
   const [q, setQ] = useState("");
   const [level, setLevel] = useState("All");
@@ -72,7 +73,7 @@ export function ResourceHub({ showAll = false }: { showAll?: boolean }) {
                   <LevelChip level={w.level} />
                 </div>
                 <div className="p-5">
-                  <h3 className="text-xl font-semibold">{w.title}</h3>
+                  <CardHeading className="text-xl font-semibold">{w.title}</CardHeading>
                   <p className="text-sm text-ink-3">{w.topic}</p>
                   <ul className="mt-5 grid grid-cols-2 gap-2">
                     {links.map(({ href, label, Icon }) => (
