@@ -83,8 +83,13 @@
     color-scheme: light;
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
-    scroll-padding-top: 88px;
+    /* --header-h is the sticky header's measured height (TopBar); the fallbacks are its height with the announcement
+       strip open (1 line ≥768px, 2 lines on phones, 4 lines below 380px) */
+    --header-fallback: 116px;
+    scroll-padding-top: calc(var(--header-h, var(--header-fallback)) + 12px);
   }
+  @media (max-width: 767.98px) { html { --header-fallback: 134px; } }
+  @media (max-width: 379.98px) { html { --header-fallback: 152px; } }
   body {
     background-color: var(--paper);
     /* faint graph-paper grid */
