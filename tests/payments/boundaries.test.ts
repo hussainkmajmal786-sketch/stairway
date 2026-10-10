@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 // never reachable from a "use client" module, and the service role is imported only where the plan allows it.
 
 const ROOT = resolve(__dirname, "../..");
-const SCAN = ["app", "components", "lib"];
+const SCAN = ["app", "components", "lib", "cloudflare"];
 
 function walk(dir: string, out: string[] = []): string[] {
   let entries: string[];
@@ -23,15 +23,20 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const files = SCAN.flatMap((d) => walk(join(ROOT, d))).map((p) => ({
+const rootFiles = readdirSync(ROOT).filter((n) => /\.(ts|tsx|mts)$/.test(n)).map((n) => join(ROOT, n));
+const files = [...SCAN.flatMap((d) => walk(join(ROOT, d))), ...rootFiles].map((p) => ({
   path: relative(ROOT, p).replace(/\\/g, "/"),
   src: readFileSync(p, "utf8"),
 }));
 
 const isClient = (src: string) => /^\s*(?:\/\/[^\n]*\n\s*|\/\*[\s\S]*?\*\/\s*)*["']use client["']/.test(src);
-// Value imports only: `import type { … }` erases at build time and is harmless.
+// Value imports only: `import type { … }` / `export type { … }` erase at build time and are harmless. Re-exports
+// (`export … from`), dynamic `import()` and `require()` count as value imports.
 const valueImports = (src: string, mod: RegExp) =>
-  [...src.matchAll(/^\s*import\s+(?!type\s)[^;]*?from\s+["']([^"']+)["']/gm)].some((m) => mod.test(m[1]));
+  [
+    ...src.matchAll(/^\s*(?:import|export)\s+(?!type\s)[^;]*?from\s+["']([^"']+)["']/gm),
+    ...src.matchAll(/\b(?:import|require)\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/g),
+  ].some((m) => mod.test(m[1]));
 
 const ADMIN = /^(?:@\/lib\/supabase\/admin|\.{1,2}\/(?:.*\/)?admin)$/;
 const CONFIG = /^(?:@\/lib\/payments\/config|\.{1,2}\/(?:.*\/)?config)$/;
@@ -54,6 +59,11 @@ describe("payment secret boundaries", () => {
     expect(files.filter((f) => isClient(f.src)).length).toBeGreaterThan(0); // the scan is not vacuous
     expect(valueImports('"use client";\nimport { createAdminClient } from "@/lib/supabase/admin";', ADMIN)).toBe(true);
     expect(valueImports('import type { AdminClient } from "@/lib/supabase/admin";', ADMIN)).toBe(false);
+    expect(valueImports('export type { AdminClient } from "@/lib/supabase/admin";', ADMIN)).toBe(false);
+    expect(valueImports('export { createAdminClient } from "@/lib/supabase/admin";', ADMIN)).toBe(true);
+    expect(valueImports('export * from "../supabase/admin";', ADMIN)).toBe(true);
+    expect(valueImports('const m = await import("@/lib/supabase/admin");', ADMIN)).toBe(true);
+    expect(valueImports('const m = require("./admin");', ADMIN)).toBe(true);
     const offenders = files
       .filter((f) => isClient(f.src) && (valueImports(f.src, ADMIN) || valueImports(f.src, CONFIG)))
       .map((f) => f.path);
@@ -66,6 +76,13 @@ describe("payment secret boundaries", () => {
       .map((f) => f.path)
       .filter((p) => !ADMIN_ALLOWED.has(p));
     expect(importers).toEqual([]);
+  });
+
+  it("names the secret environment variables only in lib/payments/config.ts (no second service-role client)", () => {
+    const SECRET_NAMES = /\b(?:RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|SUPABASE_SERVICE_ROLE_KEY|STAIRWAY_SYNC_SECRET|CRON_SECRET)\b/;
+    expect(files.some((f) => f.path === "lib/payments/config.ts" && SECRET_NAMES.test(f.src))).toBe(true); // not vacuous
+    const offenders = files.filter((f) => f.path !== "lib/payments/config.ts" && SECRET_NAMES.test(f.src)).map((f) => f.path);
+    expect(offenders).toEqual([]);
   });
 
   it("has no module-level service-role client (one per request, never cached across Worker requests)", () => {
