@@ -7,7 +7,7 @@ import { TOKENS } from "@/lib/design/tokens";
 /** 404 as a poster: cobalt field, CLIMB ghost (general page), extruded Anton title, a staircase with loose steps. */
 export default function NotFound() {
   return (
-    <FieldBand labelledBy="nf-title" ghost={ghostWord({ kind: "general" })} bands="top" className="border-b-2 border-ink pb-[clamp(80px,12vw,140px)] pt-[clamp(96px,14vw,160px)]">
+    <FieldBand labelledBy="nf-title" ghost={ghostWord({ kind: "general" })} bands="top" className="pb-[clamp(80px,12vw,140px)] pt-[clamp(96px,14vw,160px)]">
       <div className="wrap grid items-center gap-12 lg:grid-cols-2">
         <div>
           <span className="tag tag-red">Error 404 · Step not found</span>

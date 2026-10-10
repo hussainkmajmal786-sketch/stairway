@@ -73,7 +73,7 @@ export function Societies() {
   const { societies } = useSiteData();
   const { weekends } = useClock();
   return (
-    <FieldBand id="societies" labelledBy="societies-title" ghost={false} bands="top" className="section border-y-2 border-ink">
+    <FieldBand id="societies" labelledBy="societies-title" ghost={false} bands="top" className="section border-b-2 border-ink">
       <div className="wrap">
         <SectionHeader id="societies-title" Icon={Layers} eyebrow="Five societies · five stairways" title="Pick your [[stairway.]]" lead="Every IEEE society at CEK runs its own weekly climb. Follow one, or hop between them." tone="field" />
         <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
