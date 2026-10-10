@@ -51,7 +51,8 @@ export function Community() {
       <div className="wrap grid gap-12 lg:grid-cols-2 lg:items-center">
         <div>
           <p className="eyebrow mb-4" data-reveal><Bell size={16} strokeWidth={2} aria-hidden /> Newsletter &amp; community</p>
-          <Heading id="community-title" text="Never miss a [[step.]]" rule="left" className="h2" />
+          {/* no rule: in the half-width column the wrapped title would leave a stray 12px trailing dash */}
+          <Heading id="community-title" text="Never miss a [[step.]]" className="h2" />
           <p className="lead mt-5" data-reveal>Weekly reminders, resources and first dibs on seats. Or skip the inbox and join 500+ climbers on WhatsApp.</p>
         </div>
         <div className="flex flex-col gap-5" data-reveal>
