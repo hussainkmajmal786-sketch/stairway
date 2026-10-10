@@ -87,59 +87,75 @@ begin
   select * into reg from public.registrations where id = r1;
   assert reg.token_number is null and reg.razorpay_order_id is null, 'hold got a token or an order';
 
-  -- attach an order: own live hold only, exact amount, idempotent
-  perform set_config('request.jwt.claims', json_build_object('sub', b1, 'role', 'authenticated')::text, true);
-  set local role authenticated;
-  r := public.attach_payment_order(r1, 'order_P4RPC000001', 19900);
+  -- attach an order: server-only (service_role passes the session user id); own live hold only, exact amount, idempotent
+  set local role service_role;
+  r := public.attach_payment_order(b1, r1, 'order_P4RPC000001', 19900);
   assert r->>'order_id' = 'order_P4RPC000001', 'attach: ' || r::text;
-  r := public.attach_payment_order(r1, 'order_P4RPC000002', 19900);
+  r := public.attach_payment_order(b1, r1, 'order_P4RPC000002', 19900);
   assert r->>'order_id' = 'order_P4RPC000001', 'second attach replaced the order: ' || r::text;
   begin
-    perform public.attach_payment_order(r1, 'order_P4RPC000003', 100);
+    perform public.attach_payment_order(b1, r1, 'order_P4RPC000003', 100);
     assert false, 'wrong amount accepted';
   exception when others then if sqlerrm <> 'amount_mismatch' then raise; end if; end;
   begin
-    perform public.attach_payment_order(r1, 'nope', 19900);
+    perform public.attach_payment_order(b1, r1, 'nope', 19900);
     assert false, 'malformed order accepted';
   exception when others then if sqlerrm <> 'invalid_order' then raise; end if; end;
-  perform set_config('request.jwt.claims', json_build_object('sub', b2, 'role', 'authenticated')::text, true);
+  -- a foreign user id is refused
   begin
-    perform public.attach_payment_order(r1, 'order_P4RPC000004', 19900);
+    perform public.attach_payment_order(b2, r1, 'order_P4RPC000004', 19900);
     assert false, 'attached an order to someone else''s hold';
   exception when others then if sqlerrm <> 'registration_not_found' then raise; end if; end;
   -- b2 cannot hijack b1's order id for their own hold
   begin
-    perform public.attach_payment_order(r2, 'order_P4RPC000001', 19900);
+    perform public.attach_payment_order(b2, r2, 'order_P4RPC000001', 19900);
     assert false, 'an order id of another registration was attached';
   exception when others then if sqlerrm <> 'invalid_order' then raise; end if; end;
   -- a waitlist place has no hold to pay for
-  perform set_config('request.jwt.claims', json_build_object('sub', b3, 'role', 'authenticated')::text, true);
   begin
-    perform public.attach_payment_order(r3, 'order_P4RPC000005', 19900);
+    perform public.attach_payment_order(b3, r3, 'order_P4RPC000005', 19900);
     assert false, 'an order was attached to a waitlist place';
   exception when others then if sqlerrm <> 'hold_expired' then raise; end if; end;
-  perform set_config('request.jwt.claims', '{"role":"authenticated"}', true);
   begin
-    perform public.attach_payment_order(r1, 'order_P4RPC000006', 19900);
+    perform public.attach_payment_order(null, r1, 'order_P4RPC000006', 19900);
     assert false, 'attach without a user id accepted';
   exception when others then if sqlerrm <> 'not_signed_in' then raise; end if; end;
+  reset role;
+  -- payments switched off: no new orders
+  update private.feature_flags set enabled = false where key = 'payments';
+  set local role service_role;
+  begin
+    perform public.attach_payment_order(b2, r2, 'order_P4RPC000008', 19900);
+    assert false, 'attach accepted with the payments flag off';
+  exception when others then if sqlerrm <> 'payments_disabled' then raise; end if; end;
+  reset role;
+  update private.feature_flags set enabled = true where key = 'payments';
+  -- signed-in users cannot reach attach at all (only the server, with the service role)
+  perform set_config('request.jwt.claims', json_build_object('sub', b1, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin
+    perform public.attach_payment_order(b1, r1, 'order_P4RPC000010', 19900);
+    assert false, 'a signed-in user executed attach_payment_order';
+  exception when insufficient_privilege then null; end;
   reset role;
   assert (select count(*) from private.payment_orders where registration_id = r1) = 2, 'both orders must be in the ledger';
   assert (select razorpay_order_id from public.registrations where id = r1) = 'order_P4RPC000001', 'hold not linked to its order';
   assert (select razorpay_order_id from public.registrations where id = r2) is null, 'b2 hold got an order';
   assert not exists (select 1 from private.payment_orders
-                     where razorpay_order_id in ('order_P4RPC000003', 'order_P4RPC000004', 'order_P4RPC000005', 'order_P4RPC000006')),
+                     where razorpay_order_id in ('order_P4RPC000003', 'order_P4RPC000004', 'order_P4RPC000005', 'order_P4RPC000006',
+                                                 'order_P4RPC000008', 'order_P4RPC000010')),
     'a refused attach left a ledger row';
   assert (select amount_paise from private.payment_orders where razorpay_order_id = 'order_P4RPC000002') = 19900, 'ledger amount';
 
   -- b1's hold expires: a new registration promotes the waitlist head (b3) into a hold, and is itself waitlisted
   update public.registrations set hold_expires_at = now() - interval '1 second' where id = r1;
-  perform set_config('request.jwt.claims', json_build_object('sub', b1, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role service_role;
   begin
-    perform public.attach_payment_order(r1, 'order_P4RPC000001', 19900);
+    perform public.attach_payment_order(b1, r1, 'order_P4RPC000001', 19900);
     assert false, 'an order was attached to an expired hold';
   exception when others then if sqlerrm <> 'hold_expired' then raise; end if; end;
+  reset role;
+  set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', b4, 'role', 'authenticated')::text, true);
   r := public.register_for_event(paid, '{}');
   assert r->>'status' = 'waitlisted', 'b4: ' || r::text;
@@ -223,9 +239,11 @@ begin
     'free token reused after a delete';
 
   -- grants
-  assert not has_function_privilege('anon', 'public.attach_payment_order(uuid, text, integer)', 'execute'), 'anon can attach orders';
-  assert has_function_privilege('authenticated', 'public.attach_payment_order(uuid, text, integer)', 'execute'), 'users cannot attach orders';
-  assert not has_function_privilege('service_role', 'private.attach_payment_order(uuid, text, integer)', 'execute'), 'service_role runs attach';
+  assert not has_function_privilege('anon', 'public.attach_payment_order(uuid, uuid, text, integer)', 'execute'), 'anon can attach orders';
+  assert not has_function_privilege('authenticated', 'public.attach_payment_order(uuid, uuid, text, integer)', 'execute'), 'users can attach orders';
+  assert has_function_privilege('service_role', 'public.attach_payment_order(uuid, uuid, text, integer)', 'execute'), 'server cannot attach orders';
+  assert to_regprocedure('public.attach_payment_order(uuid, text, integer)') is null
+     and to_regprocedure('private.attach_payment_order(uuid, text, integer)') is null, 'user-callable 3-arg attach still exists';
 
   -- capacity never exceeded by confirmed + live holds
   set constraints all immediate;
@@ -259,18 +277,18 @@ begin
   assert (select status from public.registrations where id = r3) = 'waitlisted', 'b3 promoted after the start';
 
   -- function shape: definer bodies in private, invoker wrappers in public, search_path pinned
-  assert (select p.prosecdef from pg_proc p where p.oid = 'private.attach_payment_order(uuid, text, integer)'::regprocedure),
+  assert (select p.prosecdef from pg_proc p where p.oid = 'private.attach_payment_order(uuid, uuid, text, integer)'::regprocedure),
     'private attach is not security definer';
-  assert not (select p.prosecdef from pg_proc p where p.oid = 'public.attach_payment_order(uuid, text, integer)'::regprocedure),
+  assert not (select p.prosecdef from pg_proc p where p.oid = 'public.attach_payment_order(uuid, uuid, text, integer)'::regprocedure),
     'public attach is security definer';
   assert not exists (select 1 from pg_proc p
                      where p.proname in ('attach_payment_order', 'register_for_event', 'cancel_registration', 'promote_waitlist')
                        and p.pronamespace in ('public'::regnamespace, 'private'::regnamespace)
                        and not coalesce(p.proconfig @> array['search_path=""'], false)),
     'a payments RPC lacks search_path=''''';
-  assert not has_function_privilege('service_role', 'public.attach_payment_order(uuid, text, integer)', 'execute'), 'service_role can attach';
-  assert not has_function_privilege('anon', 'private.attach_payment_order(uuid, text, integer)', 'execute'), 'anon runs the attach body';
-  assert has_function_privilege('authenticated', 'private.attach_payment_order(uuid, text, integer)', 'execute'), 'wrapper target not executable';
+  assert not has_function_privilege('anon', 'private.attach_payment_order(uuid, uuid, text, integer)', 'execute'), 'anon runs the attach body';
+  assert not has_function_privilege('authenticated', 'private.attach_payment_order(uuid, uuid, text, integer)', 'execute'), 'users run the attach body';
+  assert has_function_privilege('service_role', 'private.attach_payment_order(uuid, uuid, text, integer)', 'execute'), 'wrapper target not executable';
   assert not has_function_privilege('authenticated', 'private.promote_waitlist(uuid)', 'execute'), 'promote_waitlist is callable';
   assert not has_function_privilege('service_role', 'private.promote_waitlist(uuid)', 'execute'), 'service_role runs promote_waitlist';
   assert has_function_privilege('authenticated', 'private.register_for_event(uuid, jsonb)', 'execute')
@@ -283,7 +301,7 @@ do $$ begin
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   set local role anon;
   begin
-    perform public.attach_payment_order(gen_random_uuid(), 'order_P4RPC000007', 100);
+    perform public.attach_payment_order(gen_random_uuid(), gen_random_uuid(), 'order_P4RPC000007', 100);
     assert false, 'anon executed attach_payment_order';
   exception when insufficient_privilege then null; end;
   reset role;

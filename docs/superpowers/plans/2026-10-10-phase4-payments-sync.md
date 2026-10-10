@@ -115,7 +115,7 @@
   - `private.feature_flags(key text pk in ('payments'), enabled bool default false, updated_at)`; `private.flag_enabled(p_key text) returns boolean`
   - `private.event_token_counters(event_id uuid pk → events, last_token int)`; `private.next_token(p_event_id uuid) returns int` (caller holds the event row lock)
   - `private.receipt_seq`; `private.next_receipt_number() returns text` → `STW-YYYY-NNNNNN`
-  - new `public.registrations` columns: `paid_at timestamptz`, `receipt_number text unique`, `razorpay_refund_id text unique`, `refunded_at timestamptz`, `refund_claimed_until timestamptz`, `cancel_reason text in ('user','hold_expired','late_payment_no_seat')`; checks `registrations_money_shape`, `registrations_order_shape`, `registrations_payment_shape`
+  - new `public.registrations` columns: `paid_at timestamptz`, `receipt_number text unique`, `razorpay_refund_id text unique`, `refunded_at timestamptz`, `refund_claimed_until timestamptz`, `cancel_reason text in ('user','hold_expired','late_payment_no_seat')` (review fixes add `'refunded'`); checks `registrations_money_shape`, `registrations_order_shape`, `registrations_payment_shape`
   - `private.payment_orders(razorpay_order_id text pk, registration_id uuid → registrations ON DELETE RESTRICT, amount_paise int > 0, status in ('created','paid','refunded'), razorpay_payment_id text unique, receipt_number text unique, razorpay_refund_id text unique, created_at, paid_at, refunded_at)`
   - `private.payment_events(id bigint identity, registration_id uuid → registrations ON DELETE RESTRICT, source in ('client_verify','webhook','refund_api'), razorpay_event_id text unique, razorpay_event, razorpay_order_id, razorpay_payment_id, razorpay_refund_id, amount_paise, currency, outcome, details jsonb ≤ 2 KiB, received_at)` — append-only (update/delete/truncate raise 42501). `outcome` ∈ `confirmed, late_confirmed, refund_needed, already_processed, duplicate_payment, amount_mismatch, refunded, already_refunded, ledger_refund`.
   - `public.event_seat_counts(event_id, seats_taken, waitlisted, attending)` — `attending` = confirmed only; `seats_taken` = confirmed + live holds (unchanged)
@@ -449,6 +449,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `public.cancel_registration(p_registration_id uuid)` → `jsonb {registration_id, event_id, promoted int, status 'cancelled'|'refund_needed'}`; no longer raises `paid_cancel_not_supported`.
   - `private.promote_waitlist(uuid) returns setof uuid` — paid published events (flag on) promote into a 15-minute `pending_payment` hold; nothing is promoted once the event has started.
   - `public.attach_payment_order(p_registration_id uuid, p_order_id text, p_amount_paise int)` → `jsonb {order_id text, hold_expires_at timestamptz}`; `authenticated` only; raises `not_signed_in`, `invalid_order`, `registration_not_found`, `hold_expired`, `amount_mismatch`.
+  - **REVIEW AMENDMENT (migration `20261010154416_payments_review_fixes`, supersedes the line above and the attach SQL/tests below):** attach is now **server-only**: `public.attach_payment_order(p_user_id uuid, p_registration_id uuid, p_order_id text, p_amount_paise int)` → same `jsonb`; executable by `service_role` only (private body and public wrapper; `anon`/`authenticated` have no EXECUTE; the 3-arg versions are dropped). `p_user_id` is the session user's id, passed by the server; a foreign user id gets `registration_not_found`. Raises `not_signed_in` (null user), `payments_disabled` (flag off), `invalid_order`, `registration_not_found`, `hold_expired`, `amount_mismatch`. Reason: a user-callable attach let anyone write unbounded / foreign (Fund Easy) order ids into the ledger.
 
 - [ ] **Step 1: Write the migration**
 
@@ -928,6 +929,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `public.expire_holds(p_limit int default 50)` → `jsonb {events int, expired int, promoted int}` (expired holds → `cancelled` / `hold_expired`; also promotes waitlists of events with free seats).
   - `public.claim_refund(p_registration_id uuid)` → `jsonb {registration_id, payment_id, amount_paise}`; raises `registration_not_found`, `not_refundable`, `refund_in_progress` (2-minute lease).
   - `public.mark_refunded(p_registration_id uuid, p_payment_id text, p_refund_id text, p_amount_paise int, p_source text, p_event_id text default null)` → `jsonb {outcome, registration_id?, status?, promoted?}` where `outcome` ∈ `refunded | already_refunded | ledger_refund | duplicate_event | unknown_registration | unknown_payment`. `p_source` ∈ `webhook | refund_api`.
+  - **REVIEW AMENDMENT (migration `20261010154416_payments_review_fixes`):** `confirm_payment` additionally (a) returns `already_processed` for any replay of the applied payment id, even with another amount; (b) returns `amount_mismatch` (row untouched, logged) when the paid order's amount differs from what the seat costs now (live hold → `registrations.amount_paise`, otherwise `events.price_paise`): a stale old-price order never pays for a new-price seat; (c) never confirms a live hold on an event that is no longer `published` (→ `refund_needed`); (d) never revives a place the user cancelled (`cancel_reason = 'user'` → `refund_needed`, reason stays `user`); (e) stores only `details.status|method|error_code` (DB check `payment_events_details_keys`); (f) raises `invalid_source`, `invalid_payment`, `invalid_event`, `payment_conflict` (permanent errors: the webhook answers 200). `mark_refunded` adds outcome **`partial_refund`** (refund amount ≠ amount paid: logged only, seat and ledger untouched, on the Phase 5 attention list with `duplicate_payment` / `amount_mismatch`) and a full refund of a seat sets `cancel_reason = 'refunded'` (new allowed value) when none was set. `private.payment_orders` gained the state-shape check `payment_orders_state_shape`.
 
 - [ ] **Step 1: Write the migration**
 
@@ -1392,6 +1394,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: Tasks 1-3 (registration columns, `register_for_event`, `cancel_registration`, `attach_payment_order`, `confirm_payment`, `mark_refunded`).
+- **REVIEW AMENDMENT:** `attach_payment_order` is server-only now (Task 2 amendment): in the assertion script call `public.attach_payment_order(<user id>, <registration id>, <order id>, <amount>)` under `set local role service_role`, not as `authenticated`. `cancel_reason` may also be `refunded` (full refund of a seat); the payload passes it through.
 - Produces:
   - `private.external_sync_outbox(id uuid, seq bigint identity, registration_id uuid (no FK), event_type in ('registration.confirmed','registration.cancelled','payment.refunded'), idempotency_key text unique, payload jsonb ≤ 8 KiB, status in ('pending','failed','sent','dead'), attempts int, next_attempt_at, locked_until, last_error ≤ 500 chars, created_at, sent_at)`
   - trigger `registrations_enqueue_sync` (after insert / update of status / delete) → one row per transition: → `confirmed` ⇒ `registration.confirmed`; `confirmed` → `cancelled|refund_needed` ⇒ `registration.cancelled`; → `refunded` ⇒ `payment.refunded`; delete of a `confirmed` row ⇒ `registration.cancelled` (`cancel_reason: "account_deleted"`).
@@ -2859,6 +2862,10 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `confirm.ts`: `type ConfirmOutcome = "confirmed" | "late_confirmed" | "refund_needed" | "already_processed" | "duplicate_payment" | "amount_mismatch" | "duplicate_event" | "unknown_order" | "not_captured" | "foreign"`; `interface ConfirmInput { registrationId: string; orderId: string; paymentId: string; source: "client_verify" | "webhook"; eventId?: string | null; eventName?: string | null; orderNotes?: Record<string, string> }`; `confirmVerifiedPayment(deps: { creds: RazorpayCredentials; fetch: FetchLike; db: AdminClient }, input: ConfirmInput): Promise<{ outcome: ConfirmOutcome; status: RegistrationStatus | null }>` (throws on RPC/Razorpay failure; error text never includes DB messages).
   - `actions.ts` (`"use server"`): `interface CheckoutData { keyId; orderId; amountPaise; currency: "INR"; name: "st(AI)rway"; description; prefill: { name; email }; notes: { source: "stairway"; registration_id: string }; holdExpiresAt: string; registrationId: string }`; `type CreateOrderResult = { ok: true; checkout: CheckoutData } | { ok: false; error: RegistrationError }`; `type VerifyResult = { ok: true; status: "confirmed" | "processing" | "refund_needed" } | { ok: false; error: RegistrationError }`; `createPaymentOrder(registrationId: string): Promise<CreateOrderResult>`; `verifyPayment(input: { registrationId; orderId; paymentId; signature }): Promise<VerifyResult>`.
   - `RegisterResult` success status now `"confirmed" | "waitlisted" | "pending_payment"`.
+- **REVIEW AMENDMENTS (Tasks 1-3 review, `.superpowers/sdd/p4-review-1-3.md`) — these override the code below:**
+  - **I-1 attach is server-only.** `createPaymentOrder` must call `attach_payment_order` through the **admin (service-role) client** (`createAdminClient()`), passing the **session user's id** taken from `getAuthState()` — never a client-supplied id: `admin.rpc("attach_payment_order", { p_user_id: user.id, p_registration_id: row.id, p_order_id: order.id, p_amount_paise: row.amount_paise })`. The session client still reads the user's own row (RLS) first. Tests assert the admin client receives exactly that call and the session client never calls `attach_payment_order`. New DB error `payments_disabled` maps to the "paid registration opens soon" error.
+  - **I-4 hold expiry vs in-flight payment (no DB grace period).** `createPaymentOrder` refuses to create (or hand out) an order when fewer than **120 s** remain on the hold (`hold_expired` error, so the user re-registers for a fresh hold) and returns `holdExpiresAt`; the Checkout options set `timeout` (seconds) = seconds left on the hold minus a **60 s** margin (computed in `lib/payments/checkout.ts` / `usePayFlow` from `holdExpiresAt`, never ≤ 0), so Razorpay closes the modal before the hold lapses. A payment that still lands late is handled by `confirm_payment` (late_confirmed / refund_needed).
+  - `confirm_payment` outcomes are unchanged in name; `amount_mismatch` now also covers a stale-price order (see the Task 3 amendment). `confirm.ts` must treat raised `invalid_source` / `invalid_payment` / `invalid_event` / `payment_conflict` as permanent (webhook → 200 + log), not as retryable.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -3820,6 +3827,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
   - `type RefundResult = { ok: true; outcome: "refunded" | "already_refunded"; refundId: string } | { ok: false; reason: "disabled" | "not_found" | "not_refundable" | "in_progress" | "razorpay_error" | "db_error" }`
   - `refundRegistration(deps: { creds: RazorpayCredentials; fetch: FetchLike; db: AdminClient }, registrationId: string): Promise<RefundResult>`
   - `refundRegistrationById(registrationId: string): Promise<RefundResult>` (reads `paymentsConfig()`; `disabled` when off)
+- **REVIEW AMENDMENTS:** (M-9) after `claim_refund` succeeds — especially when a previous lease lapsed — first `GET /v1/payments/{payment_id}/refunds` and, if a processed refund for the full amount already exists, record it with `mark_refunded` instead of POSTing a second refund (no double refund after a crashed attempt). (I-3) `mark_refunded` may return `partial_refund` (amount ≠ paid; seat kept); the helper always refunds the full `amount_paise` from `claim_refund` and maps `partial_refund` to `{ ok: false, reason: "razorpay_error" }` so an admin looks at it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -5902,7 +5910,7 @@ identical on every retry of the same message. A new transition (e.g. confirmed a
 | `razorpay_order_id`, `razorpay_payment_id` | Razorpay ids (shared Razorpay account) | paid |
 | `razorpay_refund_id` | `rfnd_…` | refunded |
 | `confirmed_at`, `paid_at`, `cancelled_at`, `refunded_at` | ISO timestamps | when set |
-| `cancel_reason` | `user` \| `hold_expired` \| `late_payment_no_seat` \| `account_deleted` | cancelled |
+| `cancel_reason` | `user` \| `hold_expired` \| `late_payment_no_seat` \| `refunded` \| `account_deleted` | cancelled |
 
 ### `data.event`
 
@@ -6605,7 +6613,9 @@ request gets 10 ms of CPU and full page renders already exceed it intermittently
 - Database: `private.payment_orders` (ledger), `private.payment_events` (append-only log), `private.external_sync_outbox`;
   assertion scripts `supabase/tests/payments-*.sql` and `supabase/tests/sync-outbox.sql`.
 - Accounts that ever created a payment order cannot be deleted by cascade (ON DELETE RESTRICT); token numbers are never
-  reused.
+  reused. **Deletion runbook:** this includes users who only opened Checkout (an order was created) but never paid. To
+  delete such an account before Phase 5's admin anonymisation exists, a project owner must first anonymise or detach that
+  user's `private.payment_orders` / `private.payment_events` rows by SQL (keep the money records), then delete the user.
 - No Content-Security-Policy is set today. If one is added, allow `https://checkout.razorpay.com` (script) and
   `https://api.razorpay.com`, `https://*.razorpay.com` (frames and connections).
 

@@ -12,7 +12,8 @@ insert into public.events (society_id, step_number, slug, title, starts_at, ends
 select s.id, v.step, v.slug, v.slug, now() + interval '10 days', now() + interval '10 days 6 hours', 'published',
        v.capacity, 'RAS-' || v.step, 19900
 from public.societies s,
-  (values (84, 'p4-svc-a', 1), (85, 'p4-svc-b', 1), (86, 'p4-svc-c', 2), (87, 'p4-svc-d', 1)) as v(step, slug, capacity)
+  (values (84, 'p4-svc-a', 1), (85, 'p4-svc-b', 1), (86, 'p4-svc-c', 2), (87, 'p4-svc-d', 1), (88, 'p4-svc-e', 3))
+    as v(step, slug, capacity)
 where s.slug = 'ras';
 
 do $$
@@ -21,6 +22,10 @@ declare
   eb uuid;
   ec uuid;
   ed uuid;
+  ee uuid;
+  re1 uuid;
+  re2 uuid;
+  re3 uuid;
   c1 constant uuid := '00000000-0000-0000-0000-0000000004c1';
   c2 constant uuid := '00000000-0000-0000-0000-0000000004c2';
   c3 constant uuid := '00000000-0000-0000-0000-0000000004c3';
@@ -51,7 +56,8 @@ begin
   select id into eb from public.events where slug = 'p4-svc-b';
   select id into ec from public.events where slug = 'p4-svc-c';
   select id into ed from public.events where slug = 'p4-svc-d';
-  assert ea is not null and eb is not null and ec is not null and ed is not null, 'fixture events missing';
+  select id into ee from public.events where slug = 'p4-svc-e';
+  assert ea is not null and eb is not null and ec is not null and ed is not null and ee is not null, 'fixture events missing';
   assert not private.flag_enabled('payments'), 'payments flag must be OFF on the live database';
   update private.feature_flags set enabled = true where key = 'payments';
 
@@ -98,22 +104,25 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', c1, 'role', 'authenticated')::text, true);
   set local role authenticated;
   ra1 := (public.register_for_event(ea, '{}')->>'registration_id')::uuid;
-  perform public.attach_payment_order(ra1, 'order_P4SVCA00001', 19900);
   perform set_config('request.jwt.claims', json_build_object('sub', c2, 'role', 'authenticated')::text, true);
   ra2 := (public.register_for_event(ea, '{}')->>'registration_id')::uuid;
   rb2 := (public.register_for_event(eb, '{}')->>'registration_id')::uuid;
-  perform public.attach_payment_order(rb2, 'order_P4SVCB00002', 19900);
   perform set_config('request.jwt.claims', json_build_object('sub', c3, 'role', 'authenticated')::text, true);
   rc3 := (public.register_for_event(ec, '{}')->>'registration_id')::uuid;
-  perform public.attach_payment_order(rc3, 'order_P4SVCC00003', 19900);
+  reset role;
+  -- orders are attached by the server (service_role) on behalf of the session user
+  set local role service_role;
+  perform public.attach_payment_order(c1, ra1, 'order_P4SVCA00001', 19900);
+  perform public.attach_payment_order(c2, rb2, 'order_P4SVCB00002', 19900);
+  perform public.attach_payment_order(c3, rc3, 'order_P4SVCC00003', 19900);
   reset role;
   assert (select status from public.registrations where id = ra2) = 'waitlisted', 'c2 should wait on A';
 
   set local role service_role;
 
-  -- confirm inside a live hold: seat, token, receipt
+  -- confirm inside a live hold: seat, token, receipt; only whitelisted details are kept
   r := public.confirm_payment(ra1, 'order_P4SVCA00001', 'pay_P4SVCA00001', 19900, 'INR', 'client_verify',
-                              null, null, '{"status":"captured","method":"upi"}');
+                              null, null, '{"status":"captured","method":"upi","contact":"+919999999999","card":{"last4":"1111"}}');
   assert r->>'outcome' = 'confirmed' and r->>'status' = 'confirmed' and (r->>'registration_id')::uuid = ra1, 'confirm: ' || r::text;
   reset role;
   select * into reg from public.registrations where id = ra1;
@@ -127,6 +136,9 @@ begin
   assert r->>'outcome' = 'already_processed', 'webhook after verify: ' || r::text;
   r := public.confirm_payment(ra1, 'order_P4SVCA00001', 'pay_P4SVCA00001', 19900, 'INR', 'webhook', 'evt_P4SVC0000001', 'order.paid');
   assert r->>'outcome' = 'duplicate_event', 'webhook redelivery: ' || r::text;
+  -- a replay of the applied payment is already_processed even with a garbled amount (no false attention alarm)
+  r := public.confirm_payment(ra1, 'order_P4SVCA00001', 'pay_P4SVCA00001', 100, 'INR', 'client_verify');
+  assert r->>'outcome' = 'already_processed', 'replay with another amount: ' || r::text;
   -- a second, different payment for the same paid seat is kept on record, not applied
   r := public.confirm_payment(ra1, 'order_P4SVCA00001', 'pay_P4SVCA0DUP1', 19900, 'INR', 'webhook', 'evt_P4SVC0000002', 'order.paid');
   assert r->>'outcome' = 'duplicate_payment' and r->>'status' = 'confirmed', 'duplicate payment: ' || r::text;
@@ -174,8 +186,8 @@ begin
   assert (select o.status = 'paid' and o.razorpay_payment_id = 'pay_P4SVCA00001' and o.receipt_number = receipt_a
                  and o.paid_at is not null
           from private.payment_orders o where o.razorpay_order_id = 'order_P4SVCA00001'), 'ledger order not marked paid';
-  assert (select count(*) from private.payment_events where registration_id = ra1) = 4,
-    'expected 4 logged events for A (confirmed, 2x already_processed, duplicate_payment)';
+  assert (select count(*) from private.payment_events where registration_id = ra1) = 5,
+    'expected 5 logged events for A (confirmed, 3x already_processed, duplicate_payment)';
   assert (select count(*) from private.payment_events where registration_id = ra1 and outcome = 'confirmed') = 1,
     'more than one confirmation logged';
   assert (select details from private.payment_events where registration_id = ra1 and outcome = 'confirmed')
@@ -242,7 +254,9 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', c1, 'role', 'authenticated')::text, true);
   set local role authenticated;
   rd1 := (public.register_for_event(ed, '{}')->>'registration_id')::uuid;
-  perform public.attach_payment_order(rd1, 'order_P4SVCD00001', 19900);
+  reset role;
+  set local role service_role;
+  perform public.attach_payment_order(c1, rd1, 'order_P4SVCD00001', 19900);
   reset role;
   update public.registrations set hold_expires_at = now() - interval '1 second' where id = rd1;
   perform set_config('request.jwt.claims', json_build_object('sub', c2, 'role', 'authenticated')::text, true);
@@ -301,6 +315,10 @@ begin
     perform public.mark_refunded(ra1, 'pay_P4SVCA00001', 'refund-1', 19900, 'refund_api');
     assert false, 'mark_refunded accepted a malformed refund id';
   exception when others then if sqlerrm <> 'invalid_refund' then raise; end if; end;
+  -- a partial refund is recorded for the admin list; the seat and the ledger order are untouched
+  r := public.mark_refunded(rc3, 'pay_P4SVCC00003', 'rfnd_P4SVCC0PART', 100, 'webhook', 'evt_P4SVC0000010');
+  assert r->>'outcome' = 'partial_refund' and r->>'status' = 'confirmed' and (r->>'promoted')::int = 0,
+    'partial refund: ' || r::text;
   r := public.mark_refunded(ra1, 'pay_P4SVCA00001', 'rfnd_P4SVCA00001', 19900, 'refund_api');
   assert r->>'outcome' = 'refunded' and r->>'status' = 'refunded' and (r->>'promoted')::int = 1, 'mark refunded: ' || r::text;
   r := public.mark_refunded(ra1, 'pay_P4SVCA00001', 'rfnd_P4SVCA00001', 19900, 'webhook', 'evt_P4SVC0000005');
@@ -332,9 +350,17 @@ begin
 
   select * into reg from public.registrations where id = ra1;
   assert reg.status = 'refunded' and reg.razorpay_refund_id = 'rfnd_P4SVCA00001' and reg.refunded_at is not null
-     and reg.refund_claimed_until is null and reg.cancelled_at is not null, 'A refund row shape';
+     and reg.refund_claimed_until is null and reg.cancelled_at is not null and reg.cancel_reason = 'refunded',
+    'A refund row shape';
   select * into reg from public.registrations where id = rb2;
-  assert reg.status = 'refunded' and reg.refund_claimed_until is null and reg.razorpay_refund_id = 'rfnd_P4SVCB00002', 'B refund row shape';
+  assert reg.status = 'refunded' and reg.refund_claimed_until is null and reg.razorpay_refund_id = 'rfnd_P4SVCB00002'
+     and reg.cancel_reason = 'late_payment_no_seat', 'B refund row shape';
+  select * into reg from public.registrations where id = rc3;
+  assert reg.status = 'confirmed' and reg.razorpay_refund_id is null and reg.refunded_at is null, 'partial refund freed the seat';
+  assert (select status = 'paid' and razorpay_refund_id is null from private.payment_orders
+          where razorpay_order_id = 'order_P4SVCC00003'), 'partial refund marked the ledger order refunded';
+  assert exists (select 1 from private.payment_events where razorpay_event_id = 'evt_P4SVC0000010' and outcome = 'partial_refund'
+                 and amount_paise = 100), 'partial refund not logged';
   assert (select status from public.registrations where id = ra2) = 'pending_payment', 'waitlisted c2 not given the freed seat';
   assert (select status = 'refunded' and razorpay_refund_id = 'rfnd_P4SVCA00001' from private.payment_orders
           where razorpay_order_id = 'order_P4SVCA00001'), 'ledger not refunded';
@@ -345,8 +371,87 @@ begin
   assert not exists (select 1 from private.payment_events where razorpay_event_id in ('evt_P4SVC0000006', 'evt_P4SVC0000008')),
     'unknown refunds logged';
   select count(*) into n from private.payment_events where registration_id in (ra1, rb2, rc3, rd1);
-  -- A: 4 confirm-side + 3 refund-side; B: 3 mismatches + refund_needed + retry + refunded; C: late + retry; D: 1
-  assert n = 7 + 6 + 2 + 1, format('unexpected payment_events count %s', n);
+  -- A: 5 confirm-side + 3 refund-side; B: 3 mismatches + refund_needed + retry + refunded; C: late + retry + partial; D: 1
+  assert n = 8 + 6 + 3 + 1, format('unexpected payment_events count %s', n);
+
+  -- ───────── review fixes on E: stale-price order (I-2), user-cancelled place (M-6), unpublished event (M-1) ─────────
+  perform set_config('request.jwt.claims', json_build_object('sub', c1, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  re1 := (public.register_for_event(ee, '{}')->>'registration_id')::uuid;
+  reset role;
+  set local role service_role;
+  perform public.attach_payment_order(c1, re1, 'order_P4SVCE00001', 19900);
+  reset role;
+  -- the price goes up, the old hold lapses and c1 holds again at the new price
+  update public.events set price_paise = 29900 where id = ee;
+  update public.registrations set hold_expires_at = now() - interval '1 second' where id = re1;
+  set local role authenticated;
+  r := public.register_for_event(ee, '{}');
+  assert r->>'status' = 'pending_payment' and (r->>'amount_paise')::int = 29900 and (r->>'registration_id')::uuid = re1,
+    'c1 re-hold at the new price: ' || r::text;
+  reset role;
+  set local role service_role;
+  r := public.confirm_payment(re1, 'order_P4SVCE00001', 'pay_P4SVCE00001', 19900, 'INR', 'webhook', 'evt_P4SVC0000011', 'order.paid');
+  assert r->>'outcome' = 'amount_mismatch' and r->>'status' = 'pending_payment', 'stale-price order: ' || r::text;
+  reset role;
+  select * into reg from public.registrations where id = re1;
+  assert reg.status = 'pending_payment' and reg.amount_paise = 29900 and reg.razorpay_payment_id is null
+     and reg.receipt_number is null and reg.paid_at is null and reg.token_number is null, 'stale-price order touched the hold';
+  assert (select status from private.payment_orders where razorpay_order_id = 'order_P4SVCE00001') = 'created',
+    'stale-price order marked paid';
+  -- an order at the current price pays normally
+  set local role service_role;
+  perform public.attach_payment_order(c1, re1, 'order_P4SVCE00002', 29900);
+  r := public.confirm_payment(re1, 'order_P4SVCE00002', 'pay_P4SVCE00002', 29900, 'INR', 'client_verify');
+  assert r->>'outcome' = 'confirmed', 'current-price order: ' || r::text;
+  reset role;
+
+  -- c2 holds E, cancels it, then the payment lands anyway: refunded, the seat is not revived (seats are free)
+  perform set_config('request.jwt.claims', json_build_object('sub', c2, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  re2 := (public.register_for_event(ee, '{}')->>'registration_id')::uuid;
+  reset role;
+  set local role service_role;
+  perform public.attach_payment_order(c2, re2, 'order_P4SVCE00003', 29900);
+  reset role;
+  set local role authenticated;
+  perform public.cancel_registration(re2);
+  reset role;
+  assert (select cancel_reason from public.registrations where id = re2) = 'user', 'c2 cancel not recorded';
+  set local role service_role;
+  r := public.confirm_payment(re2, 'order_P4SVCE00003', 'pay_P4SVCE00003', 29900, 'INR', 'webhook', 'evt_P4SVC0000012', 'order.paid');
+  assert r->>'outcome' = 'refund_needed' and r->>'status' = 'refund_needed', 'payment after a user cancel: ' || r::text;
+  reset role;
+  select * into reg from public.registrations where id = re2;
+  assert reg.cancel_reason = 'user' and reg.token_number is null and reg.receipt_number is not null,
+    'user-cancelled late payment row shape';
+
+  -- c3 holds E, then the event is cancelled before the payment lands: refund_needed, never confirmed
+  perform set_config('request.jwt.claims', json_build_object('sub', c3, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  re3 := (public.register_for_event(ee, '{}')->>'registration_id')::uuid;
+  reset role;
+  set local role service_role;
+  perform public.attach_payment_order(c3, re3, 'order_P4SVCE00004', 29900);
+  reset role;
+  update public.events set status = 'cancelled' where id = ee;
+  set local role service_role;
+  r := public.confirm_payment(re3, 'order_P4SVCE00004', 'pay_P4SVCE00004', 29900, 'INR', 'client_verify');
+  assert r->>'outcome' = 'refund_needed' and r->>'status' = 'refund_needed', 'live hold on a cancelled event: ' || r::text;
+  reset role;
+  assert (select count(*) from private.payment_events where registration_id in (re1, re2, re3)) = 4,
+    'E events: amount_mismatch + confirmed + 2x refund_needed';
+
+  -- ledger shape and details whitelist are enforced by the table itself
+  begin
+    insert into private.payment_orders (razorpay_order_id, registration_id, amount_paise, status)
+      values ('order_P4SVCBAD001', re1, 100, 'paid');
+    assert false, 'a paid ledger order without payment, receipt or paid_at accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into private.payment_events (source, outcome, details) values ('webhook', 'confirmed', '{"card":{"last4":"1111"}}');
+    assert false, 'non-whitelisted payment_events.details accepted';
+  exception when check_violation then null; end;
 
   -- capacity under pending holds: never more confirmed + live holds than capacity; waitlist positions consistent
   set constraints all immediate;
