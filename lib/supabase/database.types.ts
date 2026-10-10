@@ -459,6 +459,7 @@ export type Database = {
         Row: {
           amount_paise: number
           answers: Json
+          cancel_reason: string | null
           cancelled_at: string | null
           checked_in_at: string | null
           checked_in_by: string | null
@@ -467,8 +468,13 @@ export type Database = {
           event_id: string
           hold_expires_at: string | null
           id: string
+          paid_at: string | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
+          razorpay_refund_id: string | null
+          receipt_number: string | null
+          refund_claimed_until: string | null
+          refunded_at: string | null
           status: Database["public"]["Enums"]["registration_status"]
           ticket_code: string
           token_number: number | null
@@ -479,6 +485,7 @@ export type Database = {
         Insert: {
           amount_paise?: number
           answers?: Json
+          cancel_reason?: string | null
           cancelled_at?: string | null
           checked_in_at?: string | null
           checked_in_by?: string | null
@@ -487,8 +494,13 @@ export type Database = {
           event_id: string
           hold_expires_at?: string | null
           id?: string
+          paid_at?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          razorpay_refund_id?: string | null
+          receipt_number?: string | null
+          refund_claimed_until?: string | null
+          refunded_at?: string | null
           status: Database["public"]["Enums"]["registration_status"]
           ticket_code: string
           token_number?: number | null
@@ -499,6 +511,7 @@ export type Database = {
         Update: {
           amount_paise?: number
           answers?: Json
+          cancel_reason?: string | null
           cancelled_at?: string | null
           checked_in_at?: string | null
           checked_in_by?: string | null
@@ -507,8 +520,13 @@ export type Database = {
           event_id?: string
           hold_expires_at?: string | null
           id?: string
+          paid_at?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          razorpay_refund_id?: string | null
+          receipt_number?: string | null
+          refund_claimed_until?: string | null
+          refunded_at?: string | null
           status?: Database["public"]["Enums"]["registration_status"]
           ticket_code?: string
           token_number?: number | null
@@ -812,6 +830,7 @@ export type Database = {
       }
       event_seat_counts: {
         Row: {
+          attending: number | null
           event_id: string | null
           seats_taken: number | null
           waitlisted: number | null
@@ -820,8 +839,54 @@ export type Database = {
       }
     }
     Functions: {
+      attach_payment_order: {
+        Args: {
+          p_amount_paise: number
+          p_order_id: string
+          p_registration_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       cancel_registration: {
         Args: { p_registration_id: string }
+        Returns: Json
+      }
+      claim_refund: { Args: { p_registration_id: string }; Returns: Json }
+      claim_sync_batch: { Args: { p_limit?: number }; Returns: Json }
+      complete_sync: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_ok: boolean
+          p_permanent?: boolean
+        }
+        Returns: string
+      }
+      confirm_payment: {
+        Args: {
+          p_amount_paise: number
+          p_currency: string
+          p_details?: Json
+          p_event_id?: string
+          p_event_name?: string
+          p_order_id: string
+          p_payment_id: string
+          p_registration_id: string
+          p_source: string
+        }
+        Returns: Json
+      }
+      expire_holds: { Args: { p_limit?: number }; Returns: Json }
+      mark_refunded: {
+        Args: {
+          p_amount_paise: number
+          p_event_id?: string
+          p_payment_id: string
+          p_refund_id: string
+          p_registration_id: string
+          p_source: string
+        }
         Returns: Json
       }
       register_for_event: {

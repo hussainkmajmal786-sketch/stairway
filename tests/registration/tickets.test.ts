@@ -81,3 +81,40 @@ describe("list select", () => {
     expect(rowToSummary({ ...listRow, event: null })).toBeNull();
   });
 });
+
+describe("payment fields", () => {
+  it("defaults the payment fields of a Phase 3 row", () => {
+    const t = rowToTicket(row)!;
+    expect(t).toMatchObject({ amountPaise: 0, holdExpiresAt: null, receiptNumber: null, paidAt: null, refundedAt: null, cancelReason: null });
+  });
+  it("maps amount, hold, receipt and refund fields", () => {
+    const t = rowToTicket({
+      ...row, status: "refunded", amount_paise: 19900, hold_expires_at: null, receipt_number: "STW-2026-000012",
+      paid_at: "2026-10-01T10:00:00Z", refunded_at: "2026-10-02T10:00:00Z", cancel_reason: "user",
+    })!;
+    expect(t).toMatchObject({
+      amountPaise: 19900, receiptNumber: "STW-2026-000012", paidAt: "2026-10-01T10:00:00Z",
+      refundedAt: "2026-10-02T10:00:00Z", cancelReason: "user",
+    });
+    expect(toSummary(t)).toMatchObject({ amountPaise: 19900, holdExpiresAt: null });
+    expect(toSummary(t)).not.toHaveProperty("receiptNumber");
+  });
+  it("keeps the hold end only for a pending payment, in details and list rows", () => {
+    const hold = "2026-10-10T10:15:00Z";
+    expect(rowToTicket({ ...row, status: "pending_payment", hold_expires_at: hold })!.holdExpiresAt).toBe(hold);
+    expect(rowToTicket({ ...row, status: "confirmed", hold_expires_at: hold })!.holdExpiresAt).toBeNull();
+    const listRow: TicketRow = { ...row, status: "pending_payment", hold_expires_at: hold, amount_paise: 19900 };
+    expect(rowToSummary(listRow)).toMatchObject({ holdExpiresAt: hold, amountPaise: 19900 });
+  });
+  it("never gives a pending, refund or cancelled row a door token", () => {
+    for (const status of ["pending_payment", "refund_needed", "refunded", "cancelled"] as const) {
+      expect(rowToTicket({ ...row, status, amount_paise: 19900 })!.token, status).toBeNull();
+    }
+  });
+  it("selects the payment columns but never the ticket code in lists", () => {
+    expect(TICKET_SELECT).toContain("hold_expires_at");
+    expect(TICKET_SELECT).toContain("receipt_number");
+    expect(TICKET_LIST_SELECT).toContain("hold_expires_at");
+    expect(TICKET_LIST_SELECT).not.toContain("ticket_code");
+  });
+});

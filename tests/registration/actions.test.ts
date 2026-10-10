@@ -9,7 +9,9 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/auth/session", () => ({ getAuthState: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/payments/config", () => ({ paymentsConfig: vi.fn(() => ({ enabled: false })) }));
 
+import { paymentsConfig } from "@/lib/payments/config";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAuthState } from "@/lib/auth/session";
@@ -170,6 +172,36 @@ describe("registerForEvent", () => {
     expect(rpcCalls).toEqual([["register_for_event", { p_event_id: EID, p_answers: { tshirt: "M" } }]]);
     expect(revalidatePath).toHaveBeenCalledWith("/events/seeing-machines");
     expect(revalidatePath).toHaveBeenCalledWith("/me", "layout");
+  });
+
+  it("registers for a paid event when payments are on and returns the hold", async () => {
+    vi.mocked(paymentsConfig).mockReturnValueOnce({ enabled: true } as never);
+    signedIn();
+    const { rpcCalls } = fakeDb(
+      { events: openEvent({ price_paise: 19900 }), ...savedOk },
+      { register_for_event: { data: { registration_id: RID, status: "pending_payment", waitlist_position: null,
+          hold_expires_at: "2026-10-10T10:15:00Z", amount_paise: 19900, promoted: [] }, error: null } },
+    );
+    expect(await registerForEvent("seeing-machines", values)).toEqual({ ok: true, registrationId: RID, status: "pending_payment" });
+    // The client never sends a price: the RPC takes only the event id and the answers.
+    expect(rpcCalls).toEqual([["register_for_event", { p_event_id: EID, p_answers: { tshirt: "M" } }]]);
+  });
+
+  it("still refuses a paid event while payments are off", async () => {
+    signedIn();
+    const { rpcCalls } = fakeDb({ events: openEvent({ price_paise: 19900 }) });
+    expect(await registerForEvent("seeing-machines", values)).toMatchObject({ ok: false, error: { code: "paid_event" } });
+    expect(rpcCalls).toEqual([]);
+  });
+
+  it("maps the database payments flag being off (paid_event) on a paid registration", async () => {
+    vi.mocked(paymentsConfig).mockReturnValueOnce({ enabled: true } as never);
+    signedIn();
+    fakeDb(
+      { events: openEvent({ price_paise: 19900 }), ...savedOk },
+      { register_for_event: { data: null, error: { message: "paid_event", code: "P0001" } } },
+    );
+    expect(await registerForEvent("seeing-machines", values)).toMatchObject({ ok: false, error: { code: "paid_event" } });
   });
 
   it("keeps a committed registration successful when revalidation throws", async () => {

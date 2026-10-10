@@ -25,6 +25,8 @@ export interface CtaInput {
   registration: MyRegistration | null;
   /** Set when site settings say registration happens on an external (Google) form. */
   externalUrl: string | null;
+  /** Payments switched on (lib/payments/config.ts). When off, paid events show "Paid registration opens soon". */
+  paymentsEnabled?: boolean;
 }
 
 export type CtaState =
@@ -36,7 +38,10 @@ export type CtaState =
   | { kind: "opens"; opensAt: string }
   | { kind: "closed" }
   | { kind: "external"; href: string }
-  | { kind: "paid_soon" };
+  | { kind: "paid_soon" }
+  | { kind: "pay"; href: string; pricePaise: number }
+  | { kind: "complete_payment"; registrationId: string; holdExpiresAt: string }
+  | { kind: "refund_pending"; registrationId: string };
 
 export function ctaEvent(e: {
   slug: string;
@@ -69,12 +74,21 @@ export function registrationWindow(
 }
 
 /**
- * Precedence: an active registration always wins (ticket / waitlist position, even after the event);
- * then closed; then external-form mode; then not-yet-open; then paid (Phase 4); then sign-in / waitlist / register.
+ * Precedence: a pending refund; then an active registration (ticket / waitlist / live hold → Complete payment), even
+ * after the event; an expired hold counts as no registration (the cron cancels it within minutes); then closed;
+ * external-form mode; not-yet-open; paid while payments are off; then sign-in / waitlist / Pay / Register.
  */
 export function ctaState(i: CtaInput): CtaState {
-  const r = i.registration && isActiveStatus(i.registration.status) ? i.registration : null;
+  const reg = i.registration;
+  if (reg?.status === "refund_needed") return { kind: "refund_pending", registrationId: reg.id };
+  // Same rule as the DB: a hold counts while hold_expires_at > now (an unparsable end reads as expired).
+  const holdEnd = reg?.status === "pending_payment" && reg.holdExpiresAt ? Date.parse(reg.holdExpiresAt) : null;
+  const holdExpired = holdEnd !== null && !(holdEnd > i.now);
+  const r = reg && isActiveStatus(reg.status) && !holdExpired ? reg : null;
   if (r?.status === "waitlisted") return { kind: "waitlisted", registrationId: r.id, position: r.waitlistPosition ?? 0 };
+  if (r?.status === "pending_payment" && r.holdExpiresAt) {
+    return { kind: "complete_payment", registrationId: r.id, holdExpiresAt: r.holdExpiresAt };
+  }
   if (r) return { kind: "registered", registrationId: r.id };
 
   const win = registrationWindow(i.event, i.now);
@@ -82,10 +96,12 @@ export function ctaState(i: CtaInput): CtaState {
   const external = i.externalUrl ? safeFormUrl(i.externalUrl) : null;
   if (external) return { kind: "external", href: external };
   if (win === "not_open") return { kind: "opens", opensAt: i.event.registrationOpensAt ?? i.event.start };
-  if (i.event.pricePaise > 0) return { kind: "paid_soon" };
+  const paid = i.event.pricePaise > 0;
+  if (paid && !i.paymentsEnabled) return { kind: "paid_soon" };
 
   const href = registerPath(i.event.slug);
   const full = i.event.seatsLeft <= 0;
   if (!i.signedIn) return { kind: "sign_in", href: loginPath(href), full };
-  return full ? { kind: "join_waitlist", href } : { kind: "register", href };
+  if (full) return { kind: "join_waitlist", href };
+  return paid ? { kind: "pay", href, pricePaise: i.event.pricePaise } : { kind: "register", href };
 }

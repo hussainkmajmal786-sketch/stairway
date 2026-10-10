@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     "cloudflare-env.d.ts",
     ".open-next/**",
     ".wrangler/**",
+    "docs/integrations/fund-easy-patch/**",
+    "cloudflare/**",
   ]),
 ]);
 

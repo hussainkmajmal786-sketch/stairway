@@ -17,17 +17,22 @@ function isNavigation(e: unknown): boolean {
 }
 
 /**
- * Two-step cancel for free registrations. On success the server action redirects to My tickets (a fixed path), so
+ * Two-step cancel. Free seats and waitlist places are cancelled; a payment hold is released; a paid seat becomes
+ * refund_needed (refunded by the organisers). On success the server action redirects to My tickets (a fixed path), so
  * the cancelled ticket route is never re-rendered into a 404. Focus moves to "Yes" on open, back to the opener on
  * "Keep", stays on "Yes" while working (aria-disabled, not disabled, so focus isn't dropped), goes to the error
  * panel on failure and to the status line on success. `blocked` is the reason the server would refuse (checked in,
  * started, paid, pending payment): the button is then aria-disabled (still focusable) and described by the reason.
  */
 export function CancelRegistration({
-  registrationId, waitlisted, blocked, here,
+  registrationId, waitlisted, hold = false, paidAmount, blocked, here,
 }: {
   registrationId: string;
   waitlisted: boolean;
+  /** A pending_payment seat hold. */
+  hold?: boolean;
+  /** Formatted amount of a paid confirmed seat (cancelling makes it refund_needed). */
+  paidAmount?: string;
   blocked: string | null;
   /** This ticket's path, so "Sign in" after an expired session comes back here. */
   here: string;
@@ -42,7 +47,7 @@ export function CancelRegistration({
   const justOpened = useRef(false);
   const reasonId = useId();
   const questionId = useId();
-  const label = waitlisted ? "Leave the waitlist" : "Cancel registration";
+  const label = waitlisted ? "Leave the waitlist" : hold ? "Release my held seat" : "Cancel registration";
 
   useEffect(() => {
     if (phase === "confirming" && justOpened.current) {
@@ -117,7 +122,11 @@ export function CancelRegistration({
       <p id={questionId} className="font-semibold">
         {waitlisted
           ? "Leave the waitlist? You'll lose your place."
-          : "Cancel your registration? Your seat goes to the next person on the waitlist, and you may not get it back."}
+          : hold
+            ? "Release your held seat? You can register again while seats remain."
+            : paidAmount
+              ? `Cancel your paid seat? It goes to the next person, and the organisers will refund ${paidAmount} to your original payment method (not automatic; it can take a few days).`
+              : "Cancel your registration? Your seat goes to the next person on the waitlist, and you may not get it back."}
       </p>
       <div className="flex flex-wrap gap-2">
         <button

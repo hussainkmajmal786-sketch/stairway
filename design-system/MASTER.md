@@ -54,6 +54,11 @@ Section titles are rule headings: mono eyebrow + Anton `.h2` with a lead rule an
 - **Typed errors** (`ErrorPanel`): `role="alert"`, takes focus unless the fix is in the fields, ink text on a light red tint over cream, one recovery action.
 - **Attendee lists:** "Who's going" panel; avatars only through `safeAvatarUrl()` with `referrerPolicy="no-referrer"`; signed-out visitors see the count only.
 - **OG cards** (`lib/og.tsx`, `lib/og-font.ts`): cobalt card in the same frame. Anton and Space Mono 700 are fetched from Google Fonts at render time (cached, with a timeout); if either fails the whole card falls back to the built-in font.
+- **Payments:** "Pay ₹X" is the ink primary CTA on paid events; a live hold shows "Complete payment" with
+  `components/payments/HoldCountdown.tsx` (mono m:ss, minute-level `role="timer"` text for screen readers, refreshes the
+  route once at zero, ticks without animation under reduced motion). `PaymentPanel` is a `.box` with a hard shadow; Checkout
+  (`checkout.js`) loads only when a member starts paying. Status tags: Payment pending / Refund pending (orange), Refunded
+  (outline). Receipts print as `STW-YYYY-NNNNNN · ₹X paid` on the ticket. No QR, code or token unless the seat is confirmed.
 
 ## Shape & elevation
 Square corners only. Borders 2px ink. Hard offset shadows: 3–4px controls, 6px featured panels, 8px on the field and for modals. Hover lifts −2px with a 6px shadow; press sinks +3px on buttons (+2px on `.lift` cards), 150ms.

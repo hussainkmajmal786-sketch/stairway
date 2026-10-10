@@ -4,7 +4,7 @@ import { ticketPath, type CtaState } from "@/lib/registration/cta";
 import { longDate, timeOf } from "@/lib/weekends";
 
 /** CTA states in which /events/[slug]/register shows a notice instead of the form. */
-export type UnavailableState = Exclude<CtaState, { kind: "register" } | { kind: "join_waitlist" }>;
+export type UnavailableState = Exclude<CtaState, { kind: "register" } | { kind: "join_waitlist" } | { kind: "pay" }>;
 
 function assertNever(x: never): never {
   throw new Error(`Unhandled registration state: ${JSON.stringify(x)}`);
@@ -34,6 +34,18 @@ function copy(state: UnavailableState): { text: string; Icon: typeof Clock; acti
       return { text: "Registration for this session happens on a Google Form.", Icon: ExternalLink, action: { label: "Open the form", href: state.href, external: true } };
     case "sign_in":
       return { text: "Sign in to register for this session.", Icon: Lock, action: { label: "Sign in", href: state.href } };
+    case "complete_payment":
+      return {
+        text: "Your seat is held while you pay.",
+        Icon: Hourglass,
+        action: { label: "Complete payment", href: ticketPath(state.registrationId) },
+      };
+    case "refund_pending":
+      return {
+        text: "Your refund for this session is still being processed, so you can't register again yet.",
+        Icon: Hourglass,
+        action: { label: "View status", href: ticketPath(state.registrationId) },
+      };
     default:
       return assertNever(state);
   }

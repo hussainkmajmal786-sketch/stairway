@@ -54,6 +54,8 @@ export interface EventView {
   bring: string[];
   seatsTotal: number;
   seatsFilled: number;
+  /** Confirmed attendees only (seatsFilled also counts live payment holds). */
+  attending?: number;
   pricePaise: number;
   ticketType: "qr" | "token";
   tokenPrefix: string;

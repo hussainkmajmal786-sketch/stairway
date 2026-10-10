@@ -11,10 +11,15 @@ export function isActiveStatus(s: RegistrationStatus): s is ActiveStatus {
   return (ACTIVE_STATUSES as readonly string[]).includes(s);
 }
 
+/** Statuses shown in My tickets and on the ticket page (cancelled rows drop out). */
+export const VISIBLE_STATUSES = ["pending_payment", "confirmed", "waitlisted", "refund_needed", "refunded"] as const;
+
 export interface MyRegistration {
   id: string;
   status: RegistrationStatus;
   waitlistPosition: number | null;
+  /** End of a pending_payment seat hold (ISO), else null/undefined. */
+  holdExpiresAt?: string | null;
 }
 
 /** One row of the public.event_attendees view (public profile fields only). */

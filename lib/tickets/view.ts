@@ -1,6 +1,7 @@
 import type { EventView } from "@/lib/events/types";
 import type { TicketDetail } from "@/lib/registration/tickets";
 import type { RegistrationStatus } from "@/lib/registration/types";
+import { formatInr } from "@/lib/payments/money";
 import type { Settings } from "@/lib/site/schema";
 import { longDate, pad2, timeOf } from "@/lib/weekends";
 import type { TicketPngData } from "./png";
@@ -19,24 +20,22 @@ export function doorPass(t: Pick<TicketDetail, "status" | "ticketType" | "token"
 }
 
 /** Why the registration can't be cancelled here, mirroring cancel_registration's refusals; null when it can. */
-export type CancelBlock = "checked_in" | "pending_payment" | "paid" | "started";
+export type CancelBlock = "checked_in" | "inactive" | "started";
 
 export const CANCEL_BLOCK_COPY: Record<CancelBlock, string> = {
   checked_in: "You've already checked in, so this registration can't be cancelled.",
-  pending_payment: "This registration is waiting for payment. Contact the organisers to change it.",
-  paid: "Paid registrations are cancelled by the organisers. Contact us about a refund.",
+  inactive: "This registration is no longer active.",
   started: "This session has already started, so the registration can't be cancelled any more.",
 };
 
 export function cancelBlock(
-  t: Pick<TicketDetail, "status" | "checkedInAt"> & { event: Pick<TicketDetail["event"], "start" | "pricePaise"> },
+  t: Pick<TicketDetail, "status" | "checkedInAt"> & { event: Pick<TicketDetail["event"], "start"> },
   now: number,
 ): CancelBlock | null {
   if (t.checkedInAt) return "checked_in";
-  if (t.status !== "confirmed" && t.status !== "waitlisted") return "pending_payment";
-  // The RPC checks the amount paid; in Phase 3 only free events take registrations, so price > 0 means paid.
-  if (t.event.pricePaise > 0) return "paid";
-  if (!(Date.parse(t.event.start) > now)) return "started";
+  if (t.status !== "confirmed" && t.status !== "waitlisted" && t.status !== "pending_payment") return "inactive";
+  // A payment hold can always be released; seats and waitlist places only before the start.
+  if (t.status !== "pending_payment" && !(Date.parse(t.event.start) > now)) return "started";
   return null;
 }
 
@@ -46,9 +45,60 @@ export function ticketFilename(slug: string): string {
   return `stairway-${safe || "session"}-ticket.png`;
 }
 
+const HEADINGS: Record<RegistrationStatus, string> = {
+  confirmed: "Your ticket",
+  waitlisted: "Your waitlist place",
+  pending_payment: "Complete your payment",
+  refund_needed: "Refund pending",
+  refunded: "Refunded",
+  cancelled: "Registration cancelled",
+};
+
 /** Page title / h1 for the ticket's state. */
 export function ticketHeading(status: RegistrationStatus): string {
-  return status === "confirmed" ? "Your ticket" : status === "waitlisted" ? "Your waitlist place" : "Your registration";
+  return HEADINGS[status];
+}
+
+/** What the ticket explains instead of a door pass (every status but confirmed). */
+export type TicketNotice =
+  | { kind: "none" }
+  | { kind: "waitlisted"; position: number | null; paid: boolean }
+  | { kind: "pay"; holdExpiresAt: string; amountPaise: number }
+  | { kind: "processing" }
+  | { kind: "hold_expired" }
+  | { kind: "refund_needed"; amount: string; latePayment: boolean }
+  | { kind: "refunded"; amount: string; refundedOn: string | null }
+  | { kind: "cancelled" };
+
+/**
+ * `justPaid` = Checkout just reported success (?paid=1): show "confirming" while the hold is still live, until the
+ * server's status changes. Hold expiry is evaluated first so a stale ?paid=1 can never hide the expired / pay state.
+ */
+export function ticketNotice(
+  t: Pick<TicketDetail, "status" | "waitlistPosition" | "holdExpiresAt" | "amountPaise" | "cancelReason" | "refundedAt"> & {
+    event: Pick<TicketDetail["event"], "pricePaise">;
+  },
+  now: number,
+  justPaid = false,
+): TicketNotice {
+  switch (t.status) {
+    case "confirmed":
+      return { kind: "none" };
+    case "waitlisted":
+      return { kind: "waitlisted", position: t.waitlistPosition, paid: t.event.pricePaise > 0 };
+    case "pending_payment": {
+      const end = t.holdExpiresAt;
+      if (!end || !(Date.parse(end) > now)) return { kind: "hold_expired" };
+      if (justPaid) return { kind: "processing" };
+      return { kind: "pay", holdExpiresAt: end, amountPaise: t.amountPaise };
+    }
+    case "refund_needed":
+      return { kind: "refund_needed", amount: formatInr(t.amountPaise), latePayment: t.cancelReason === "late_payment_no_seat" };
+    case "refunded":
+      return { kind: "refunded", amount: formatInr(t.amountPaise), refundedOn: t.refundedAt ? longDate(t.refundedAt) : null };
+    case "cancelled":
+      return t.cancelReason === "hold_expired" ? { kind: "hold_expired" } : { kind: "cancelled" };
+  }
 }
 
 export interface TicketCardData {
@@ -66,10 +116,15 @@ export interface TicketCardData {
   qrRows: string[] | null;
   code: string | null;
   checkedInAt: string | null;
+  /** What to say instead of a door pass (kind "none" for a confirmed seat). */
+  notice: TicketNotice;
+  /** Receipt of an accepted payment, e.g. { number: "STW-2026-000012", amount: "₹199" }. */
+  receipt: { number: string; amount: string } | null;
 }
 
 export interface TicketView {
   heading: string;
+  notice: TicketNotice;
   card: TicketCardData;
   /** Null unless there is a door pass (confirmed). */
   png: TicketPngData | null;
@@ -89,6 +144,7 @@ export function ticketView(
   settings: Pick<Settings, "venue">,
   ev: Pick<EventView, "venue"> | null,
   now: number,
+  justPaid = false,
 ): TicketView {
   const pass = doorPass(ticket);
   const confirmed = ticket.status === "confirmed";
@@ -100,11 +156,16 @@ export function ticketView(
   const when = `${longDate(e.start)} · ${timeOf(e.start)} – ${timeOf(e.end)} IST`;
   const venue = [ev?.venue || settings.venue.hall, settings.venue.name].filter(Boolean).join(", ");
   const block = cancelBlock(ticket, now);
+  const notice = ticketNotice(ticket, now, justPaid);
+  const receipt = ticket.receiptNumber && ticket.amountPaise > 0
+    ? { number: ticket.receiptNumber, amount: formatInr(ticket.amountPaise) }
+    : null;
   return {
     heading: ticketHeading(ticket.status),
+    notice,
     card: {
       eyebrow, title: e.title, when, venue, name, status: ticket.status, waitlistPosition: ticket.waitlistPosition,
-      pass, token, qrRows: rows, code, checkedInAt: ticket.checkedInAt,
+      pass, token, qrRows: rows, code, checkedInAt: ticket.checkedInAt, notice, receipt,
     },
     png: pass.kind === "none" ? null : { eyebrow, title: e.title, when, venue, name, token, qrRows: rows, code },
     cancelBlocked: block ? CANCEL_BLOCK_COPY[block] : null,
