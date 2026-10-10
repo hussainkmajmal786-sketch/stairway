@@ -10,6 +10,7 @@ const FULL = {
   RAZORPAY_KEY_SECRET: "key_secret_value_123",
   RAZORPAY_WEBHOOK_SECRET: "webhook_secret_value",
   SUPABASE_SERVICE_ROLE_KEY: "service_role_key_value_000000",
+  CRON_SECRET: "c".repeat(32),
 };
 
 describe("readPaymentsConfig", () => {
@@ -23,10 +24,13 @@ describe("readPaymentsConfig", () => {
     expect(readPaymentsConfig({})).toEqual({ enabled: false });
     expect(readPaymentsConfig({ ...FULL, PAYMENTS_ENABLED: undefined })).toEqual({ enabled: false });
     expect(readPaymentsConfig({ ...FULL, PAYMENTS_ENABLED: "1" })).toEqual({ enabled: false });
-    for (const k of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET", "SUPABASE_SERVICE_ROLE_KEY"] as const) {
+    for (const k of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET", "SUPABASE_SERVICE_ROLE_KEY", "CRON_SECRET"] as const) {
       expect(readPaymentsConfig({ ...FULL, [k]: undefined })).toEqual({ enabled: false });
       expect(readPaymentsConfig({ ...FULL, [k]: "   " })).toEqual({ enabled: false });
     }
+  });
+  it("needs a 32+ character CRON_SECRET (holds are released by the cron tick)", () => {
+    expect(readPaymentsConfig({ ...FULL, CRON_SECRET: "short" })).toEqual({ enabled: false });
   });
   it("rejects a key id that is not a Razorpay key id", () => {
     expect(readPaymentsConfig({ ...FULL, RAZORPAY_KEY_ID: "pk_live_123" })).toEqual({ enabled: false });

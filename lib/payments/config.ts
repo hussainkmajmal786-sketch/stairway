@@ -26,6 +26,9 @@ export function readPaymentsConfig(env: Env): PaymentsConfig {
   const keySecret = val(env.RAZORPAY_KEY_SECRET);
   const webhookSecret = val(env.RAZORPAY_WEBHOOK_SECRET);
   const serviceRoleKey = val(env.SUPABASE_SERVICE_ROLE_KEY, 20);
+  // The cron tick is what releases expired holds and promotes the waitlist: without it a paid seat would be held
+  // forever, so payments stay off until CRON_SECRET is present.
+  if (!readCronSecret(env)) return { enabled: false };
   if (!keyId || !KEY_ID.test(keyId) || !keySecret || !webhookSecret || !serviceRoleKey) return { enabled: false };
   return { enabled: true, keyId, keySecret, webhookSecret, serviceRoleKey };
 }
