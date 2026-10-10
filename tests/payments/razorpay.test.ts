@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  createOrder, fetchOrder, fetchPayment, fetchRefunds, RAZORPAY_API, RazorpayError, refundPayment, type FetchLike,
+  createOrder, fetchOrder, fetchPayment, fetchRefunds, MAX_RESPONSE_BYTES, RAZORPAY_API, RazorpayError, refundPayment, type FetchLike,
 } from "@/lib/payments/razorpay";
 
 const CREDS = { keyId: "rzp_test_ABCDEFGH1234", keySecret: "s3cr3t_value_xyz" };
@@ -71,6 +71,40 @@ describe("errors", () => {
     await expect(fetchPayment(CREDS, fakeFetch(200, "not json"), PAYMENT.id)).rejects.toMatchObject({ code: "BAD_RESPONSE" });
     await expect(fetchPayment(CREDS, fakeFetch(200, { id: "nope" }), PAYMENT.id)).rejects.toMatchObject({ code: "BAD_RESPONSE" });
     await expect(fetchPayment(CREDS, fakeFetch(502, ""), PAYMENT.id)).rejects.toMatchObject({ status: 502, code: "HTTP_502" });
+  });
+  it("refuses oversized response bodies without parsing them", async () => {
+    const big = "x".repeat(MAX_RESPONSE_BYTES + 1);
+    // No content-length (streamed): stops reading once past the cap.
+    const streamed = vi.fn<FetchLike>(async () => {
+      const bytes = new TextEncoder().encode(big);
+      let sent = 0;
+      return new Response(new ReadableStream<Uint8Array>({
+        pull(c) {
+          if (sent >= bytes.length) return c.close();
+          c.enqueue(bytes.subarray(sent, sent + 65536));
+          sent += 65536;
+        },
+      }), { status: 200 });
+    });
+    await expect(fetchPayment(CREDS, streamed, PAYMENT.id)).rejects.toMatchObject({ code: "BAD_RESPONSE" });
+    // Declared too large: not read at all.
+    const declared = vi.fn<FetchLike>(async () =>
+      new Response("{}", { status: 200, headers: { "content-length": String(MAX_RESPONSE_BYTES + 1) } }));
+    await expect(fetchPayment(CREDS, declared, PAYMENT.id)).rejects.toMatchObject({ code: "BAD_RESPONSE" });
+    // An oversized error body keeps the HTTP status code.
+    await expect(fetchPayment(CREDS, fakeFetch(500, big), PAYMENT.id)).rejects.toMatchObject({ status: 500, code: "HTTP_500" });
+    // A body just under the cap is still read normally.
+    const padded = JSON.stringify({ ...PAYMENT, pad: "y".repeat(MAX_RESPONSE_BYTES - 1000) });
+    await expect(fetchPayment(CREDS, fakeFetch(200, padded), PAYMENT.id)).resolves.toMatchObject({ id: PAYMENT.id });
+  });
+  it("treats a body that fails mid-read as a network error (transient)", async () => {
+    const broken = vi.fn<FetchLike>(async () =>
+      new Response(new ReadableStream<Uint8Array>({
+        pull(c) {
+          c.error(new TypeError("connection reset"));
+        },
+      }), { status: 200 }));
+    await expect(fetchPayment(CREDS, broken, PAYMENT.id)).rejects.toMatchObject({ code: "NETWORK" });
   });
   it("never puts a malformed id into a URL", async () => {
     const f = fakeFetch(200, PAYMENT);

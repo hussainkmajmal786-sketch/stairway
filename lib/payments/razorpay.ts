@@ -10,6 +10,38 @@ export const PAYMENT_ID = /^pay_[A-Za-z0-9]{6,40}$/;
 export const REFUND_ID = /^rfnd_[A-Za-z0-9]{6,40}$/;
 const TIMEOUT_MS = 8000;
 const ERROR_CODE = /^[A-Z][A-Z0-9_]{0,59}$/;
+/** Razorpay responses are a few KB; anything larger is not one we parse (CPU budget on Workers). */
+export const MAX_RESPONSE_BYTES = 256 * 1024;
+
+/** Reads at most `max` bytes of the body; returns null when it is larger. Throws if the stream fails mid-read. */
+async function readCapped(res: Response, max: number): Promise<string | null> {
+  const declared = Number(res.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > max) {
+    await res.body?.cancel().catch(() => undefined);
+    return null;
+  }
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    all.set(c, at);
+    at += c.byteLength;
+  }
+  return new TextDecoder().decode(all);
+}
 
 export interface RazorpayCredentials {
   keyId: string;
@@ -89,7 +121,15 @@ async function call<T>(
     const name = (e as { name?: unknown } | null)?.name;
     throw new RazorpayError(0, name === "TimeoutError" || name === "AbortError" ? "TIMEOUT" : "NETWORK");
   }
-  const text = await res.text().catch(() => "");
+  let text: string | null;
+  try {
+    text = await readCapped(res, MAX_RESPONSE_BYTES);
+  } catch (e) {
+    // The connection dropped (or the 8 s timeout fired) while reading: transient.
+    const name = (e as { name?: unknown } | null)?.name;
+    throw new RazorpayError(0, name === "TimeoutError" || name === "AbortError" ? "TIMEOUT" : "NETWORK");
+  }
+  if (text === null) throw new RazorpayError(res.status, res.ok ? "BAD_RESPONSE" : `HTTP_${res.status}`);
   let json: unknown = null;
   try {
     json = text ? JSON.parse(text) : null;
