@@ -234,9 +234,11 @@
     box-shadow: 0.03em -0.03em 0 var(--x), 0.06em -0.06em 0 var(--x), 0.09em -0.09em 0 var(--x), 0.12em -0.12em 0 var(--x);
   }
   .stair-cap { white-space: nowrap; font-size: clamp(0.56rem, 2.5vw, 0.78rem); letter-spacing: clamp(0.16em, 0.6vw, 0.3em); margin-top: 0.9rem; transform: rotate(-5deg); transform-origin: 0 50%; }
-  /* phones: the 38-character caption is ~29em wide, so size it to the frame's inner width (100vw − wrap, border, padding) */
+  /* phones: the 38-character caption is ~29em wide, so size it to the frame's inner width. 82px = wrap padding 2×16
+     + frame border 2×5 + frame padding 2×20 (the phone values of .wrap and .frame above; change them together).
+     8.5px is the legibility floor: at 320 the caption may then run a few px into the frame padding, never out of it. */
   @media (max-width: 480px) {
-    .stair-cap { font-size: min(0.78rem, calc((100vw - 82px) / 30)); letter-spacing: 0.16em; }
+    .stair-cap { font-size: max(8.5px, min(0.78rem, calc((100vw - 82px) / 30))); letter-spacing: 0.16em; }
   }
   /* two-digit step number on a cream panel (event header): cobalt face, ink extrusion */
   .stair-num { --step: 0.12em; font-size: clamp(3.6rem, 9vw, 5.4rem); color: var(--field); padding-top: calc(var(--step) + 0.14em); }
@@ -290,7 +292,11 @@
   .btn-sm { min-height: 44px; padding: 0 1rem; font-size: 0.72rem; }
   .btn-lg { min-height: 58px; padding: 0 1.8rem; font-size: 0.86rem; }
   /* 320–379px phones: long labels ("Sign in to register") wrap inside their button instead of widening the page */
-  @media (max-width: 379.98px) { .btn { white-space: normal; text-align: center; } }
+  /* …and the large buttons trade side padding for a one-line label ("Claim your step" fits on one line at 320) */
+  @media (max-width: 379.98px) {
+    .btn { white-space: normal; text-align: center; }
+    .btn-lg { padding-inline: 1rem; gap: 0.5rem; }
+  }
   /* disabled: dashed border + paper-3 fill (opacity .5 failed contrast on the field) */
   .btn:disabled, .btn[aria-disabled="true"] { background: var(--paper-3); color: var(--ink-4); border-style: dashed; box-shadow: none; transform: none; pointer-events: none; }
   .on-field .btn:disabled, .on-field .btn[aria-disabled="true"] { background: transparent; color: rgba(244, 239, 230, 0.75); border-color: rgba(244, 239, 230, 0.75); }
