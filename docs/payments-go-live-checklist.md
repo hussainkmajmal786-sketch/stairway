@@ -70,3 +70,12 @@ Pre-conditions before the patch in `docs/integrations/fund-easy-patch/` may be a
 - Create the private GitHub backup of Fund Easy.
 - Review the patch and its README, apply it to Fund Easy yourself, and set the same `STAIRWAY_SYNC_SECRET` there.
 - Only then add `FUND_EASY_SYNC_URL`, `STAIRWAY_SYNC_SECRET` and `FUND_EASY_SYNC_ENABLED=true` here (plus `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` from step 2).
+
+---
+
+## Verification record (2026-10-11, live project nfrdsdnrtsbttyrmfppy, branch phase4-payments)
+
+- Repo migrations (15) match `list_migrations` one-to-one (foundation .. sync_outbox, last version 20261010160412).
+- Rolled-back assertion scripts, each run as one `execute_sql` call, all printed "all assertions passed": `security-hardening`, `profiles-rls`, `registrations-rls`, `registrations-rpc`, `payments-schema`, `payments-rpc`, `payments-service`, `sync-outbox`.
+- Afterwards: `private.feature_flags` payments = false; outbox 0 rows; payment_orders 0; payment_events 0; no `p3-*`/`p4-*` events or `@test.local` users left; the one live registration and one user untouched.
+- Advisors: security shows only the pre-existing Auth "leaked password protection disabled" warning (no new findings). Performance: INFO unused indexes (the two new ones are `payment_events_attention_idx` and `registrations_hold_idx`, expected before any payment) plus the pre-existing `multiple_permissive_policies` WARNs on Phase 1-3 tables (admin + public read policies; `registrations` owner + society-admin read), none from Phase 4 objects.
