@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LayoutDashboard, LogOut, Settings, Ticket, UserRound, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft, CalendarDays, FileText, Landmark, LayoutDashboard, LogOut, ScrollText, Settings, SlidersHorizontal,
+  Ticket, UserRound, Users, type LucideIcon,
+} from "lucide-react";
 import { FieldBand } from "@/components/ui/Poster";
 import { isNavActive } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
 
-interface NavItem { href: string; label: string; Icon: LucideIcon; exact?: boolean }
+interface NavItem { href: string; label: string; Icon: LucideIcon; exact?: boolean; superOnly?: boolean }
 
 // Nav config lives here (client side) so no component references cross the server/client boundary.
 const NAV = {
@@ -21,6 +24,19 @@ const NAV = {
       { href: "/me/settings", label: "Settings", Icon: Settings },
     ],
   },
+  admin: {
+    title: "Admin",
+    items: [
+      { href: "/admin", label: "Overview", Icon: LayoutDashboard, exact: true },
+      { href: "/admin/events", label: "Events", Icon: CalendarDays },
+      { href: "/admin/society", label: "Society", Icon: Landmark },
+      // superOnly items are hidden for society admins (UX only: every page and action authorises on the server).
+      { href: "/admin/site", label: "Site content", Icon: FileText, superOnly: true },
+      { href: "/admin/people", label: "Admins", Icon: Users, superOnly: true },
+      { href: "/admin/audit", label: "Audit log", Icon: ScrollText, superOnly: true },
+      { href: "/admin/settings", label: "Settings", Icon: SlidersHorizontal, superOnly: true },
+    ],
+  },
 } satisfies Record<string, { title: string; items: NavItem[] }>;
 
 export type DashboardVariant = keyof typeof NAV;
@@ -32,9 +48,19 @@ const itemCls =
  * Dashboard layout: cobalt chrome around a cream sidebar panel and a cream work panel (dense tables and forms never
  * sit on the field). The first control in the sidebar always closes the dashboard (back to the site home).
  */
-export function DashboardShell({ variant, children }: { variant: DashboardVariant; children: React.ReactNode }) {
+export function DashboardShell({
+  variant,
+  isSuper = false,
+  children,
+}: {
+  variant: DashboardVariant;
+  /** Admin variant only: shows the super-admin sections (UX only; the server authorises every request). */
+  isSuper?: boolean;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
-  const { title, items } = NAV[variant];
+  const { title } = NAV[variant];
+  const items = (NAV[variant].items as NavItem[]).filter((i) => !i.superOnly || isSuper);
 
   return (
     <FieldBand as="div" ghost={false} className="border-b-2 border-ink">

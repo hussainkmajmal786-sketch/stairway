@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const { settings: event } = await getSiteData();
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/me/", "/me$", "/onboarding", "/auth", "/login", "/u/", "/register", "/events/*/register"] },
+    rules: { userAgent: "*", allow: "/", disallow: ["/me/", "/me$", "/admin/", "/admin$", "/onboarding", "/auth", "/login", "/u/", "/register", "/events/*/register"] },
     sitemap: `${event.siteUrl}/sitemap.xml`,
     host: event.siteUrl,
   };
