@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["admin_role"]
+          society_id: string | null
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          role: Database["public"]["Enums"]["admin_role"]
+          society_id?: string | null
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["admin_role"]
+          society_id?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_invites_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_roles: {
         Row: {
           created_at: string
@@ -45,6 +95,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_label: string
+          at: string
+          id: number
+          society_id: string | null
+          summary: Json
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_label?: string
+          at?: string
+          id?: never
+          society_id?: string | null
+          summary?: Json
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_label?: string
+          at?: string
+          id?: never
+          society_id?: string | null
+          summary?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
       }
       event_speakers: {
         Row: {
@@ -878,6 +964,16 @@ export type Database = {
         Returns: Json
       }
       expire_holds: { Args: { p_limit?: number }; Returns: Json }
+      log_admin_event: {
+        Args: {
+          p_action: string
+          p_society_id: string
+          p_summary?: Json
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: undefined
+      }
       mark_refunded: {
         Args: {
           p_amount_paise: number
