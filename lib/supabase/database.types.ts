@@ -925,6 +925,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_admin_invite: { Args: { p_token_hash: string }; Returns: Json }
       admin_cancel_event: { Args: { p_event_id: string }; Returns: Json }
       admin_cancel_registration: {
         Args: { p_registration_id: string }
@@ -949,11 +950,14 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_overview: { Args: { p_society_id?: string }; Returns: Json }
+      admin_payments_flag: { Args: never; Returns: boolean }
       admin_promote_waitlist: { Args: { p_event_id: string }; Returns: Json }
       admin_undo_check_in: {
         Args: { p_registration_id: string }
         Returns: Json
       }
+      anonymise_user: { Args: { p_user_id: string }; Returns: Json }
       attach_payment_order: {
         Args: {
           p_amount_paise: number
