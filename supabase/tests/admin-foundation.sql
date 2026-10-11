@@ -104,6 +104,11 @@ begin
   exception when others then if sqlstate <> '42501' then raise; end if; end;
   perform public.log_admin_event('registrations.export', 'event', ev::text,
                                  (select society_id from public.events where id = ev), '{"rows":3}');
+  begin
+    perform public.log_admin_event('registrations.export', 'event', ev::text,
+                                   (select society_id from public.events where id = ev), '{"note":"free text"}');
+    assert false, 'free-text audit summary accepted';
+  exception when others then if sqlerrm <> 'invalid_summary' then raise; end if; end;
   perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a504","role":"authenticated"}', true);
   begin
     perform public.log_admin_event('registrations.export', 'event', ev::text, null);
@@ -304,7 +309,16 @@ begin
     update public.admin_invites set accepted_at = now() where id = inv;
     assert false, 'invite accepted_at updated by client';
   exception when others then if sqlstate <> '42501' then raise; end if; end;
+  begin
+    insert into public.admin_invites (email, role, society_id, token_hash, created_by, expires_at)
+    values ('long@example.com', 'super_admin', null, repeat('f', 64), '00000000-0000-0000-0000-00000000a501', now() + interval '8 days');
+    assert false, 'invite valid for 8 days accepted';
+  exception when others then if sqlstate <> '23514' then raise; end if; end;
   update public.admin_invites set revoked_at = now() where id = inv;
+  begin
+    update public.admin_invites set revoked_at = null where id = inv;
+    assert false, 'revoked invite un-revoked';
+  exception when others then if sqlstate <> '42501' then raise; end if; end;
   reset role;
   assert (select revoked_at from public.admin_invites where id = inv) is not null, 'revoke did not apply';
   assert (select count(*) from public.audit_log where target_type = 'admin_invites' and action = 'admin_invites.update'
@@ -340,7 +354,12 @@ begin
   exception when others then if sqlerrm <> 'last_super_admin' then raise; end if; end;
   -- positive twin: a second super admin makes the delete legal again
   insert into public.admin_roles (user_id, role, society_id) values ('00000000-0000-0000-0000-00000000a509', 'super_admin', null);
+  assert pg_get_functiondef('private.guard_last_super_admin()'::regprocedure) ilike '%for update%', 'guard does not serialise';
+  -- a super admin removing their own role is still audited (actor decided before the change)
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a505","role":"authenticated"}', true);
   delete from public.admin_roles where user_id = '00000000-0000-0000-0000-00000000a505';
+  assert exists (select 1 from public.audit_log where action = 'admin_roles.delete'
+                   and actor_id = '00000000-0000-0000-0000-00000000a505'), 'self role removal not audited';
   assert (select count(*) from public.admin_roles where role = 'super_admin') = 1, 'delete with a spare super admin failed';
 end $$;
 

@@ -7,7 +7,7 @@ insert into auth.users (id, email, aud, role, raw_user_meta_data, email_confirme
 select ('00000000-0000-0000-0000-00000000a8' || lpad(n::text, 2, '0'))::uuid, 'a8u' || lpad(n::text, 2, '0') || '@test.local',
        'authenticated', 'authenticated', jsonb_build_object('full_name', 'A8 User ' || lpad(n::text, 2, '0')),
        case when n = 10 then null else now() end
-from generate_series(1, 10) n;
+from generate_series(1, 11) n;
 
 insert into public.admin_roles (user_id, role, society_id)
 select '00000000-0000-0000-0000-00000000a801'::uuid, 'super_admin'::public.admin_role, null::uuid
@@ -19,12 +19,12 @@ insert into public.admin_invites (email, role, society_id, token_hash, created_b
 select v.email, v.role::public.admin_role, case when v.soc then s.id end, repeat(v.h, 64),
        '00000000-0000-0000-0000-00000000a801', now() - v.age, now() + v.ttl, v.rev
 from public.societies s,
-  (values ('a8u04@test.local', 'society_admin', true,  '1', interval '1 hour', interval '7 days',  null::timestamptz),
-          ('a8u06@test.local', 'super_admin',   false, '2', interval '1 hour', interval '7 days',  null),
-          ('a8u04@test.local', 'society_admin', true,  '3', interval '1 hour', interval '7 days',  null),   -- wrong account
-          ('a8u09@test.local', 'society_admin', true,  '4', interval '10 days', interval '-1 day', null),   -- expired
-          ('a8u09@test.local', 'society_admin', true,  '5', interval '1 hour', interval '7 days',  now()), -- revoked
-          ('a8u10@test.local', 'society_admin', true,  '6', interval '1 hour', interval '7 days',  null))  -- unconfirmed
+  (values ('a8u04@test.local', 'society_admin', true,  '1', interval '1 hour', interval '6 days',  null::timestamptz),
+          ('a8u06@test.local', 'super_admin',   false, '2', interval '1 hour', interval '6 days',  null),
+          ('a8u04@test.local', 'society_admin', true,  '3', interval '1 hour', interval '6 days',  null),   -- wrong account
+          ('a8u09@test.local', 'society_admin', true,  '4', interval '10 days', interval '-4 days', null),   -- expired
+          ('a8u09@test.local', 'society_admin', true,  '5', interval '1 hour', interval '6 days',  now()), -- revoked
+          ('a8u10@test.local', 'society_admin', true,  '6', interval '1 hour', interval '6 days',  null))  -- unconfirmed
     as v(email, role, soc, h, age, ttl, rev)
 where s.slug = 'ras';
 
@@ -57,9 +57,21 @@ from public.events e where e.slug = 'a8-past';
 insert into public.registrations (event_id, user_id, status, ticket_code, token_number, answers)
 select e.id, '00000000-0000-0000-0000-00000000a807', 'cancelled', private.new_ticket_code(), 1, '{"q":"other"}'
 from public.events e where e.slug = 'a8-fut2';
+insert into auth.one_time_tokens (id, user_id, token_type, token_hash, relates_to)
+  values (gen_random_uuid(), '00000000-0000-0000-0000-00000000a807', 'confirmation_token', 'a8fixturetokenhash0001', 'a8u07@test.local');
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+  values (gen_random_uuid(), '00000000-0000-0000-0000-00000000a807', 'a8 factor', 'totp', 'unverified', now(), now());
 insert into private.payment_orders (razorpay_order_id, registration_id, amount_paise, status, razorpay_payment_id, receipt_number, paid_at)
 select 'order_a8fixture0001', r.id, 9900, 'paid', 'pay_a8fixture0001', 'STW-2026-900001', now()
 from public.registrations r where r.razorpay_payment_id = 'pay_a8fixture0001';
+
+-- a811: a past-event hold with a still-open ledger order (could be captured later)
+insert into public.registrations (event_id, user_id, status, ticket_code, amount_paise, hold_expires_at, razorpay_order_id)
+select e.id, '00000000-0000-0000-0000-00000000a811', 'pending_payment', private.new_ticket_code(), 9900,
+       now() - interval '1 hour', 'order_a8fixture0005'
+from public.events e where e.slug = 'a8-past';
+insert into private.payment_orders (razorpay_order_id, registration_id, amount_paise)
+select 'order_a8fixture0005', r.id, 9900 from public.registrations r where r.razorpay_order_id = 'order_a8fixture0005';
 
 -- a808: a live future seat; overview fixtures on a8-fut (ras) and a8-cs
 insert into public.registrations (event_id, user_id, status, ticket_code, token_number, confirmed_at)
@@ -103,6 +115,11 @@ begin
   select array_agg(id) into fx from public.events where slug like 'a8-%';
 
   -- ═══ invites ═══
+  -- the confirmed-seat insert queued a Fund Easy payload carrying the attendee; it is still unsent
+  assert exists (select 1 from private.external_sync_outbox o join public.registrations r on r.id = o.registration_id
+                  where r.user_id = '00000000-0000-0000-0000-00000000a807' and o.status = 'pending' and o.payload ? 'attendee'),
+    'fixture outbox row missing (outbox scrub would be vacuous)';
+
   set local role authenticated;
   perform set_config('request.jwt.claims', u4, true);
   r := public.accept_admin_invite(repeat('1', 64));
@@ -167,6 +184,8 @@ begin
   exception when others then if sqlerrm <> 'admin_account' then raise; end if; end;
   begin perform public.anonymise_user('00000000-0000-0000-0000-00000000a808'); assert false, 'anonymised a user with a live seat';
   exception when others then if sqlerrm <> 'open_registrations' then raise; end if; end;
+  begin perform public.anonymise_user('00000000-0000-0000-0000-00000000a811'); assert false, 'anonymised a user with an open order';
+  exception when others then if sqlerrm <> 'open_registrations' then raise; end if; end;
   begin perform public.anonymise_user(gen_random_uuid()); assert false, 'anonymised a missing user';
   exception when others then if sqlerrm <> 'user_not_found' then raise; end if; end;
   assert (select full_name from public.profiles where id = '00000000-0000-0000-0000-00000000a807') = 'Target Person',
@@ -196,6 +215,15 @@ begin
   assert (select email like 'deleted-%@anonymised.invalid' and banned_until is not null and raw_user_meta_data = '{}'::jsonb
             from auth.users where id = '00000000-0000-0000-0000-00000000a807'), 'auth user not closed';
   assert not exists (select 1 from auth.identities where user_id = '00000000-0000-0000-0000-00000000a807'), 'identities remain';
+  assert not exists (select 1 from auth.one_time_tokens where user_id = '00000000-0000-0000-0000-00000000a807')
+     and not exists (select 1 from auth.mfa_factors where user_id = '00000000-0000-0000-0000-00000000a807'),
+    'one-time tokens / mfa factors remain';
+  assert exists (select 1 from private.external_sync_outbox o join public.registrations r on r.id = o.registration_id
+                  where r.user_id = '00000000-0000-0000-0000-00000000a807' and o.status = 'pending')
+     and not exists (select 1 from private.external_sync_outbox o join public.registrations r on r.id = o.registration_id
+                      where r.user_id = '00000000-0000-0000-0000-00000000a807' and o.payload ? 'attendee')
+     and not exists (select 1 from private.external_sync_outbox where payload::text ilike '%a8u07%' or payload::text ilike '%Target Person%'),
+    'queued outbox payloads still carry the attendee';
   assert exists (select 1 from public.audit_log where action = 'user.anonymised'
                    and target_id = '00000000-0000-0000-0000-00000000a807'
                    and (summary->>'registrations_kept')::int = 2), 'anonymisation not audited';
@@ -267,6 +295,14 @@ begin
   assert not exists (select 1 from pg_proc p where p.pronamespace in ('public'::regnamespace, 'private'::regnamespace)
                        and p.proname in ('accept_admin_invite', 'anonymise_user', 'admin_payments_flag', 'admin_overview')
                        and not coalesce(p.proconfig @> array['search_path=""'], false)), 'people function lacks search_path';
+end $$;
+
+-- a super admin removing their own role (another super admin exists) is still audited
+do $$ begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a801","role":"authenticated"}', true);
+  delete from public.admin_roles where user_id = '00000000-0000-0000-0000-00000000a801';
+  assert exists (select 1 from public.audit_log where action = 'admin_roles.delete'
+                   and actor_id = '00000000-0000-0000-0000-00000000a801'), 'self role removal not audited';
 end $$;
 
 rollback;

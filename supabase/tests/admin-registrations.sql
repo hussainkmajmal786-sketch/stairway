@@ -215,6 +215,33 @@ begin
      and (select cancel_reason from public.registrations where id = regp) = 'admin', 'cancel reason not admin';
   assert (select razorpay_payment_id from public.registrations where id = regp) = 'pay_a6fixture0001', 'refund_needed lost its payment id';
 
+  -- ═══ answers only for live rows; an admin-cancelled hold is never revived by a late payment ═══
+  update public.registrations set answers = '{"q":"x"}' where id in (reg2, reg3);
+  set local role authenticated;
+  perform set_config('request.jwt.claims', r1, true);
+  r := public.admin_event_registrants(ev1);
+  assert (select x->'answers' from jsonb_array_elements(r->'rows') x where (x->>'registration_id')::uuid = reg2) = '{"q":"x"}'::jsonb,
+    'live registrant answers missing';
+  assert (select x->'answers' from jsonb_array_elements(r->'rows') x where (x->>'registration_id')::uuid = reg3) = 'null'::jsonb,
+    'cancelled registrant answers leaked';
+  reset role;
+  insert into public.registrations (id, event_id, user_id, status, ticket_code, amount_paise, hold_expires_at, razorpay_order_id)
+    values ('00000000-0000-0000-0000-00000000a6c1', evp, '00000000-0000-0000-0000-00000000a612', 'pending_payment',
+            private.new_ticket_code(), 9900, now() + interval '10 minutes', 'order_a6fixture0009');
+  insert into private.payment_orders (razorpay_order_id, registration_id, amount_paise)
+    values ('order_a6fixture0009', '00000000-0000-0000-0000-00000000a6c1', 9900);
+  set local role authenticated;
+  perform set_config('request.jwt.claims', r1, true);
+  r := public.admin_cancel_registration('00000000-0000-0000-0000-00000000a6c1');
+  assert r->>'status' = 'cancelled', 'admin cancel of a hold: ' || r::text;
+  reset role;
+  set local role service_role;
+  r := public.confirm_payment('00000000-0000-0000-0000-00000000a6c1', 'order_a6fixture0009', 'pay_a6fixture0009', 9900, 'INR', 'client_verify');
+  reset role;
+  assert r->>'outcome' = 'refund_needed' and r->>'status' = 'refund_needed', 'late payment revived an admin-cancelled hold: ' || r::text;
+  assert (select cancel_reason from public.registrations where id = '00000000-0000-0000-0000-00000000a6c1') = 'admin',
+    'admin cancel reason lost';
+
   -- ═══ promote waitlist after a capacity raise ═══
   set local role authenticated;
   perform set_config('request.jwt.claims', r1, true);
