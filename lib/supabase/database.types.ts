@@ -925,6 +925,35 @@ export type Database = {
       }
     }
     Functions: {
+      admin_cancel_event: { Args: { p_event_id: string }; Returns: Json }
+      admin_cancel_registration: {
+        Args: { p_registration_id: string }
+        Returns: Json
+      }
+      admin_check_in: {
+        Args: {
+          p_code?: string
+          p_confirm?: boolean
+          p_event_id: string
+          p_registration_id?: string
+        }
+        Returns: Json
+      }
+      admin_event_registrants: {
+        Args: {
+          p_event_id: string
+          p_limit?: number
+          p_offset?: number
+          p_q?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      admin_promote_waitlist: { Args: { p_event_id: string }; Returns: Json }
+      admin_undo_check_in: {
+        Args: { p_registration_id: string }
+        Returns: Json
+      }
       attach_payment_order: {
         Args: {
           p_amount_paise: number
