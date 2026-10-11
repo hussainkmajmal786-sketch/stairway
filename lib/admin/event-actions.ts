@@ -2,29 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, TablesInsert } from "@/lib/supabase/database.types";
+import type { TablesInsert } from "@/lib/supabase/database.types";
 import { authorize } from "./auth";
 import {
   copySlug, copyTitle, EventFieldsSchema, EventInputSchema, nextStepNumber, publishBlockers, SeenUpdatedAt,
   type EventFields,
 } from "./event-schema";
+import { revalidateEventPaths as revalidateEvent } from "./revalidate";
 import { fail, fromZod, mapDbError, okResult, type ActionResult } from "./result";
-
-type Db = SupabaseClient<Database>;
 
 const CONFLICT_MESSAGE = "Someone else changed this session. Reload to see their changes.";
 const Id = z.uuid();
-
-/** Public pages that show an event, plus the admin list. Published events only touch the public paths. */
-async function revalidateEvent(db: Db, e: { slug: string; societyId: string; published: boolean }) {
-  revalidatePath("/admin/events");
-  if (!e.published) return;
-  revalidatePath(`/events/${e.slug}`);
-  revalidatePath("/");
-  const { data } = await db.from("societies").select("slug").eq("id", e.societyId).maybeSingle();
-  if (data?.slug) revalidatePath(`/s/${data.slug}`);
-}
 
 function fieldsToColumns(f: EventFields, isSuper: boolean) {
   return {
