@@ -132,6 +132,63 @@ export type Database = {
         }
         Relationships: []
       }
+      community_requests: {
+        Row: {
+          admin_note: string
+          created_at: string
+          details: Json
+          email: string | null
+          id: string
+          ip_hash: string | null
+          is_anonymous: boolean
+          kind: Database["public"]["Enums"]["community_kind"]
+          message: string
+          name: string | null
+          organisation: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["community_status"]
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_note?: string
+          created_at?: string
+          details?: Json
+          email?: string | null
+          id?: string
+          ip_hash?: string | null
+          is_anonymous?: boolean
+          kind: Database["public"]["Enums"]["community_kind"]
+          message: string
+          name?: string | null
+          organisation?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["community_status"]
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_note?: string
+          created_at?: string
+          details?: Json
+          email?: string | null
+          id?: string
+          ip_hash?: string | null
+          is_anonymous?: boolean
+          kind?: Database["public"]["Enums"]["community_kind"]
+          message?: string
+          name?: string | null
+          organisation?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["community_status"]
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_speakers: {
         Row: {
           event_id: string
@@ -1118,6 +1175,22 @@ export type Database = {
         Args: { p_answers?: Json; p_event_id: string }
         Returns: Json
       }
+      submit_community_request: {
+        Args: {
+          p_anonymous: boolean
+          p_details: Json
+          p_email: string
+          p_hp: string
+          p_ip_hash: string
+          p_kind: Database["public"]["Enums"]["community_kind"]
+          p_message: string
+          p_name: string
+          p_organisation: string
+          p_phone: string
+          p_subject: string
+        }
+        Returns: Json
+      }
       submit_ieee_claim: {
         Args: { p_member_number: string; p_proof_path: string }
         Returns: Json
@@ -1125,6 +1198,8 @@ export type Database = {
     }
     Enums: {
       admin_role: "super_admin" | "society_admin"
+      community_kind: "host_event" | "partner" | "feedback"
+      community_status: "new" | "in_review" | "resolved" | "closed"
       event_mode: "offline" | "online" | "hybrid"
       event_status: "draft" | "published" | "cancelled"
       ieee_claim_status:
@@ -1269,6 +1344,8 @@ export const Constants = {
   public: {
     Enums: {
       admin_role: ["super_admin", "society_admin"],
+      community_kind: ["host_event", "partner", "feedback"],
+      community_status: ["new", "in_review", "resolved", "closed"],
       event_mode: ["offline", "online", "hybrid"],
       event_status: ["draft", "published", "cancelled"],
       ieee_claim_status: [
