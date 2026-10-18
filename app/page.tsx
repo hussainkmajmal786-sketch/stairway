@@ -15,6 +15,7 @@ import { Team } from "@/components/sections/Team";
 import { AboutIEEE } from "@/components/sections/AboutIEEE";
 import { FAQ } from "@/components/sections/FAQ";
 import { FinalCTA } from "@/components/sections/FinalCTA";
+import { GetInvolved } from "@/components/sections/GetInvolved";
 import { Community } from "@/components/sections/Community";
 import { getSiteData } from "@/lib/site/load";
 import { eventJsonLd, JsonLd } from "@/lib/jsonld";
@@ -55,6 +56,7 @@ export default async function Home() {
       <FAQ />
       <AboutIEEE />
       <FinalCTA />
+      <GetInvolved />
       <Community />
     </>
   );

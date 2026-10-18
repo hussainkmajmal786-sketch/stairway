@@ -17,7 +17,7 @@ import { FORM_ERROR_ID, fieldOrder, firstInvalid, formLevelError, submitGate } f
 import { QuestionField } from "./QuestionField";
 import { ErrorPanel } from "./ErrorPanel";
 
-const HINTS: Partial<Record<string, string>> = { phone: "Only you and the organisers can see this.", ieeeMemberId: "Optional." };
+const HINTS: Partial<Record<string, string>> = { phone: "Only you and the organisers can see this.", ieeeMemberId: "Optional. Verify it under Membership in your dashboard to get the badge." };
 
 export function RegistrationForm({
   slug, questions, initial, waitlist, fallbackUrl, paid,

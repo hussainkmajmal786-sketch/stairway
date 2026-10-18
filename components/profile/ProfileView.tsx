@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, Pencil } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { SOCIAL_LABELS, type SocialKey } from "@/lib/profile/options";
 import { formatMonth, isHttpUrl, safeAvatarUrl } from "@/lib/profile/view";
 
@@ -13,6 +14,8 @@ export interface ProfileViewData {
   projects: { id: string; title: string; description: string; url: string }[];
   experience: { id: string; title: string; organization: string; start_date: string; end_date: string | null; description: string }[];
   isOwner: boolean;
+  /** Computed at read time by profile_verified(); true only for a live verified IEEE member. */
+  verified?: boolean;
 }
 
 // User-supplied URLs: new tab, no opener/referrer, and no SEO credit.
@@ -28,6 +31,7 @@ export function ProfileView({ p }: { p: ProfileViewData }) {
         <Avatar name={name} photo={safeAvatarUrl(p.avatarUrl)} size={128} decorative referrerPolicy="no-referrer" />
         <div className="min-w-0 flex-1">
           <p className="mono font-bold text-ink-3">@{p.handle}</p>
+          {p.verified && <div className="mt-2"><VerifiedBadge /></div>}
           <h1 className="mt-1 break-words text-4xl font-semibold leading-tight md:text-5xl">{name}</h1>
           {p.headline && <p className="mt-2 break-words text-lg text-ink-2">{p.headline}</p>}
           {meta && <p className="mt-2 text-sm text-ink-3">{meta}</p>}

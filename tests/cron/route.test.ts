@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.mocked(cronSecret).mockReturnValue(SECRET);
   vi.mocked(paymentsConfig).mockReturnValue({ enabled: false });
   vi.mocked(syncConfig).mockReturnValue({ enabled: false });
-  vi.mocked(runTick).mockResolvedValue({ holds: null, sync: null, errors: [] });
+  vi.mocked(runTick).mockResolvedValue({ holds: null, sync: null, purge: null, errors: [] });
 });
 
 describe("POST /api/cron/tick", () => {
@@ -42,10 +42,10 @@ describe("POST /api/cron/tick", () => {
       enabled: true, keyId: "rzp_test_ABCDEFGH1234", keySecret: "k".repeat(16), webhookSecret: "w".repeat(16), serviceRoleKey: "srk_" + "x".repeat(20),
     });
     vi.mocked(syncConfig).mockReturnValue({ enabled: true, url: "https://fe.example/x", secret: "s".repeat(32), serviceRoleKey: "srk_" + "x".repeat(20) });
-    vi.mocked(runTick).mockResolvedValue({ holds: { events: 1, expired: 1, promoted: 0 }, sync: null, errors: [] });
+    vi.mocked(runTick).mockResolvedValue({ holds: { events: 1, expired: 1, promoted: 0 }, sync: null, purge: null, errors: [] });
     const res = await call(`Bearer ${SECRET}`);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, holds: { events: 1, expired: 1, promoted: 0 }, sync: null, errors: [] });
+    expect(await res.json()).toEqual({ ok: true, holds: { events: 1, expired: 1, promoted: 0 }, sync: null, purge: null, errors: [] });
     const deps = vi.mocked(runTick).mock.calls[0][0];
     expect(deps.payments).toBe(true);
     expect(deps.sync).toEqual({ url: "https://fe.example/x", secret: "s".repeat(32) });
@@ -54,7 +54,7 @@ describe("POST /api/cron/tick", () => {
   });
   it("answers 500 when a step failed", async () => {
     vi.mocked(syncConfig).mockReturnValue({ enabled: true, url: "https://fe.example/x", secret: "s".repeat(32), serviceRoleKey: "srk_" + "x".repeat(20) });
-    vi.mocked(runTick).mockResolvedValue({ holds: null, sync: null, errors: ["sync:Error"] });
+    vi.mocked(runTick).mockResolvedValue({ holds: null, sync: null, purge: null, errors: ["sync:Error"] });
     expect((await call(`Bearer ${SECRET}`)).status).toBe(500);
   });
 });

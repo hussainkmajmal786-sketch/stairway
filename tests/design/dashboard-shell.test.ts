@@ -53,7 +53,7 @@ describe("DashboardShell", () => {
     // without min-w-0 the strip's max-content width stretches the grid track past a phone viewport
     expect(out).toMatch(/<aside class="panel min-w-0 [^"]*">/);
     const items = [...out.matchAll(/<a[^>]*href="\/me[^"]*"[^>]*>/g)].map((m) => m[0]);
-    expect(items).toHaveLength(4);
+    expect(items).toHaveLength(6);
     for (const a of items) expect(a).toContain("h-12");
   });
 

@@ -9,8 +9,8 @@ vi.mock("next/navigation", async (importOriginal) => ({
 
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
-function render(isSuper: boolean) {
-  const props = { variant: "admin", isSuper } as Parameters<typeof DashboardShell>[0];
+function render(isSuper: boolean, badges?: Record<string, number>) {
+  const props = { variant: "admin", isSuper, badges } as Parameters<typeof DashboardShell>[0];
   return renderToStaticMarkup(createElement(DashboardShell, props, createElement("h1", null, "Events")));
 }
 
@@ -28,7 +28,7 @@ describe("admin DashboardShell", () => {
   it("shows super-only sections to super admins only", () => {
     const sup = render(true);
     const soc = render(false);
-    for (const href of ["/admin/site", "/admin/people", "/admin/audit", "/admin/settings"]) {
+    for (const href of ["/admin/site", "/admin/people", "/admin/audit", "/admin/settings", "/admin/membership", "/admin/requests", "/admin/chat"]) {
       expect(sup).toContain(`href="${href}"`);
       expect(soc).not.toContain(`href="${href}"`);
     }
@@ -43,5 +43,26 @@ describe("admin DashboardShell", () => {
 
   it("marks the events section current", () => {
     expect(render(true)).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/admin\/events"|<a[^>]*href="\/admin\/events"[^>]*aria-current="page"/);
+  });
+
+  it("renders badges with an accessible label and hides zero/missing counts", () => {
+    const out = render(true, { "/admin/requests": 3, "/admin/chat": 0 });
+    expect(out).toContain('aria-label="3 unread"');
+    expect(out).not.toContain('aria-label="0 unread"');
+    expect(render(true)).not.toContain("unread");
+    expect(render(true, { "/admin/requests": 120 })).toContain(">99+<");
+  });
+
+  it("keeps Back to site first with the new nav items appended", () => {
+    const out = render(true);
+    expect(out.indexOf("Back to site")).toBeLessThan(out.indexOf("Overview"));
+    expect(out.indexOf("Settings")).toBeLessThan(out.indexOf("/admin/membership"));
+  });
+
+  it("member dashboard has Membership and Chat", () => {
+    const me = renderToStaticMarkup(createElement(DashboardShell, { variant: "me" } as Parameters<typeof DashboardShell>[0], null));
+    expect(me).toContain('href="/me/membership"');
+    expect(me).toContain('href="/me/chat"');
+    expect(me.indexOf("Back to site")).toBeLessThan(me.indexOf("Overview"));
   });
 });

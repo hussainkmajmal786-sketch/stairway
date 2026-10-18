@@ -8,6 +8,7 @@ import { ProfileDetailsSchema, fieldErrors } from "@/lib/profile/schema";
 import { BRANCHES, SOCIAL_KEYS, SOCIAL_LABELS, YEARS, type SocialKey } from "@/lib/profile/options";
 import { MAX_SKILLS, MAX_SKILL_LEN, linksToDb, mergeSaved, normaliseSkill, skillDraftError } from "@/lib/profile/editor";
 import { Field, fieldDescribedBy, inputCls, textareaCls } from "@/components/ui/Field";
+import { claimErrorCopy } from "@/lib/community/membership";
 import { cn } from "@/lib/utils";
 import { AvatarUploader } from "./AvatarUploader";
 
@@ -16,9 +17,10 @@ export interface ProfileFormValues {
   skills: string[]; links: Record<SocialKey, string>; avatarUrl: string | null;
 }
 
+const NAME_LOCKED_HINT = "Locked while your IEEE membership is verified. Contact the organisers to change it.";
 const HEADLINE_HINT = "e.g. 3rd-year ECE · robotics tinkerer";
 
-export function ProfileForm({ userId, initial }: { userId: string; initial: ProfileFormValues }) {
+export function ProfileForm({ userId, initial, nameLocked = false }: { userId: string; initial: ProfileFormValues; nameLocked?: boolean }) {
   const router = useRouter();
   const [d, setD] = useState(initial);
   const [skillDraft, setSkillDraft] = useState("");
@@ -80,7 +82,8 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
         .select("id");
       // RLS makes a blocked update look like "0 rows", so treat that as a failure too.
       if (error || !data?.length) {
-        setStatus({ ok: false, text: "Couldn't save. Please try again." });
+        const locked = error?.message?.trim().toLowerCase() === "name_locked";
+        setStatus({ ok: false, text: locked ? claimErrorCopy("name_locked") : "Couldn't save. Please try again." });
         return;
       }
       // Write back the normalised values, but not over fields the user edited while the save was running.
@@ -109,8 +112,9 @@ export function ProfileForm({ userId, initial }: { userId: string; initial: Prof
           }}
         />
       </div>
-      <Field id="fullName" label="Full name" required error={errors.fullName}>
-        <input id="fullName" autoComplete="name" maxLength={80} className={inputCls} value={d.fullName} onChange={(e) => setD({ ...d, fullName: e.target.value })} {...aria("fullName")} />
+      <Field id="fullName" label="Full name" required error={errors.fullName} hint={nameLocked ? NAME_LOCKED_HINT : undefined}>
+        <input id="fullName" autoComplete="name" maxLength={80} className={cn(inputCls, nameLocked && "!bg-paper-2")} value={d.fullName} readOnly={nameLocked} aria-readonly={nameLocked || undefined}
+          onChange={(e) => setD({ ...d, fullName: e.target.value })} {...aria("fullName", nameLocked ? NAME_LOCKED_HINT : undefined)} />
       </Field>
       <Field id="headline" label="Headline" error={errors.headline} hint={HEADLINE_HINT}>
         <input id="headline" maxLength={120} className={inputCls} value={d.headline} onChange={(e) => setD({ ...d, headline: e.target.value })} {...aria("headline", HEADLINE_HINT)} />

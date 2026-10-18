@@ -30,10 +30,11 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
     notFound();
   }
 
-  const [{ data: projects }, { data: experience }] = await Promise.all([
+  const [{ data: projects }, { data: experience }, { data: verified }] = await Promise.all([
     db.from("profile_projects").select("id, title, description, url").eq("user_id", p.id).order("sort_order").order("created_at"),
     db.from("profile_experience").select("id, title, organization, start_date, end_date, description").eq("user_id", p.id)
       .order("start_date", { ascending: false }).order("created_at"),
+    db.rpc("profile_verified", { p_user: p.id }),
   ]);
 
   const data: ProfileViewData = {
@@ -42,6 +43,7 @@ export default async function ProfilePage({ params }: PageProps<"/u/[handle]">) 
     links: safeLinks(p.links),
     projects: projects ?? [], experience: experience ?? [],
     isOwner: user.id === p.id,
+    verified: verified === true,
   };
   return <ProfileView p={data} />;
 }

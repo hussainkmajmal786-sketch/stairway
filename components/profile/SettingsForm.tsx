@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 import { PrivateSchema, fieldErrors } from "@/lib/profile/schema";
@@ -10,13 +11,13 @@ import { cn } from "@/lib/utils";
 const HINTS = {
   email: "From your Google account.",
   phone: "Only you and event organisers can see this.",
-  ieeeMemberId: "Optional. Members get free entry and priority seats.",
+  ieeeMemberId: "Optional. To verify your membership and get the badge, use the Membership page.",
 };
 
 export function SettingsForm({
-  userId, email, initial,
+  userId, email, initial, ieeeVerified = false,
 }: {
-  userId: string; email: string; initial: { phone: string; ieeeMemberId: string };
+  userId: string; email: string; initial: { phone: string; ieeeMemberId: string }; ieeeVerified?: boolean;
 }) {
   const [d, setD] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -38,12 +39,12 @@ export function SettingsForm({
     try {
       const { data, error } = await createClient()
         .from("profile_private")
-        .update({ phone: parsed.data.phone, ieee_member_id: parsed.data.ieeeMemberId })
+        .update(ieeeVerified ? { phone: parsed.data.phone } : { phone: parsed.data.phone, ieee_member_id: parsed.data.ieeeMemberId })
         .eq("user_id", userId)
         .select("user_id");
       // RLS makes a blocked update look like "0 rows", so treat that as a failure too.
       const ok = !error && (data?.length ?? 0) > 0;
-      if (ok) setD({ phone: parsed.data.phone, ieeeMemberId: parsed.data.ieeeMemberId });
+      if (ok) setD({ phone: parsed.data.phone, ieeeMemberId: ieeeVerified ? d.ieeeMemberId : parsed.data.ieeeMemberId });
       setStatus(ok ? { ok: true, text: "Saved." } : { ok: false, text: "Couldn't save. Please try again." });
     } catch {
       setStatus({ ok: false, text: "Couldn't save. Check your connection and try again." });
@@ -67,10 +68,17 @@ export function SettingsForm({
       <Field id="ieeeMemberId" label="IEEE membership ID" error={errors.ieeeMemberId} hint={HINTS.ieeeMemberId}>
         <input
           id="ieeeMemberId" inputMode="numeric" autoComplete="off"
-          className={inputCls} value={d.ieeeMemberId} onChange={(e) => setD({ ...d, ieeeMemberId: e.target.value })}
+          className={cn(inputCls, ieeeVerified && "!bg-paper-2")} value={d.ieeeMemberId} readOnly={ieeeVerified} aria-readonly={ieeeVerified || undefined}
+          onChange={(e) => setD({ ...d, ieeeMemberId: e.target.value })}
           aria-invalid={!!errors.ieeeMemberId} aria-describedby={fieldDescribedBy("ieeeMemberId", { error: errors.ieeeMemberId, hint: HINTS.ieeeMemberId })}
         />
       </Field>
+      {ieeeVerified && (
+        <p className="text-sm md:col-span-2">
+          Your IEEE membership is verified, so this ID is locked.{" "}
+          <Link href="/me/membership" className="font-semibold underline">Manage membership</Link>
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-4 md:col-span-2">
         <button type="submit" className="btn btn-primary" disabled={busy}>
           {busy && <Loader2 size={16} className="animate-spin" aria-hidden />} Save settings

@@ -93,3 +93,11 @@ For an unknown society or event slug (`/s/nope`, `/events/nope`) the 404 status 
 - Destructive actions use `ConfirmDialog`; typed text is required for cancel session (title), remove admin (handle) and erase data (handle). Errors use `role="alert"`, status uses `aria-live="polite"`.
 - Targets are 44 px. The check-in scanner is a full-screen exception: cobalt field, cream result panel, controls at least 48 px, its own back control top-left, reduced motion respected.
 - One-time secrets (invite links) are shown once in a cream panel with a Copy button and are never stored or re-rendered.
+
+
+## Community (Phase 6)
+
+- **Verified badge:** a small pill with a check icon and the words "IEEE verified" (never colour alone), shown on `/me`, `/me/profile` and `/u/<handle>` for signed-in viewers; not in attending lists.
+- **Get involved band (home):** cream panel with three tabs (host an event, partner, feedback). Tabs are real `role="tablist"` buttons with arrow-key support and 44 px targets; one form visible at a time; the honeypot field is visually hidden and `aria-hidden`.
+- **Chat panel:** `role="log"` with polite live updates. Own messages align right on a cobalt bubble with cream text, team messages align left on a cream bubble with ink text; every bubble carries a text label ("You" / "Team") and time so colour is never the only cue. The composer is a labelled textarea with a character counter; Enter sends, Shift+Enter breaks the line. Blocked or not-available states render a notice instead of a composer.
+- **Admin inboxes:** requests, chat and membership appear in the admin nav with count badges (number plus text). The roster uploader is a file input with a parse preview (row count, first errors) before the confirm button; the review queue collapses to cards under 640 px, and "Show proof" opens a short-lived signed URL.

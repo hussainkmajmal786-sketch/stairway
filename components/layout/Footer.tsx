@@ -68,6 +68,9 @@ export function Footer() {
                 ["/resources", "Resources"],
                 ["/#sponsors", "Sponsors"],
                 ["/#faq", "FAQ"],
+                ["/#host-event", "Host an event"],
+                ["/#partner", "Become a partner"],
+                ["/#feedback", "Suggestions & complaints"],
                 [registerHref(openSlug(next)), "Register"],
               ].map(([href, label]) => (
                 <li key={label}><SmartLink href={href} className={link}>{label}</SmartLink></li>

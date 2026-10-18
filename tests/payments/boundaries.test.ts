@@ -47,6 +47,8 @@ const ADMIN_ALLOWED = new Set([
   "app/api/cron/tick/route.ts",
   "lib/admin/refund-action.ts",
   "lib/admin/anonymise-action.ts",
+  "lib/community/prescreen-action.ts",
+  "lib/community/forms-actions.ts",
 ]);
 
 describe("payment secret boundaries", () => {
@@ -84,6 +86,13 @@ describe("payment secret boundaries", () => {
     const SECRET_NAMES = /\b(?:RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|SUPABASE_SERVICE_ROLE_KEY)\b/;
     expect(files.some((f) => f.path === "lib/payments/config.ts" && SECRET_NAMES.test(f.src))).toBe(true); // not vacuous
     const offenders = files.filter((f) => f.path !== "lib/payments/config.ts" && SECRET_NAMES.test(f.src)).map((f) => f.path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("names the community secrets only in lib/community/config.ts", () => {
+    const NAMES = /\b(?:ANTHROPIC_API_KEY|COMMUNITY_HASH_SALT)\b/;
+    expect(files.some((f) => f.path === "lib/community/config.ts" && NAMES.test(f.src))).toBe(true); // not vacuous
+    const offenders = files.filter((f) => f.path !== "lib/community/config.ts" && NAMES.test(f.src)).map((f) => f.path);
     expect(offenders).toEqual([]);
   });
 
