@@ -372,6 +372,71 @@ export type Database = {
           },
         ]
       }
+      ieee_claims: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          member_number: string
+          method: string | null
+          prescreen: Json
+          prescreen_attempts: number
+          prescreen_status: string
+          proof_path: string | null
+          reject_reason: string | null
+          roster_matched: boolean
+          status: Database["public"]["Enums"]["ieee_claim_status"]
+          updated_at: string
+          user_id: string
+          verified_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          member_number: string
+          method?: string | null
+          prescreen?: Json
+          prescreen_attempts?: number
+          prescreen_status?: string
+          proof_path?: string | null
+          reject_reason?: string | null
+          roster_matched?: boolean
+          status: Database["public"]["Enums"]["ieee_claim_status"]
+          updated_at?: string
+          user_id: string
+          verified_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          member_number?: string
+          method?: string | null
+          prescreen?: Json
+          prescreen_attempts?: number
+          prescreen_status?: string
+          proof_path?: string | null
+          reject_reason?: string | null
+          roster_matched?: boolean
+          status?: Database["public"]["Enums"]["ieee_claim_status"]
+          updated_at?: string
+          user_id?: string
+          verified_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ieee_claims_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_experience: {
         Row: {
           created_at: string
@@ -940,6 +1005,16 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_claim_proof: { Args: { p_claim_id: string }; Returns: string }
+      admin_decide_claim: {
+        Args: {
+          p_approve: boolean
+          p_claim_id: string
+          p_reason: string
+          p_verified_until: string
+        }
+        Returns: undefined
+      }
       admin_event_registrants: {
         Args: {
           p_event_id: string
@@ -950,11 +1025,21 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_membership_queue: {
+        Args: { p_limit: number; p_offset: number }
+        Returns: Json
+      }
       admin_overview: { Args: { p_society_id?: string }; Returns: Json }
       admin_payments_flag: { Args: never; Returns: boolean }
       admin_promote_waitlist: { Args: { p_event_id: string }; Returns: Json }
+      admin_revoke_claim: { Args: { p_claim_id: string }; Returns: undefined }
+      admin_roster_status: { Args: never; Returns: Json }
       admin_undo_check_in: {
         Args: { p_registration_id: string }
+        Returns: Json
+      }
+      admin_verified_members: {
+        Args: { p_limit: number; p_offset: number }
         Returns: Json
       }
       anonymise_user: { Args: { p_user_id: string }; Returns: Json }
@@ -967,6 +1052,7 @@ export type Database = {
         }
         Returns: Json
       }
+      begin_prescreen: { Args: { p_claim_id: string }; Returns: Json }
       cancel_registration: {
         Args: { p_registration_id: string }
         Returns: Json
@@ -997,6 +1083,10 @@ export type Database = {
         Returns: Json
       }
       expire_holds: { Args: { p_limit?: number }; Returns: Json }
+      import_ieee_roster: {
+        Args: { p_replace: boolean; p_rows: Json }
+        Returns: Json
+      }
       log_admin_event: {
         Args: {
           p_action: string
@@ -1018,8 +1108,18 @@ export type Database = {
         }
         Returns: Json
       }
+      my_membership: { Args: never; Returns: Json }
+      profile_verified: { Args: { p_user: string }; Returns: boolean }
+      record_prescreen: {
+        Args: { p_claim_id: string; p_ok: boolean; p_result: Json }
+        Returns: undefined
+      }
       register_for_event: {
         Args: { p_answers?: Json; p_event_id: string }
+        Returns: Json
+      }
+      submit_ieee_claim: {
+        Args: { p_member_number: string; p_proof_path: string }
         Returns: Json
       }
     }
@@ -1027,6 +1127,12 @@ export type Database = {
       admin_role: "super_admin" | "society_admin"
       event_mode: "offline" | "online" | "hybrid"
       event_status: "draft" | "published" | "cancelled"
+      ieee_claim_status:
+        | "pending_review"
+        | "verified"
+        | "rejected"
+        | "revoked"
+        | "withdrawn"
       registration_status:
         | "pending_payment"
         | "confirmed"
@@ -1165,6 +1271,13 @@ export const Constants = {
       admin_role: ["super_admin", "society_admin"],
       event_mode: ["offline", "online", "hybrid"],
       event_status: ["draft", "published", "cancelled"],
+      ieee_claim_status: [
+        "pending_review",
+        "verified",
+        "rejected",
+        "revoked",
+        "withdrawn",
+      ],
       registration_status: [
         "pending_payment",
         "confirmed",
