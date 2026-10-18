@@ -178,6 +178,33 @@ Organisers run the site from `/admin` (signed-in admins only; everyone else gets
 
 ---
 
+## 3f. Community: membership, forms and chat
+
+**IEEE membership verification (`/me/membership`, admin `/admin/membership`).** Roster-first: a super admin uploads the branch's member list (member number + expiry, optional name) as CSV. Numbers and names are stored only as HMAC-SHA-256 hashes with a database-side pepper (`private.app_secrets`, unreadable by every API role). Honest limit: an 8-9 digit number has a small search space, so the pepper (not the hash) is what protects it; anyone who could read both the database and the pepper could brute-force the roster. A signed-in, onboarded user claims with their number: a roster match with a plausible name (and a profile name at least 7 days old) verifies automatically; every other case goes to `pending_review`, optionally with a proof photo (jpeg/png/webp, 5 MB, private `ieee-proof` bucket, signed URL for the super admin only, 5 min, audited). A number held by someone else reads the same as "proof required" (no oracle), so a classmate sharing a number only ever reaches review. Verified members get a badge on `/me`, `/me/profile` and `/u/<handle>` (signed-in viewers only, never in attendee lists), a name lock while verified, a renewal prompt within 30 days of expiry, and automatic expiry.
+
+- **AI proof pre-screen (optional, a hint only).** Off by default. Needs the secret `ANTHROPIC_API_KEY` and the flag `IEEE_PRESCREEN_ENABLED=true`; `IEEE_PRESCREEN_MODEL` is optional (default `claude-haiku-4-5-20251001`). It never verifies anyone: a human approves every proof. Cost is capped by the per-user claim rate limit and the 10-objects-per-user upload quota; set a monthly spend limit in the Anthropic console. Only `lib/community/prescreen-action.ts` uses the service role for this.
+- **Home forms (`/#get-involved`).** Three tabs (host an event, partner with us, feedback) write `community_requests` through the service-role-only RPC `submit_community_request`. Layers: honeypot and minimum 3 s fill time (both fake success silently), 5 per day per email, IP hash and user, a 200/day per-kind backstop for signed-out traffic, DB CHECKs on lengths, formats, https-only links and a `<`/`>`/control-character ban. The IP hash is `SHA-256(COMMUNITY_HASH_SALT + ip)`; without the salt only the email limit and the backstop apply. Caveat: the RPC needs the service role, so the server action is the only door, and it cannot be bypassed from the browser; email and backstop limits still hold if the IP is missing. Feedback may be anonymous. Super admins triage at `/admin/requests` (filter, status, note, minimal CSV without contact data).
+- **Chat (`/me/chat`, admin `/admin/chat`).** One thread per user with the team. Eligible: verified non-lapsed IEEE members always; otherwise attendees with a confirmed registration for a published session until it ends; a super admin can block a user. Eligibility is enforced in the RPC and again by RLS on reads, so access (and history visibility) follows eligibility even on an open tab. Text only, 1-1 000 characters, 20 messages per 10 min per user; staff can reply, close, flag a message and block or unblock. Transport: Supabase Realtime `postgres_changes` straight from the browser (the Worker sees none of that traffic; each pushed row costs one RLS check per subscriber), with a 20 s poll fallback while the tab is visible. No attachments and no email notifications (in-app counters only, until a sending domain exists).
+
+**Retention (`purge_community()`).**
+
+| Data | Kept |
+|---|---|
+| Chat threads and messages | 90 days after the last message |
+| Rejected / withdrawn claims and their proof photos | 90 days after the decision |
+| Request IP hashes | 30 days (then nulled) |
+| Resolved / closed requests | 365 days |
+| Claim attempts | 2 days |
+| Proof photos of erased accounts | queued by anonymisation, deleted on the next purge |
+
+The purge runs inside the Phase 4 cron tick once a day (21:00-21:04 UTC, about 02:30 IST): the service-role RPC `purge_community` returns the `proof_paths` it released and the tick deletes those objects from the `ieee-proof` bucket (at most 200 per run). A failure appears as `purge:<code>` in the tick report and never stops holds or sync. **The tick only runs while payments or the Fund Easy sync is enabled.** Until then run it by hand about monthly: in the Supabase SQL editor `select private.purge_community();`, then delete the listed `proof_paths` objects in Storage, bucket `ieee-proof`.
+
+**Secrets and flags.** `COMMUNITY_HASH_SALT` (Cloudflare **secret**, 16+ random characters), `ANTHROPIC_API_KEY` (**secret**, optional), `IEEE_PRESCREEN_ENABLED` (`true` enables; absent means off; plain dashboard variables are dropped on the next deploy, so set it as a Secret or in `wrangler.jsonc` `vars`), `IEEE_PRESCREEN_MODEL` (optional). They are read only in `lib/community/config.ts`. Setup steps: `docs/community-go-live-checklist.md`.
+
+**Deferred (known, accepted):** M2 oracle and global cap on the `unavailable`-style outcome (largely removed); M3 a super admin's storage SELECT can mint signed URLs outside the audited path; M4 orphan uploads and verified/revoked claims' proofs are not purged on a schedule; M5 chat DELETE events carry only the PK, and users can read `flagged_at` and the admin `sender_id`; M7 request subject text and logged-out requests carrying the user's email are not scrubbed by anonymisation.
+
+---
+
 ## 4. Deploy (Cloudflare Workers)
 
 The site is deployed as a Worker via OpenNext. Log in once with `npx wrangler login`.
