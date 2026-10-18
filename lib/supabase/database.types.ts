@@ -700,6 +700,7 @@ export type Database = {
           headline: string
           id: string
           links: Json
+          name_changed_at: string
           onboarded: boolean
           skills: string[]
           updated_at: string
@@ -716,6 +717,7 @@ export type Database = {
           headline?: string
           id: string
           links?: Json
+          name_changed_at?: string
           onboarded?: boolean
           skills?: string[]
           updated_at?: string
@@ -732,6 +734,7 @@ export type Database = {
           headline?: string
           id?: string
           links?: Json
+          name_changed_at?: string
           onboarded?: boolean
           skills?: string[]
           updated_at?: string
@@ -1283,6 +1286,7 @@ export type Database = {
           p_organisation: string
           p_phone: string
           p_subject: string
+          p_user_id?: string
         }
         Returns: Json
       }

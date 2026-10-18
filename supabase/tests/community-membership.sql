@@ -15,9 +15,10 @@ end $$;
 insert into auth.users (id, email, aud, role, raw_user_meta_data)
 select pg_temp.uid(n)::uuid, 'c6u' || lpad(n::text, 2, '0') || '@test.local', 'authenticated', 'authenticated',
        jsonb_build_object('full_name', (array['C6 Super','C6 Society','Asha Nair','Asha Nair','Ravi K','Dev Menon','Not Onboarded',
-         'Dev Menon','Rate Limit','Holder Live','Reject Me','Guard Test','Prescreen One','Prescreen Cap','Storage Test'])[n])
-from generate_series(1, 15) n;
-update public.profiles set college = 'CEK', branch = 'Civil', year = '1st year', onboarded = true
+         'Dev Menon','Rate Limit','Holder Live','Reject Me','Guard Test','Prescreen One','Prescreen Cap','Storage Test','Mira Das','Prince'])[n])
+from generate_series(1, 17) n;
+update public.profiles set college = 'CEK', branch = 'Civil', year = '1st year', onboarded = true,
+       name_changed_at = case when id = pg_temp.uid(16)::uuid then now() else now() - interval '10 days' end
  where id::text like '00000000-0000-0000-0000-00000000c6%' and id <> pg_temp.uid(7)::uuid;
 insert into public.admin_roles (user_id, role, society_id)
 select pg_temp.uid(1)::uuid, 'super_admin'::public.admin_role, null::uuid
@@ -230,7 +231,12 @@ begin
   perform pg_temp.cl(4); set local role authenticated;
   r1 := public.submit_ieee_claim('20000001', null);
   reset role;
-  assert r1 ->> 'status' = 'unavailable', 'second account claimed a held number: ' || r1::text;
+  assert r1 ->> 'status' = 'proof_required', 'held number must read like any non-match (no oracle): ' || r1::text;
+  perform pg_temp.cl(4); set local role authenticated;
+  r1 := public.submit_ieee_claim('20000001', uid4 || '/proofproof4.png');
+  reset role;
+  assert r1 ->> 'status' = 'pending_review', 'real member locked out of a held number even with proof: ' || r1::text;
+  assert (select status from public.ieee_claims where user_id = pg_temp.uid(3)::uuid and method = 'roster') = 'verified', 'dispute claim displaced the holder';
 
   -- extend, never shorten
   perform pg_temp.cl(1); set local role authenticated;
@@ -254,6 +260,44 @@ begin
     jsonb_build_object('n', '20000002', 'e', (t + 100)::text, 'name', 'Ravi K'),
     jsonb_build_object('n', '20000005', 'e', (t + 200)::text, 'name', 'Priya Menon')), true);
   reset role;
+end $$;
+
+-- I2 / M1: name stability, single-token names, name lock
+do $$
+declare t date := private.ist_today(); r jsonb; n int;
+begin
+  perform pg_temp.cl(1); set local role authenticated;
+  perform public.import_ieee_roster(jsonb_build_array(
+    jsonb_build_object('n', '20000016', 'e', (t + 200)::text, 'name', 'Mira Das'),
+    jsonb_build_object('n', '20000017', 'e', (t + 200)::text, 'name', 'Prince')), false);
+  reset role;
+  -- name changed just now: roster match alone does not verify (twin: same call verifies after 8 quiet days)
+  perform pg_temp.cl(16); set local role authenticated;
+  r := public.submit_ieee_claim('20000016', null);
+  reset role;
+  assert r ->> 'status' = 'proof_required', 'fresh name auto-verified: ' || r::text;
+  update public.profiles set name_changed_at = now() - interval '8 days' where id = pg_temp.uid(16)::uuid;
+  perform pg_temp.cl(16); set local role authenticated;
+  r := public.submit_ieee_claim('20000016', null);
+  reset role;
+  assert r ->> 'status' = 'verified', 'stable name did not verify: ' || r::text;
+  -- verified members cannot rename (positive twin below: an unverified user can, and the change is stamped)
+  perform pg_temp.cl(16); set local role authenticated;
+  begin update public.profiles set full_name = 'Someone Else' where id = pg_temp.uid(16)::uuid; assert false, 'verified member renamed';
+  exception when others then if sqlerrm <> 'name_locked' then raise; end if; end;
+  reset role;
+  assert (select full_name from public.profiles where id = pg_temp.uid(16)::uuid) = 'Mira Das', 'name changed despite lock';
+  -- M1: a one-token name never auto-verifies, even on an exact roster match
+  perform pg_temp.cl(17); set local role authenticated;
+  r := public.submit_ieee_claim('20000017', null);
+  reset role;
+  assert r ->> 'status' = 'proof_required', 'single-token name auto-verified: ' || r::text;
+  perform pg_temp.cl(17); set local role authenticated;
+  update public.profiles set full_name = 'Prince Rogers' where id = pg_temp.uid(17)::uuid;
+  reset role;
+  assert (select name_changed_at > now() - interval '1 minute' from public.profiles where id = pg_temp.uid(17)::uuid), 'rename not stamped';
+  assert not private.names_overlap(private.name_token_hashes('Prince'), private.name_token_hashes('Prince')), 'single tokens overlap';
+  assert private.names_overlap(private.name_token_hashes('Asha Nair'), private.name_token_hashes('Nair Asha')), 'two-token reorder should overlap (positive twin)';
 end $$;
 
 -- rate limit: ten calls pass (and persist), the eleventh is refused; the attempts survive the refusal
@@ -451,7 +495,7 @@ begin
   perform pg_temp.cl(11); set local role authenticated;
   r := public.submit_ieee_claim('20000007', pg_temp.uid(11) || '/proofproof6.png');
   reset role;
-  assert r ->> 'status' = 'unavailable', 'held number claimable: ' || r::text;
+  assert r ->> 'status' = 'pending_review', 'held number with proof must go to review: ' || r::text;
 
   -- reject (c611): reason recorded, one audit row
   perform pg_temp.cl(11); set local role authenticated;

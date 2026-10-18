@@ -13,10 +13,11 @@ end $$;
 -- thin caller: kind, anonymous, name, email, subject, message, details, ip, hp
 create function pg_temp.sub(p_kind public.community_kind, p_anon boolean, p_email text, p_details jsonb,
   p_subject text default 'A valid subject', p_message text default 'A valid message that is long enough.',
-  p_ip text default null, p_hp text default null, p_name text default 'Test Person', p_phone text default null, p_org text default null)
+  p_ip text default null, p_hp text default null, p_name text default 'Test Person', p_phone text default null, p_org text default null,
+  p_user uuid default null)
 returns jsonb language sql as $$
   select public.submit_community_request(p_kind, p_anon, p_name, p_email, p_phone, p_org,
-                                          p_subject, p_message, p_details, p_ip, p_hp) $$;
+                                          p_subject, p_message, p_details, p_ip, p_hp, p_user) $$;
 
 insert into auth.users (id, email, aud, role, raw_user_meta_data)
 select pg_temp.uid(n)::uuid, 'c7u' || lpad(n::text, 2, '0') || '@test.local', 'authenticated', 'authenticated',
@@ -30,21 +31,28 @@ union all select pg_temp.uid(2)::uuid, 'society_admin', s.id from public.societi
 do $$
 declare r text;
 begin
-  assert has_function_privilege('anon', 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text)', 'execute'),
-    'anon cannot execute the wrapper (positive twin)';
-  assert has_function_privilege('authenticated', 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text)', 'execute'),
-    'authenticated cannot execute the wrapper';
-  assert not has_function_privilege('service_role', 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text)', 'execute'),
-    'service_role can execute the wrapper';
-  assert not (select prosecdef from pg_proc where oid = 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text)'::regprocedure),
+  foreach r in array array['anon', 'authenticated'] loop
+    assert not has_function_privilege(r, 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text, uuid)', 'execute'),
+      r || ' can execute the wrapper (server-only since the review)';
+    assert not has_function_privilege(r, 'private.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text, uuid)', 'execute'),
+      r || ' can execute the private body';
+  end loop;
+  assert has_function_privilege('service_role', 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text, uuid)', 'execute'),
+    'service_role cannot execute the wrapper (positive twin)';
+  assert has_function_privilege('service_role', 'private.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text, uuid)', 'execute'),
+    'service_role cannot execute the private body';
+  assert not has_table_privilege('service_role', 'private.community_rate', 'select') and not has_table_privilege('authenticated', 'private.community_rate', 'select'),
+    'rate counters readable';
+  assert not (select prosecdef from pg_proc where oid = 'public.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text, uuid)'::regprocedure),
     'public wrapper must be SECURITY INVOKER';
-  assert (select prosecdef from pg_proc where oid = 'private.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text)'::regprocedure),
+  assert (select prosecdef from pg_proc where oid = 'private.submit_community_request(public.community_kind, boolean, text, text, text, text, text, text, jsonb, text, text, uuid)'::regprocedure),
     'private body should be SECURITY DEFINER (positive twin)';
   foreach r in array array['anon', 'service_role'] loop
     assert not has_function_privilege(r, 'private.community_details_valid(public.community_kind, jsonb)', 'execute'), r || ' can run the validator';
   end loop;
   assert has_function_privilege('authenticated', 'private.community_details_valid(public.community_kind, jsonb)', 'execute'),
     'authenticated needs the validator for CHECK evaluation on UPDATE (positive twin)';
+  assert not (select tgtype & 4 > 0 from pg_trigger where tgname = 'community_requests_audit'), 'audit trigger still fires on INSERT';
   assert not has_table_privilege('anon', 'public.community_requests', 'select'), 'anon can select requests';
   assert not has_table_privilege('anon', 'public.community_requests', 'insert'), 'anon can insert requests';
   assert not has_table_privilege('authenticated', 'public.community_requests', 'insert'), 'authenticated can insert requests directly';
@@ -56,7 +64,7 @@ end $$;
 do $$
 declare r jsonb; n int;
 begin
-  set local role anon; perform pg_temp.cl(0);
+  set local role service_role;
   r := pg_temp.sub('host_event', false, 'host@example.org', '{"event_title":"Intro to FPGAs","expected_attendees":80,"preferred_date":"2027-03-04","venue":"CEK Hall","website":"https://example.org/fpga"}'::jsonb, p_phone => '+91 98765 43210', p_org => 'Some Club');
   assert r = '{"ok": true}'::jsonb, 'host_event anon submit: ' || r::text;
   r := pg_temp.sub('partner', false, 'partner@example.org', '{"partnership_type":"sponsor","website":"https://example.org"}'::jsonb);
@@ -67,7 +75,7 @@ begin
   assert r = '{"ok": true}'::jsonb, 'anonymous feedback submit';
   reset role;
   assert (select count(*) from public.community_requests) = 4, 'four rows expected';
-  assert (select is_anonymous and name is null and email is null and phone is null and organisation is null and user_id is null and ip_hash = repeat('a', 64)
+  assert (select is_anonymous and name is null and email is null and phone is null and organisation is null and user_id is null and ip_hash is null
             from public.community_requests where kind = 'feedback' and is_anonymous), 'anonymous feedback stores identity';
   assert (select email = 'host@example.org' and name = 'Test Person' and status = 'new' from public.community_requests where kind = 'host_event'), 'host row';
   assert (select count(*) from public.audit_log where action like 'community_requests.%') = 0, 'a submitter insert was audited';
@@ -142,12 +150,12 @@ do $$
 declare r jsonb; before_n int;
 begin
   select count(*) into before_n from public.community_requests;
-  set local role anon; perform pg_temp.cl(0);
+  set local role service_role;
   r := pg_temp.sub('feedback', false, 'bot@example.org', '{"category":"other"}'::jsonb, p_hp => 'http://spam');
   reset role;
   assert r = '{"ok": true}'::jsonb, 'honeypot should look successful';
   assert (select count(*) from public.community_requests) = before_n, 'honeypot row stored';
-  set local role anon;
+  set local role service_role;
   begin perform pg_temp.sub('partner', true, null, '{"partnership_type":"sponsor"}'::jsonb); assert false, 'anonymous partner accepted';
   exception when others then if sqlerrm <> 'invalid_input' then raise; end if; end;
   begin perform pg_temp.sub('host_event', true, null, '{"event_title":"Anonymous event"}'::jsonb); assert false, 'anonymous host_event accepted';
@@ -156,15 +164,16 @@ begin
   exception when others then if sqlerrm <> 'invalid_input' then raise; end if; end;
   reset role;
   -- a signed-in caller marking feedback anonymous still stores no identity
-  perform pg_temp.cl(4); set local role authenticated;
-  r := pg_temp.sub('feedback', true, 'me@example.org', '{"category":"suggestion"}'::jsonb, p_name => 'Me Myself', p_phone => '+91 9876543210', p_org => 'Org');
+  set local role service_role;
+  r := pg_temp.sub('feedback', true, 'me@example.org', '{"category":"suggestion"}'::jsonb, p_name => 'Me Myself', p_phone => '+91 9876543210', p_org => 'Org',
+                   p_user => pg_temp.uid(4)::uuid, p_ip => repeat('a', 64));
   reset role;
   assert r = '{"ok": true}'::jsonb, 'signed-in anonymous feedback';
   assert (select count(*) from public.community_requests where is_anonymous and user_id is null and name is null and email is null
             and phone is null and organisation is null) = 2, 'anonymous feedback leaked identity';
   -- signed-in non-anonymous stores the user id (positive twin)
-  perform pg_temp.cl(4); set local role authenticated;
-  r := pg_temp.sub('feedback', false, 'me@example.org', '{"category":"other"}'::jsonb);
+  set local role service_role;
+  r := pg_temp.sub('feedback', false, 'me@example.org', '{"category":"other"}'::jsonb, p_user => pg_temp.uid(4)::uuid);
   reset role;
   assert (select user_id = pg_temp.uid(4)::uuid from public.community_requests where email = 'me@example.org'), 'user id not stored';
 end $$;
@@ -173,7 +182,7 @@ end $$;
 do $$
 declare r jsonb;
 begin
-  set local role anon; perform pg_temp.cl(0);
+  set local role service_role;
   -- markup
   begin perform pg_temp.sub('feedback', false, 'v1@example.org', '{"category":"other"}'::jsonb, p_subject => '<script>alert(1)</script>'); assert false, 'markup in subject';
   exception when others then if sqlstate <> '23514' then raise; end if; end;
@@ -194,6 +203,8 @@ begin
   begin perform pg_temp.sub('partner', false, 'v8@example.org', '{"partnership_type":"media","website":"http://example.org"}'::jsonb); assert false, 'http url';
   exception when others then if sqlstate <> '23514' then raise; end if; end;
   begin perform pg_temp.sub('partner', false, 'v9@example.org', '{"partnership_type":"media","website":"ftp://example.org/x"}'::jsonb); assert false, 'ftp url';
+  exception when others then if sqlstate <> '23514' then raise; end if; end;
+  begin perform pg_temp.sub('partner', false, 'v10a@example.org', '{"partnership_type":"media","website":"https://example.org/a\u0001b"}'::jsonb); assert false, 'control char in url';
   exception when others then if sqlstate <> '23514' then raise; end if; end;
   r := pg_temp.sub('partner', false, 'v10@example.org', '{"partnership_type":"media","website":"https://example.org/path?a=1"}'::jsonb);
   assert r = '{"ok": true}'::jsonb, 'https url should pass';
@@ -249,7 +260,7 @@ do $$
 declare i int; r jsonb; ip1 constant text := repeat('b', 64); ip2 constant text := repeat('c', 64);
 begin
   -- same email
-  set local role anon; perform pg_temp.cl(0);
+  set local role service_role;
   for i in 1..5 loop
     r := pg_temp.sub('feedback', false, 'limit@example.org', '{"category":"other"}'::jsonb);
     assert r = '{"ok": true}'::jsonb, 'email call ' || i || ' should pass';
@@ -268,17 +279,31 @@ begin
   assert r = '{"ok": true}'::jsonb, 'rate limit leaked to another ip hash';
   reset role;
   -- same signed-in user, different emails and no ip
-  perform pg_temp.cl(5); set local role authenticated;
+  set local role service_role;
   for i in 1..5 loop
-    r := pg_temp.sub('feedback', false, 'userlimit' || i || '@example.org', '{"category":"other"}'::jsonb);
+    r := pg_temp.sub('feedback', false, 'userlimit' || i || '@example.org', '{"category":"other"}'::jsonb, p_user => pg_temp.uid(5)::uuid);
   end loop;
-  begin perform pg_temp.sub('feedback', false, 'userlimit6@example.org', '{"category":"other"}'::jsonb); assert false, '6th user request accepted';
+  begin perform pg_temp.sub('feedback', false, 'userlimit6@example.org', '{"category":"other"}'::jsonb, p_user => pg_temp.uid(5)::uuid); assert false, '6th user request accepted';
+  exception when others then if sqlerrm <> 'rate_limited' then raise; end if; end;
+  r := pg_temp.sub('feedback', false, 'userlimit-other@example.org', '{"category":"other"}'::jsonb, p_user => pg_temp.uid(3)::uuid);   -- another user is unaffected
+  assert r = '{"ok": true}'::jsonb, 'rate limit leaked to another user';
+  -- I1b: the per-user cap also binds ANONYMOUS submissions of a signed-in user (rows keep user_id null; the counter is keyed on a hash)
+  for i in 1..5 loop
+    r := pg_temp.sub('feedback', true, null, '{"category":"suggestion"}'::jsonb, p_user => pg_temp.uid(1)::uuid);
+  end loop;
+  begin perform pg_temp.sub('feedback', true, null, '{"category":"suggestion"}'::jsonb, p_user => pg_temp.uid(1)::uuid); assert false, '6th anonymous request of one user accepted';
   exception when others then if sqlerrm <> 'rate_limited' then raise; end if; end;
   reset role;
-  perform pg_temp.cl(3); set local role authenticated;
-  r := pg_temp.sub('feedback', false, 'userlimit-other@example.org', '{"category":"other"}'::jsonb);   -- another user is unaffected
+  assert (select count(*) from public.community_requests where is_anonymous and user_id is null) >= 7, 'anonymous rows missing';
+  assert not exists (select 1 from public.community_requests where is_anonymous and (user_id is not null or ip_hash is not null)), 'anonymous row linked';
+  assert (select count(*) from private.community_rate) >= 3 and not exists (select 1 from private.community_rate where key !~ '^[0-9a-f]{64}$'),
+    'counter keys must be opaque hashes';
+  -- I3: a society admin's anonymous submission writes no audit row (trigger fires on UPDATE/DELETE only)
+  perform pg_temp.cl(2); set local role service_role;
+  r := pg_temp.sub('feedback', true, null, '{"category":"complaint"}'::jsonb, p_user => pg_temp.uid(2)::uuid);
   reset role;
-  assert r = '{"ok": true}'::jsonb, 'rate limit leaked to another user';
+  assert r = '{"ok": true}'::jsonb, 'admin anonymous feedback';
+  assert not exists (select 1 from public.audit_log where actor_id = pg_temp.uid(2)::uuid), 'an admin''s anonymous submission was audited';
 end $$;
 
 -- ───────── global backstop: 200 rows per kind per day -> busy; other kinds unaffected ─────────
@@ -289,9 +314,11 @@ begin
   select 'partner', false, 'Seed Person', 'seed' || g || '@example.org', 'seed subject', 'seed message long enough', '{"partnership_type":"other"}'::jsonb
     from generate_series(1, 200) g;
   assert (select count(*) from public.community_requests where kind = 'partner' and created_at > now() - interval '24 hours') >= 200, 'seed failed';
-  set local role anon; perform pg_temp.cl(0);
+  set local role service_role;
   begin perform pg_temp.sub('partner', false, 'busy@example.org', '{"partnership_type":"sponsor"}'::jsonb); assert false, 'busy not enforced';
   exception when others then if sqlerrm <> 'busy' then raise; end if; end;
+  r := pg_temp.sub('partner', false, 'signedin@example.org', '{"partnership_type":"sponsor"}'::jsonb, p_user => pg_temp.uid(3)::uuid);   -- signed-in users are exempt
+  assert r = '{"ok": true}'::jsonb, 'signed-in submitter locked out by anonymous spam';
   r := pg_temp.sub('host_event', false, 'busy2@example.org', '{"event_title":"Still open kind"}'::jsonb);   -- positive twin
   reset role;
   assert r = '{"ok": true}'::jsonb, 'busy leaked to another kind';

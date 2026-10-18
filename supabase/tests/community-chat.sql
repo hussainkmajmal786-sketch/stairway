@@ -513,6 +513,22 @@ begin
   assert not exists (select 1 from public.chat_threads where user_id = pg_temp.uid(14)::uuid), 'thread kept';
   assert not exists (select 1 from public.chat_blocks where user_id = pg_temp.uid(14)::uuid), 'block kept';
   assert exists (select 1 from public.audit_log where action = 'user.anonymised' and target_id = pg_temp.uid(14)), 'anonymise not audited';
+  -- I4: the verified claim's ID-card proof was queued BEFORE its path was cleared, and the purge job drains it
+  assert exists (select 1 from private.storage_purge_queue where path = pg_temp.uid(14) || '/someproof001.png'), 'proof path not queued by anonymise';
+  assert not has_table_privilege('service_role', 'private.storage_purge_queue', 'select') and not has_table_privilege('authenticated', 'private.storage_purge_queue', 'select'),
+    'purge queue readable through the API';
+  insert into private.community_rate (key, day, n) values (repeat('a', 64), private.ist_today() - 5, 3), (repeat('b', 64), private.ist_today(), 1);
+  set local role service_role;
+  r := public.purge_community();
+  reset role;
+  assert (r -> 'proof_paths') @> to_jsonb(pg_temp.uid(14) || '/someproof001.png'), 'queued proof not returned by purge: ' || (r -> 'proof_paths')::text;
+  assert not exists (select 1 from private.storage_purge_queue where path = pg_temp.uid(14) || '/someproof001.png'), 'queue not drained';
+  assert not exists (select 1 from private.community_rate where key = repeat('a', 64)) and exists (select 1 from private.community_rate where key = repeat('b', 64)),
+    'old counters kept / fresh counters purged';
+  set local role service_role;
+  r := public.purge_community();
+  reset role;
+  assert not ((r -> 'proof_paths') @> to_jsonb(pg_temp.uid(14) || '/someproof001.png')), 'queued proof listed twice';
   -- second anonymise of the same user is harmless (positive twin: the first one worked)
   perform pg_temp.cl(1); set local role authenticated;
   r := public.anonymise_user(pg_temp.uid(14)::uuid);
