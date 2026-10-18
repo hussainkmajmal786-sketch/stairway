@@ -11,6 +11,7 @@ import { createProofUpload, submitClaim } from "@/lib/community/membership-actio
 import { requestPrescreen } from "@/lib/community/prescreen-action";
 import { cn } from "@/lib/utils";
 import { ProofPicker } from "./ProofPicker";
+import { PENDING_COPY } from "@/lib/community/membership";
 
 type Step = "number" | "proof";
 
@@ -48,7 +49,7 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
     setNumberError(undefined);
     try {
       let proofPath: string | null = null;
-      if (step === "proof" && file) {
+      if (file) {
         const issued = await createProofUpload({ type: file.type });
         if (!issued.ok) {
           setError(claimErrorCopy(issued.error.code === "invalid_input" ? "invalid_proof" : "unavailable"));
@@ -75,7 +76,7 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
       } else if (s === "rate_limited") {
         setError(claimErrorCopy("rate_limited"));
       } else {
-        setDone(s === "verified" ? "You are verified. Your badge is now showing." : "Thanks. An organiser will check your card, usually within a few days.");
+        setDone(s === "verified" ? "You are verified. Your badge is now showing." : PENDING_COPY);
         if (s === "pending_review" && r.data.claimId) void requestPrescreen(r.data.claimId).catch(() => undefined);
         router.refresh();
       }
@@ -98,6 +99,15 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
           aria-invalid={!!numberError} aria-describedby={fieldDescribedBy("claim-number", { error: numberError, hint: numberHint })}
         />
       </Field>
+      {step === "number" && (
+        <details className="border-2 border-ink bg-paper-2 p-3">
+          <summary className="cursor-pointer font-semibold">Add a photo of your IEEE card (optional)</summary>
+          <div className="mt-3 grid gap-3">
+            <ProofPicker file={file} onChange={setFile} disabled={busy} />
+            <p className="text-sm text-ink-2">Not needed in most cases: the officer checks your number in IEEE&apos;s own tool. Only you and the organisers can see it.</p>
+          </div>
+        </details>
+      )}
       {step === "proof" && (
         <>
           <ProofPicker file={file} onChange={setFile} disabled={busy} />

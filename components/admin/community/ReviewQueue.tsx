@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CircleSlash, Eye, HelpCircle, XCircle } from "lucide-react";
+import { CheckCircle2, CircleSlash, Copy, ExternalLink, Eye, HelpCircle, XCircle } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Field, inputCls } from "@/components/ui/Field";
 import { decideClaim, getProofUrl } from "@/lib/community/membership-admin-actions";
-import { addDays, defaultApprovalDate, prescreenChips, type QueueRow } from "@/lib/community/membership-admin";
+import { APPROVAL_COPY, MAX_APPROVAL_DAYS, VALIDATOR_URL, addDays, prescreenChips, validateApproval, type QueueRow } from "@/lib/community/membership-admin";
 import { REJECT_REASONS, todayIST, type RejectReason } from "@/lib/community/membership";
 
 const REASON_LABEL: Record<RejectReason, string> = {
@@ -26,9 +26,12 @@ function Card({ row }: { row: QueueRow }) {
   const chips = prescreenChips(row.prescreen);
   const [url, setUrl] = useState<string | null>(null);
   const [proofError, setProofError] = useState<string | null>(null);
-  const [date, setDate] = useState(() => defaultApprovalDate(row.prescreen.expiry));
+  const [date, setDate] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [reason, setReason] = useState<RejectReason>("unreadable");
-  const [dialog, setDialog] = useState<"approve" | "reject" | null>(null);
+  const [dialog, setDialog] = useState<"reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const today = todayIST();
 
@@ -40,10 +43,35 @@ function Card({ row }: { row: QueueRow }) {
       else setProofError(r.error.message);
     });
   }
-  function decide() {
+  async function copyNumber() {
+    try {
+      await navigator.clipboard.writeText(row.member_number); // stays in the browser: nothing is sent anywhere
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+  function approve(e: React.FormEvent) {
+    e.preventDefault();
+    const issue = validateApproval({ confirmed, verifiedUntil: date });
+    if (issue) {
+      setFormError(APPROVAL_COPY[issue]);
+      return;
+    }
+    setFormError(null);
+    start(async () => {
+      const r = await decideClaim({ claimId: row.id, approve: true, verifiedUntil: date, validatorConfirmed: true });
+      if (r.ok) {
+        setUrl(null);
+        router.refresh();
+      } else setFormError(r.error.message);
+    });
+  }
+  function reject() {
     setError(null);
     start(async () => {
-      const r = await decideClaim(dialog === "approve" ? { claimId: row.id, approve: true, verifiedUntil: date } : { claimId: row.id, approve: false, reason });
+      const r = await decideClaim({ claimId: row.id, approve: false, reason });
       if (r.ok) {
         setDialog(null);
         setUrl(null);
@@ -58,9 +86,30 @@ function Card({ row }: { row: QueueRow }) {
         <p className="font-semibold">{row.full_name} <span className="text-ink-3">@{row.handle}</span></p>
         <p className="text-sm text-ink-3">Submitted {fmt(row.created_at)}</p>
       </div>
-      <p>Entered member number: <span className="font-mono font-bold">{row.member_number}</span></p>
+      <div className="grid gap-3 border-2 border-ink bg-paper-2 p-4">
+        <p className="mono font-bold">Check in the IEEE Membership Validator</p>
+        <dl className="grid gap-1 text-sm sm:grid-cols-[8rem_1fr]">
+          <dt className="text-ink-3">Member number</dt>
+          <dd className="font-mono text-base font-bold">{row.member_number}</dd>
+          <dt className="text-ink-3">Name on profile</dt>
+          <dd>{row.full_name}</dd>
+          {row.email && (<><dt className="text-ink-3">Email used</dt><dd className="break-all">{row.email}</dd></>)}
+        </dl>
+        <div className="flex flex-wrap gap-3">
+          <a href={VALIDATOR_URL} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary">
+            <ExternalLink size={14} aria-hidden /> Open IEEE Membership Validator<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          <button type="button" className="btn btn-sm btn-secondary" onClick={copyNumber}>
+            <Copy size={14} aria-hidden /> Copy member number
+          </button>
+          <span role="status" aria-live="polite" className="self-center text-sm font-semibold">{copied ? "Copied" : ""}</span>
+        </div>
+        <p className="text-sm text-ink-2">
+          Look the member up by number or primary email, then check that the status is Active and note the expiry date.
+        </p>
+      </div>
       <div>
-        <p className="mono mb-2 font-bold text-ink-3">AI hint, not proof</p>
+        <p className="mono mb-2 font-bold text-ink-3">AI hint on the photo, not proof</p>
         <ul className="flex flex-wrap gap-2">
           {chips.map((c) => (
             <li key={c.text} className={`tag ${c.tone === "good" ? "tag-green" : c.tone === "bad" ? "tag-red" : "tag-outline"}`}>
@@ -87,16 +136,21 @@ function Card({ row }: { row: QueueRow }) {
           )}
         </div>
       ) : (
-        <p className="flex items-center gap-2 text-sm text-ink-3"><CircleSlash size={14} aria-hidden /> No proof image attached.</p>
+        <p className="flex items-center gap-2 text-sm text-ink-3"><CircleSlash size={14} aria-hidden /> No photo attached. A photo is optional supporting evidence.</p>
       )}
       <div className="grid gap-4 border-t-2 border-ink pt-4 md:grid-cols-2">
-        <div className="grid gap-3">
-          <Field id={`d-${row.id}`} label="Verified until" hint="Up to 740 days from today.">
-            <input id={`d-${row.id}`} type="date" className={inputCls} value={date} min={today} max={addDays(today, 740)} onChange={(e) => setDate(e.target.value)} />
+        <form onSubmit={approve} noValidate className="grid gap-3" aria-label={`Approve ${row.full_name}`}>
+          <label className="flex items-start gap-3 font-semibold">
+            <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+            <span>I confirmed active membership in the IEEE Membership Validator</span>
+          </label>
+          <Field id={`d-${row.id}`} label="Expiry date shown by the Validator" hint="Today or later, up to 2 years ahead." required>
+            <input id={`d-${row.id}`} type="date" className={inputCls} value={date} min={today} max={addDays(today, MAX_APPROVAL_DAYS)} onChange={(e) => setDate(e.target.value)} />
           </Field>
-          <button type="button" className="btn btn-primary w-fit" disabled={pending || !date} onClick={() => { setError(null); setDialog("approve"); }}>Approve</button>
-        </div>
-        <div className="grid gap-3">
+          <button type="submit" className="btn btn-primary w-fit" disabled={pending}>Approve</button>
+          <p role="alert" className={`font-semibold text-red-ink ${formError ? "" : "hidden"}`}>{formError}</p>
+        </form>
+        <div className="grid content-start gap-3">
           <Field id={`r-${row.id}`} label="Reject reason">
             <select id={`r-${row.id}`} className={inputCls} value={reason} onChange={(e) => setReason(e.target.value as RejectReason)}>
               {REJECT_REASONS.map((r) => <option key={r} value={r}>{REASON_LABEL[r]}</option>)}
@@ -108,16 +162,12 @@ function Card({ row }: { row: QueueRow }) {
       <ConfirmDialog
         open={dialog !== null}
         onClose={() => setDialog(null)}
-        title={dialog === "approve" ? "Approve this membership?" : "Reject this claim?"}
-        description={
-          dialog === "approve"
-            ? `${row.full_name} will get the Verified IEEE member badge until ${fmt(`${date}T00:00:00+05:30`)}.`
-            : `${row.full_name} will be told: ${REASON_LABEL[reason]}.`
-        }
-        confirmLabel={dialog === "approve" ? "Approve" : "Reject"}
+        title="Reject this claim?"
+        description={`${row.full_name} will be told: ${REASON_LABEL[reason]}.`}
+        confirmLabel="Reject"
         pending={pending}
         error={error}
-        onConfirm={decide}
+        onConfirm={reject}
       />
     </li>
   );

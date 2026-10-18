@@ -20,7 +20,15 @@ const RosterRowSchema = z.object({
 const ImportInput = z.object({ rows: z.array(RosterRowSchema).max(1000), replace: z.boolean() }).strict();
 
 const DecideInput = z.union([
-  z.object({ claimId: z.uuid(), approve: z.literal(true), verifiedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict(),
+  z
+    .object({
+      claimId: z.uuid(),
+      approve: z.literal(true),
+      verifiedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      // The officer's statement that they saw an active membership in the IEEE Membership Validator.
+      validatorConfirmed: z.literal(true),
+    })
+    .strict(),
   z.object({ claimId: z.uuid(), approve: z.literal(false), reason: z.enum(REJECT_REASONS) }).strict(),
 ]);
 const ClaimId = z.uuid();
@@ -43,6 +51,7 @@ function dbError(e: { message?: string | null; code?: string | null }) {
   const msg = (e.message ?? "").trim().toLowerCase();
   if (msg === "not_found") return fail("not_found");
   if (msg === "invalid_date") return fail("invalid_input", "Choose a date between today and 740 days from now.");
+  if (msg === "validator_unconfirmed") return fail("invalid_input", "Confirm that you checked the IEEE Membership Validator.");
   if (msg === "invalid_reason" || msg === "invalid_input") return fail("invalid_input");
   if (e.code === "23505") return fail("conflict", "That number is already verified on another account.");
   return { ok: false as const, error: mapDbError(e) };
@@ -71,12 +80,19 @@ export async function decideClaim(input: unknown): Promise<ActionResult> {
   const p = DecideInput.safeParse(input);
   if (!p.success) return { ok: false, error: fromZod(p.error) };
   const d = p.data;
-  const { error } = await a.db.rpc("admin_decide_claim", {
-    p_claim_id: d.claimId,
-    p_approve: d.approve,
-    p_verified_until: (d.approve ? d.verifiedUntil : null) as string,
-    p_reason: (d.approve ? null : d.reason) as string,
-  });
+  // Approval always goes through the confirmation-recording function; rejection keeps the plain decision.
+  const { error } = d.approve
+    ? await a.db.rpc("admin_approve_claim", {
+        p_claim_id: d.claimId,
+        p_verified_until: d.verifiedUntil,
+        p_validator_confirmed: d.validatorConfirmed,
+      })
+    : await a.db.rpc("admin_decide_claim", {
+        p_claim_id: d.claimId,
+        p_approve: false,
+        p_verified_until: null as unknown as string,
+        p_reason: d.reason,
+      });
   if (error) return dbError(error);
   revalidate();
   return okResult(undefined);

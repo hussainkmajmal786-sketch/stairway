@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Clock, Info, ShieldAlert } from "lucide-react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
-import { REJECT_COPY, formatDateIST, renewalState, type MembershipView } from "@/lib/community/membership";
+import { PENDING_COPY, REJECT_COPY, formatDateIST, renewalState, type MembershipView } from "@/lib/community/membership";
 import { ClaimForm } from "./ClaimForm";
 
 const Section = ({ title, children, tone = "box" }: { title: string; children: React.ReactNode; tone?: "box" | "box-2" }) => (
@@ -34,8 +34,8 @@ export function MembershipPanel({ m }: { m: MembershipView }) {
               <Clock size={18} aria-hidden /> Your membership ends soon
             </h2>
             <p className="text-ink-2">
-              Renew your IEEE membership, then submit it again here so your badge does not lapse
-              {m.verifiedUntil ? ` on ${formatDateIST(m.verifiedUntil)}` : ""}.
+              When your IEEE membership renews, check it again here so your badge does not lapse
+              {m.verifiedUntil ? ` on ${formatDateIST(m.verifiedUntil)}` : ""}. An officer re-confirms it in IEEE&apos;s Membership Validator.
             </p>
             {m.pending ? (
               <p role="status" aria-live="polite" className="font-semibold">A renewal is already waiting for an organiser to check.</p>
@@ -53,7 +53,7 @@ export function MembershipPanel({ m }: { m: MembershipView }) {
       <Section title="Waiting for review" tone="box-2">
         <p role="status" aria-live="polite" className="flex items-start gap-2 text-ink-2">
           <Clock size={18} className="mt-0.5 shrink-0" aria-hidden />
-          <span>We have your claim. An organiser will check it, usually within a few days. Nothing else is needed from you.</span>
+          <span>We have your claim. {PENDING_COPY.replace(/^Thanks\. /, "")} Nothing else is needed from you.</span>
         </p>
       </Section>
     );
@@ -84,8 +84,9 @@ export function MembershipPanel({ m }: { m: MembershipView }) {
         </p>
       )}
       <p className="text-ink-2">
-        Enter your IEEE member number. If we cannot confirm it automatically you can upload your card for an organiser to
-        check. Verified members get a badge on their profile and can chat with the team.
+        Enter your 8-digit IEEE member number. If it is not on our roster, a branch officer confirms your membership in
+        IEEE&apos;s Membership Validator; this usually takes a day. Verified members get a badge on their profile and can chat
+        with the team.
       </p>
       <ClaimForm initialNumber={m.memberNumber} />
     </Section>

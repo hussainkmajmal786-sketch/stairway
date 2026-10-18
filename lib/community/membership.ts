@@ -68,6 +68,9 @@ export function isVerifiedOn(verifiedUntil: string | null | undefined, today: st
   return !!verifiedUntil && verifiedUntil >= today;
 }
 
+export const PENDING_COPY =
+  "Thanks. A branch officer confirms your membership in IEEE's Membership Validator; this usually takes a day.";
+
 const CLAIM_COPY: Record<string, string> = {
   not_signed_in: "Please sign in again.",
   invalid_number: MEMBER_NUMBER_MESSAGE,

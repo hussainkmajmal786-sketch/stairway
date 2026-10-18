@@ -25,7 +25,7 @@ export function VerifiedList({ rows }: { rows: VerifiedRow[] }) {
     });
   }
 
-  if (rows.length === 0) return <p className="box-2 p-4">No verified members yet.</p>;
+  if (rows.length === 0) return <p className="box-2 p-4">No verified members in this view.</p>;
   return (
     <>
       <div className="overflow-x-auto border-2 border-ink bg-paper">
