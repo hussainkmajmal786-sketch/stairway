@@ -69,3 +69,59 @@ export function parseInboxCounts(raw: unknown): Partial<Record<string, number>> 
     "/admin/membership": r.data.claims_pending,
   };
 }
+
+/** Ctrl/Cmd+Enter sends; a bare Enter (or Shift+Enter) inserts a newline. */
+export function isSendShortcut(e: { key: string; ctrlKey?: boolean; metaKey?: boolean }): boolean {
+  return e.key === "Enter" && !!(e.ctrlKey || e.metaKey);
+}
+
+export function canSendChat(body: string, sending: boolean): boolean {
+  const n = body.trim().length;
+  return !sending && n >= 1 && body.length <= CHAT_MAX;
+}
+
+/** "5 Jan, 14:05" in IST. */
+export function formatChatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
+}
+
+const ChatStateSchema = z.object({
+  access: z.enum(["member", "attendee", "blocked", "none"]),
+  access_until: z.string().nullish(),
+  thread_id: z.string().nullish(),
+  status: z.enum(["open", "closed"]).nullish(),
+  user_unread: z.number().int().min(0).catch(0),
+});
+export interface ChatStateView {
+  access: ChatAccess;
+  accessUntil: string | null;
+  threadId: string | null;
+  status: "open" | "closed" | null;
+  userUnread: number;
+}
+/** Zod-parsed `chat_state()`; junk -> no access (fails closed). */
+export function parseChatState(raw: unknown): ChatStateView {
+  const r = ChatStateSchema.safeParse(raw);
+  if (!r.success) return { access: "none", accessUntil: null, threadId: null, status: null, userUnread: 0 };
+  return { access: r.data.access, accessUntil: r.data.access_until ?? null, threadId: r.data.thread_id ?? null, status: r.data.status ?? null, userUnread: r.data.user_unread };
+}
+
+const ThreadRowSchema = z.object({
+  id: z.uuid(),
+  user_id: z.uuid(),
+  handle: z.string(),
+  full_name: z.string(),
+  status: z.enum(["open", "closed"]),
+  admin_unread: z.number().int().min(0),
+  last_message_at: z.string(),
+  blocked: z.boolean(),
+});
+export type ThreadRow = z.infer<typeof ThreadRowSchema>;
+export function parseThreads(raw: unknown): { total: number; rows: ThreadRow[] } {
+  const r = z.object({ total: z.number().int().min(0), rows: z.array(z.unknown()) }).safeParse(raw);
+  if (!r.success) return { total: 0, rows: [] };
+  const rows = r.data.rows.map((x) => ThreadRowSchema.safeParse(x)).flatMap((x) => (x.success ? [x.data] : []));
+  return { total: r.data.total, rows };
+}
