@@ -198,7 +198,9 @@ begin
   r1 := public.submit_ieee_claim('20000005', null);
   r2 := public.submit_ieee_claim('29999999', null);
   reset role;
-  assert r1 = r2 and r1 ->> 'status' = 'proof_required', 'name mismatch vs not-on-roster differ: ' || r1::text || ' / ' || r2::text;
+  assert r1 ->> 'status' = 'pending_review' and r2 ->> 'status' = 'pending_review' and r1 ->> 'verified_until' is null and r2 ->> 'verified_until' is null,
+    'name mismatch vs not-on-roster differ: ' || r1::text || ' / ' || r2::text;
+  assert (select proof_path is null from public.ieee_claims where id = (r2 ->> 'claim_id')::uuid), 'number-only claim stored a proof path';
   -- with proof -> pending_review
   perform pg_temp.cl(6); set local role authenticated;
   r1 := public.submit_ieee_claim('20000005', uid6 || '/proofproof2.png');
@@ -211,12 +213,12 @@ begin
   r2 := public.submit_ieee_claim('20000005', uid6 || '/proofproof2.png');
   reset role;
   assert (select count(*) from public.ieee_claims where user_id = pg_temp.uid(6)::uuid and status = 'pending_review') = 1, 'two pending claims';
-  assert (select count(*) from public.ieee_claims where user_id = pg_temp.uid(6)::uuid and status = 'withdrawn') = 1, 'old pending not withdrawn';
+  assert (select count(*) from public.ieee_claims where user_id = pg_temp.uid(6)::uuid and status = 'withdrawn') = 3, 'old pending not withdrawn';
 
-  -- expired roster row: proof_required without proof, pending with proof; the import then auto-verifies it
+  -- expired roster row: pending without proof (an officer checks the Validator), pending with proof; the import then auto-verifies it
   perform pg_temp.cl(8); set local role authenticated;
   r1 := public.submit_ieee_claim('20000003', null);
-  assert r1 ->> 'status' = 'proof_required', 'expired roster row verified: ' || r1::text;
+  assert r1 ->> 'status' = 'pending_review' and r1 ->> 'verified_until' is null, 'expired roster row verified: ' || r1::text;
   r1 := public.submit_ieee_claim('20000003', pg_temp.uid(8) || '/proofproof3.png');
   reset role;
   assert r1 ->> 'status' = 'pending_review', 'expired roster + proof not pending';
@@ -231,7 +233,8 @@ begin
   perform pg_temp.cl(4); set local role authenticated;
   r1 := public.submit_ieee_claim('20000001', null);
   reset role;
-  assert r1 ->> 'status' = 'proof_required', 'held number must read like any non-match (no oracle): ' || r1::text;
+  assert r1 ->> 'status' = 'proof_required', 'a held number without proof must require proof: ' || r1::text;
+  assert (select count(*) from public.ieee_claims where user_id = pg_temp.uid(4)::uuid) = 0, 'refused held-number claim left a row';
   perform pg_temp.cl(4); set local role authenticated;
   r1 := public.submit_ieee_claim('20000001', uid4 || '/proofproof4.png');
   reset role;
@@ -275,7 +278,7 @@ begin
   perform pg_temp.cl(16); set local role authenticated;
   r := public.submit_ieee_claim('20000016', null);
   reset role;
-  assert r ->> 'status' = 'proof_required', 'fresh name auto-verified: ' || r::text;
+  assert r ->> 'status' = 'pending_review', 'fresh name auto-verified: ' || r::text;
   update public.profiles set name_changed_at = now() - interval '8 days' where id = pg_temp.uid(16)::uuid;
   perform pg_temp.cl(16); set local role authenticated;
   r := public.submit_ieee_claim('20000016', null);
@@ -291,7 +294,7 @@ begin
   perform pg_temp.cl(17); set local role authenticated;
   r := public.submit_ieee_claim('20000017', null);
   reset role;
-  assert r ->> 'status' = 'proof_required', 'single-token name auto-verified: ' || r::text;
+  assert r ->> 'status' = 'pending_review', 'single-token name auto-verified: ' || r::text;
   perform pg_temp.cl(17); set local role authenticated;
   update public.profiles set full_name = 'Prince Rogers' where id = pg_temp.uid(17)::uuid;
   reset role;
@@ -307,7 +310,7 @@ begin
   perform pg_temp.cl(9); set local role authenticated;
   for i in 1..10 loop
     r := public.submit_ieee_claim('29999999', null);
-    assert r ->> 'status' = 'proof_required', 'call ' || i || ' should not be limited: ' || r::text;
+    assert r ->> 'status' = 'pending_review', 'call ' || i || ' should not be limited: ' || r::text;
   end loop;
   r := public.submit_ieee_claim('29999999', null);
   reset role;
@@ -317,7 +320,7 @@ begin
   perform pg_temp.cl(5); set local role authenticated;
   r := public.submit_ieee_claim('29999999', null);
   reset role;
-  assert r ->> 'status' = 'proof_required', 'rate limit leaked to another user';
+  assert r ->> 'status' = 'pending_review', 'rate limit leaked to another user';
 end $$;
 
 -- ───────── state, lapse, release ─────────
@@ -649,6 +652,80 @@ begin
   begin perform public.log_admin_event('requests.export', 'community_requests', null, null, '{"rows":3}'::jsonb); assert false, 'student logged an admin event';
   exception when others then if sqlstate <> '42501' then raise; end if; end;
   reset role;
+end $$;
+
+-- ───────── Validator flow: padding, number-only claims, approve-with-confirmation, queue email ─────────
+do $$
+declare t date := private.ist_today(); r jsonb; q jsonb; cid uuid; a jsonb;
+begin
+  insert into auth.users (id, email, aud, role, raw_user_meta_data)
+  values (pg_temp.uid(18)::uuid, 'c6u18@test.local', 'authenticated', 'authenticated', jsonb_build_object('full_name', 'Val Idator'));
+  update public.profiles set college = 'CEK', branch = 'Civil', year = '1st year', onboarded = true where id = pg_temp.uid(18)::uuid;
+
+  -- a 7-digit number is padded to the 8-digit form; no proof photo is needed for a number nobody holds
+  perform pg_temp.cl(18); set local role authenticated;
+  r := public.submit_ieee_claim('3000001', null);
+  reset role;
+  assert r ->> 'status' = 'pending_review', 'number-only claim not pending: ' || r::text;
+  cid := (r ->> 'claim_id')::uuid;
+  assert (select member_number from public.ieee_claims where id = cid) = '03000001', 'number not padded';
+  assert (select ieee_member_id from public.profile_private where user_id = pg_temp.uid(18)::uuid) = '03000001', 'padded number not synced';
+  perform pg_temp.cl(18); set local role authenticated;
+  begin perform public.submit_ieee_claim('300000', null); assert false, '6 digit number accepted';
+  exception when others then if sqlerrm <> 'invalid_number' then raise; end if; end;
+  reset role;
+
+  -- the queue shows the number and the email the member used (positive twin: super admin; negatives: society admin, student)
+  perform pg_temp.cl(1); set local role authenticated;
+  q := public.admin_membership_queue(50, 0);
+  reset role;
+  assert exists (select 1 from jsonb_array_elements(q -> 'rows') x
+                  where x ->> 'member_number' = '03000001' and x ->> 'email' = 'c6u18@test.local' and (x ->> 'has_proof')::boolean = false),
+    'queue row missing email / number';
+  perform pg_temp.cl(2); set local role authenticated;
+  begin perform public.admin_membership_queue(50, 0); assert false, 'society admin read the queue';
+  exception when others then if sqlstate <> '42501' then raise; end if; end;
+  reset role;
+  perform pg_temp.cl(18); set local role authenticated;
+  begin perform public.admin_membership_queue(50, 0); assert false, 'student read the queue';
+  exception when others then if sqlstate <> '42501' then raise; end if; end;
+  begin perform public.admin_approve_claim(cid, t + 30, true); assert false, 'student approved';
+  exception when others then if sqlstate <> '42501' then raise; end if; end;
+  reset role;
+  perform pg_temp.cl(2); set local role authenticated;
+  begin perform public.admin_approve_claim(cid, t + 30, true); assert false, 'society admin approved';
+  exception when others then if sqlstate <> '42501' then raise; end if; end;
+  reset role;
+
+  -- approving requires the Validator confirmation and a sane date; nothing changes on refusal
+  perform pg_temp.cl(1); set local role authenticated;
+  begin perform public.admin_approve_claim(cid, t + 30, false); assert false, 'approved without confirmation';
+  exception when others then if sqlerrm <> 'validator_unconfirmed' then raise; end if; end;
+  begin perform public.admin_approve_claim(cid, t + 30, null); assert false, 'approved with null confirmation';
+  exception when others then if sqlerrm <> 'validator_unconfirmed' then raise; end if; end;
+  begin perform public.admin_approve_claim(cid, t - 1, true); assert false, 'approved with a past date';
+  exception when others then if sqlerrm <> 'invalid_date' then raise; end if; end;
+  begin perform public.admin_approve_claim(cid, t + 741, true); assert false, 'approved more than 740 days ahead';
+  exception when others then if sqlerrm <> 'invalid_date' then raise; end if; end;
+  reset role;
+  assert (select status from public.ieee_claims where id = cid) = 'pending_review', 'refused approval changed the claim';
+  assert not exists (select 1 from public.audit_log where action = 'membership.approved' and target_id = cid::text), 'refused approval was audited';
+
+  perform pg_temp.cl(1); set local role authenticated;
+  perform public.admin_approve_claim(cid, t + 365, true);
+  reset role;
+  assert (select status = 'verified' and method = 'admin' and verified_until = t + 365 from public.ieee_claims where id = cid), 'approve fields';
+  select summary into a from public.audit_log where action = 'membership.approved' and target_id = cid::text;
+  assert a is not null and jsonb_typeof(a -> 'validator_confirmed') = 'boolean' and (a ->> 'validator_confirmed')::boolean, 'audit lacks validator_confirmed=true: ' || a::text;
+  assert not exists (select 1 from jsonb_each(a) e where jsonb_typeof(e.value) not in ('number', 'boolean')), 'audit summary has non-number/boolean values';
+  -- the older direct path stays available and records false (c606 was approved through it above)
+  assert exists (select 1 from public.audit_log where action = 'membership.approved' and (summary ->> 'validator_confirmed')::boolean = false), 'direct approval should record false';
+
+  -- grants: only authenticated can call the new wrapper
+  assert has_function_privilege('authenticated', 'public.admin_approve_claim(uuid,date,boolean)', 'execute'), 'authenticated cannot approve (positive twin)';
+  assert not has_function_privilege('anon', 'public.admin_approve_claim(uuid,date,boolean)', 'execute'), 'anon can approve';
+  assert not has_function_privilege('service_role', 'public.admin_approve_claim(uuid,date,boolean)', 'execute'), 'service_role can approve';
+  assert not has_function_privilege('anon', 'private.admin_approve_claim(uuid,date,boolean)', 'execute'), 'anon can call the private approve';
 end $$;
 
 rollback;
