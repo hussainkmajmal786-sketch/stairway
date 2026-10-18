@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { BRANCHES, YEARS } from "./options";
 import { HANDLE_RE } from "./handle";
+import { OptionalMemberNumberSchema } from "@/lib/community/member-number";
 
 const httpUrl = z.url({ protocol: /^https?$/, message: "Enter a full link starting with https://" });
 // Trimmed first, so a pasted link with trailing spaces still validates (and is stored trimmed).
@@ -43,7 +44,7 @@ export const ProfileDetailsSchema = z.object({
 
 export const PrivateSchema = z.object({
   phone: z.string().trim().regex(/^$|^(\+91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}$/, "Use a 10-digit Indian mobile number."),
-  ieeeMemberId: z.string().trim().regex(/^$|^\d{8,9}$/, "IEEE membership IDs are 8–9 digits."),
+  ieeeMemberId: OptionalMemberNumberSchema,
 });
 
 export const ProjectSchema = z.object({

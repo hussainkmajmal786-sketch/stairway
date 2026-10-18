@@ -8,7 +8,9 @@ vi.mock("@/lib/admin/auth", () => ({ authorize: vi.fn() }));
 import { revalidatePath } from "next/cache";
 import { authorize } from "@/lib/admin/auth";
 import { decideClaim, getProofUrl, importRosterChunk, revokeClaim } from "@/lib/community/membership-admin-actions";
-import { defaultApprovalDate, prescreenChips } from "@/lib/community/membership-admin";
+import {
+  EXPIRING_DAYS, VALIDATOR_URL, defaultApprovalDate, filterExpiring, isExpiringSoon, prescreenChips, validateApproval,
+} from "@/lib/community/membership-admin";
 import { fakeDb, rpcCalls, type Res } from "./fake-db";
 
 const CLAIM = "33333333-3333-4333-8333-333333333333";
@@ -85,7 +87,9 @@ describe("decideClaim", () => {
     for (const bad of [
       { claimId: "nope", approve: false, reason: "other" },
       { claimId: CLAIM, approve: true },
-      { claimId: CLAIM, approve: true, verifiedUntil: "31/12/2027" },
+      { claimId: CLAIM, approve: true, verifiedUntil: "2027-12-31" },
+      { claimId: CLAIM, approve: true, verifiedUntil: "2027-12-31", validatorConfirmed: false },
+      { claimId: CLAIM, approve: true, verifiedUntil: "31/12/2027", validatorConfirmed: true },
       { claimId: CLAIM, approve: false },
       { claimId: CLAIM, approve: false, reason: "because" },
       { claimId: CLAIM, approve: false, reason: "other", verifiedUntil: "2027-01-01" },
@@ -95,20 +99,21 @@ describe("decideClaim", () => {
     expect(rpcCalls(calls)).toHaveLength(0);
   });
   it("approves and rejects through the RPC and revalidates", async () => {
-    const { calls } = asSuper({ "rpc.admin_decide_claim": { data: null, error: null } });
-    expect(await decideClaim({ claimId: CLAIM, approve: true, verifiedUntil: "2027-12-31" })).toEqual({ ok: true, data: undefined });
-    expect(rpcCalls(calls, "admin_decide_claim")[0].args[1]).toMatchObject({ p_claim_id: CLAIM, p_approve: true, p_verified_until: "2027-12-31" });
+    const { calls } = asSuper({ "rpc.admin_decide_claim": { data: null, error: null }, "rpc.admin_approve_claim": { data: null, error: null } });
+    expect(await decideClaim({ claimId: CLAIM, approve: true, verifiedUntil: "2027-12-31", validatorConfirmed: true })).toEqual({ ok: true, data: undefined });
+    expect(rpcCalls(calls, "admin_approve_claim")[0].args[1]).toEqual({ p_claim_id: CLAIM, p_verified_until: "2027-12-31", p_validator_confirmed: true });
+    expect(rpcCalls(calls, "admin_decide_claim")).toHaveLength(0);
     expect(await decideClaim({ claimId: CLAIM, approve: false, reason: "unreadable" })).toMatchObject({ ok: true });
-    expect(rpcCalls(calls, "admin_decide_claim")[1].args[1]).toMatchObject({ p_approve: false, p_reason: "unreadable" });
+    expect(rpcCalls(calls, "admin_decide_claim")[0].args[1]).toMatchObject({ p_approve: false, p_reason: "unreadable" });
     expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
   it("23505 is a conflict with the plan copy; invalid_date and not_found are mapped", async () => {
-    asSuper({ "rpc.admin_decide_claim": { data: null, error: { message: "dup", code: "23505" } } });
-    expect(await decideClaim({ claimId: CLAIM, approve: true, verifiedUntil: "2027-12-31" })).toMatchObject({
+    asSuper({ "rpc.admin_approve_claim": { data: null, error: { message: "dup", code: "23505" } } });
+    expect(await decideClaim({ claimId: CLAIM, approve: true, verifiedUntil: "2027-12-31", validatorConfirmed: true })).toMatchObject({
       ok: false, error: { code: "conflict", message: "That number is already verified on another account." },
     });
-    asSuper({ "rpc.admin_decide_claim": { data: null, error: { message: "invalid_date", code: "P0001" } } });
-    expect(await decideClaim({ claimId: CLAIM, approve: true, verifiedUntil: "2099-12-31" })).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    asSuper({ "rpc.admin_approve_claim": { data: null, error: { message: "invalid_date", code: "P0001" } } });
+    expect(await decideClaim({ claimId: CLAIM, approve: true, verifiedUntil: "2099-12-31", validatorConfirmed: true })).toMatchObject({ ok: false, error: { code: "invalid_input" } });
     asSuper({ "rpc.admin_decide_claim": { data: null, error: { message: "not_found", code: "P0001" } } });
     expect(await decideClaim({ claimId: CLAIM, approve: false, reason: "other" })).toMatchObject({ ok: false, error: { code: "not_found" } });
     expect(revalidatePath).not.toHaveBeenCalled();
@@ -178,6 +183,47 @@ describe("read-model helpers", () => {
     expect(prescreenChips({ status: "done", readable: false })[0].text).toBe("Unreadable");
     const c = prescreenChips({ status: "done", readable: true, number_match: true, name_match: false, expiry: "2027-12-31" });
     expect(c.map((x) => x.text)).toEqual(["Number matches", "Name does not match", "Expiry read: 31 Dec 2027"]);
+  });
+});
+
+describe("validateApproval", () => {
+  const now = Date.UTC(2026, 9, 18, 6, 0); // 18 Oct 2026 IST
+  it("requires the Validator checkbox first", () => {
+    expect(validateApproval({ confirmed: false, verifiedUntil: "2027-01-01" }, now)).toBe("not_confirmed");
+  });
+  it("accepts today and the 740 day boundary, rejects past, too far, empty and impossible dates", () => {
+    expect(validateApproval({ confirmed: true, verifiedUntil: "2026-10-18" }, now)).toBeNull();
+    expect(validateApproval({ confirmed: true, verifiedUntil: "2028-10-27" }, now)).toBeNull();
+    expect(validateApproval({ confirmed: true, verifiedUntil: "2026-10-17" }, now)).toBe("date_past");
+    expect(validateApproval({ confirmed: true, verifiedUntil: "2028-10-28" }, now)).toBe("date_too_far");
+    expect(validateApproval({ confirmed: true, verifiedUntil: "" }, now)).toBe("date_missing");
+    expect(validateApproval({ confirmed: true, verifiedUntil: "31/12/2026" }, now)).toBe("date_invalid");
+    expect(validateApproval({ confirmed: true, verifiedUntil: "2027-02-30" }, now)).toBe("date_invalid");
+  });
+});
+
+describe("expiry window and filter", () => {
+  const today = "2026-10-18";
+  it("treats the next 30 days (inclusive) as expiring and lapsed dates as not", () => {
+    expect(EXPIRING_DAYS).toBe(30);
+    expect(isExpiringSoon("2026-10-18", today)).toBe(true);
+    expect(isExpiringSoon("2026-11-17", today)).toBe(true);
+    expect(isExpiringSoon("2026-11-18", today)).toBe(false);
+    expect(isExpiringSoon("2026-10-17", today)).toBe(false);
+  });
+  it("filters rows without mutating the input", () => {
+    const rows = [{ verified_until: "2026-10-20" }, { verified_until: "2027-05-01" }, { verified_until: "2026-10-01" }];
+    expect(filterExpiring(rows, today)).toEqual([{ verified_until: "2026-10-20" }]);
+    expect(rows).toHaveLength(3);
+  });
+});
+
+describe("validator link", () => {
+  it("is the official vTools page with no query or fragment", () => {
+    const u = new URL(VALIDATOR_URL);
+    expect(u.origin).toBe("https://vtools.ieee.org");
+    expect(u.search).toBe("");
+    expect(u.hash).toBe("");
   });
 });
 

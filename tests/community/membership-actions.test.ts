@@ -30,7 +30,7 @@ describe("submitClaim", () => {
   it("invalid input never reaches the database", async () => {
     const calls = setup();
     for (const bad of [
-      null, {}, { memberNumber: "1234567", proofPath: null }, { memberNumber: "12345678x", proofPath: null },
+      null, {}, { memberNumber: "12345678x", proofPath: null },
       { memberNumber: "12345678", proofPath: "../../etc/passwd" }, { memberNumber: "12345678", proofPath: null, extra: 1 },
     ]) {
       expect(await submitClaim(bad)).toMatchObject({ ok: false, error: { code: "invalid_input" } });
@@ -42,6 +42,11 @@ describe("submitClaim", () => {
     const r = await submitClaim({ memberNumber: "12345678", proofPath: `${OTHER}/abcdefgh12345678.png` });
     expect(r).toMatchObject({ ok: false, error: { code: "invalid_input" } });
     expect(rpcCalls(calls)).toHaveLength(0);
+  });
+  it("pads a 7 digit number to the 8 digit form before the RPC", async () => {
+    const calls = setup({ "rpc.submit_ieee_claim": { data: { status: "proof_required" }, error: null } });
+    await submitClaim({ memberNumber: "1234567", proofPath: null });
+    expect(rpcCalls(calls, "submit_ieee_claim")[0].args[1]).toEqual({ p_member_number: "01234567", p_proof_path: null });
   });
   it("passes proof_required and rate_limited through as data", async () => {
     for (const status of ["proof_required", "rate_limited"]) {

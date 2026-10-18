@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { MEMBER_NUMBER_MESSAGE, MemberNumberSchema } from "./member-number";
 
-export const MemberNumberSchema = z.string().trim().regex(/^\d{8,9}$/, "Enter your 8 or 9 digit IEEE member number.");
+export { MemberNumberSchema };
 export const PROOF_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9._-]{8,80}$/;
 
 export const REJECT_REASONS = ["unreadable", "mismatch", "expired", "not_member", "other"] as const;
@@ -67,12 +68,15 @@ export function isVerifiedOn(verifiedUntil: string | null | undefined, today: st
   return !!verifiedUntil && verifiedUntil >= today;
 }
 
+export const PENDING_COPY =
+  "Thanks. A branch officer confirms your membership in IEEE's Membership Validator; this usually takes a day.";
+
 const CLAIM_COPY: Record<string, string> = {
   not_signed_in: "Please sign in again.",
-  invalid_number: "Enter your 8 or 9 digit IEEE member number.",
+  invalid_number: MEMBER_NUMBER_MESSAGE,
   invalid_proof: "That upload could not be used. Choose a JPG, PNG or WebP image under 5 MB and try again.",
   not_onboarded: "Finish setting up your profile first, then verify your membership.",
-  proof_required: "We could not confirm you automatically. Upload a photo of your IEEE card so an organiser can check it.",
+  proof_required: "We need a photo of your IEEE card so an organiser can check it.",
   rate_limited: "Too many attempts today. Please try again tomorrow or contact the organisers.",
   name_locked: "Your name is locked while your membership is verified. Contact the organisers to change it.",
   invalid_input: "Some details need attention.",

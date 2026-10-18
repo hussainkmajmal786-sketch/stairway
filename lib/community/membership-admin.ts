@@ -19,6 +19,7 @@ export const QueueRowSchema = z.object({
   member_number: z.string(),
   full_name: z.string(),
   handle: z.string(),
+  email: z.string().default(""),
   created_at: z.string(),
   prescreen: PrescreenSchema.catch({}),
   has_proof: z.boolean(),
@@ -68,4 +69,42 @@ export function prescreenChips(p: Prescreen): Chip[] {
   ];
   chips.push(p.expiry ? { text: `Expiry read: ${formatDateIST(p.expiry)}`, tone: "neutral" } : { text: "No valid expiry read", tone: "neutral" });
   return chips;
+}
+
+/** The only IEEE page we link to. Opened in a new tab; no member data is ever put in the URL. */
+export const VALIDATOR_URL = "https://vtools.ieee.org/membership-validator/";
+export const MAX_APPROVAL_DAYS = 740;
+export const EXPIRING_DAYS = 30;
+
+export type ApprovalIssue = "not_confirmed" | "date_missing" | "date_invalid" | "date_past" | "date_too_far";
+export const APPROVAL_COPY: Record<ApprovalIssue, string> = {
+  not_confirmed: "Tick the box to confirm you checked the IEEE Membership Validator.",
+  date_missing: "Enter the expiry date the Membership Validator shows.",
+  date_invalid: "That is not a real date.",
+  date_past: "The expiry date cannot be in the past. If the membership has lapsed, reject the claim.",
+  date_too_far: "The expiry date is more than 2 years away. Check the Membership Validator again.",
+};
+
+/** Approve form rule: the Validator checkbox is ticked and the date is a real day from today to 740 days ahead. */
+export function validateApproval(input: { confirmed: boolean; verifiedUntil: string }, now = Date.now()): ApprovalIssue | null {
+  if (input.confirmed !== true) return "not_confirmed";
+  const d = input.verifiedUntil.trim();
+  if (!d) return "date_missing";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return "date_invalid";
+  const [y, m, day] = d.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, day));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== day) return "date_invalid";
+  const today = todayIST(now);
+  if (d < today) return "date_past";
+  if (d > addDays(today, MAX_APPROVAL_DAYS)) return "date_too_far";
+  return null;
+}
+
+/** True when the membership ends within `days` days (inclusive) and has not lapsed. `today` is YYYY-MM-DD in IST. */
+export function isExpiringSoon(verifiedUntil: string, today: string, days = EXPIRING_DAYS): boolean {
+  return verifiedUntil >= today && verifiedUntil <= addDays(today, days);
+}
+
+export function filterExpiring<T extends { verified_until: string }>(rows: T[], today: string, days = EXPIRING_DAYS): T[] {
+  return rows.filter((r) => isExpiringSoon(r.verified_until, today, days));
 }

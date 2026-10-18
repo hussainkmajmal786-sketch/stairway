@@ -1152,6 +1152,14 @@ export type Database = {
         Returns: Json
       }
       admin_chat_unblock: { Args: { p_user_id: string }; Returns: undefined }
+      admin_approve_claim: {
+        Args: {
+          p_claim_id: string
+          p_validator_confirmed: boolean
+          p_verified_until: string
+        }
+        Returns: undefined
+      }
       admin_claim_proof: { Args: { p_claim_id: string }; Returns: string }
       admin_decide_claim: {
         Args: {

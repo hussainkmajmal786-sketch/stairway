@@ -6,10 +6,12 @@ import { Loader2 } from "lucide-react";
 import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
 import { createClient } from "@/lib/supabase/browser";
 import { MemberNumberSchema, claimErrorCopy } from "@/lib/community/membership";
+import { normalizeMemberNumber } from "@/lib/community/member-number";
 import { createProofUpload, submitClaim } from "@/lib/community/membership-actions";
 import { requestPrescreen } from "@/lib/community/prescreen-action";
 import { cn } from "@/lib/utils";
 import { ProofPicker } from "./ProofPicker";
+import { PENDING_COPY } from "@/lib/community/membership";
 
 type Step = "number" | "proof";
 
@@ -47,7 +49,7 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
     setNumberError(undefined);
     try {
       let proofPath: string | null = null;
-      if (step === "proof" && file) {
+      if (file) {
         const issued = await createProofUpload({ type: file.type });
         if (!issued.ok) {
           setError(claimErrorCopy(issued.error.code === "invalid_input" ? "invalid_proof" : "unavailable"));
@@ -74,7 +76,7 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
       } else if (s === "rate_limited") {
         setError(claimErrorCopy("rate_limited"));
       } else {
-        setDone(s === "verified" ? "You are verified. Your badge is now showing." : "Thanks. An organiser will check your card, usually within a few days.");
+        setDone(s === "verified" ? "You are verified. Your badge is now showing." : PENDING_COPY);
         if (s === "pending_review" && r.data.claimId) void requestPrescreen(r.data.claimId).catch(() => undefined);
         router.refresh();
       }
@@ -86,16 +88,26 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
     }
   }
 
-  const numberHint = "8 or 9 digits, as shown on your IEEE membership card.";
+  const numberHint = "8 digits as on your IEEE card, with the leading zero (for example 01234567). 7 digits is fine too.";
   return (
     <form onSubmit={submit} noValidate className="grid gap-5" aria-label={renew ? "Renew IEEE membership" : "Verify IEEE membership"}>
       <Field id="claim-number" label="IEEE member number" error={numberError} hint={numberHint} required>
         <input
-          id="claim-number" inputMode="numeric" autoComplete="off" maxLength={9} className={inputCls}
-          value={number} disabled={busy || step === "proof"} onChange={(e) => setNumber(e.target.value.replace(/\D/g, ""))}
+          id="claim-number" inputMode="numeric" autoComplete="off" maxLength={8} className={inputCls}
+          value={number} disabled={busy || step === "proof"}
+          onBlur={() => { const n = normalizeMemberNumber(number); if (n) setNumber(n); }} onChange={(e) => setNumber(e.target.value.replace(/\D/g, ""))}
           aria-invalid={!!numberError} aria-describedby={fieldDescribedBy("claim-number", { error: numberError, hint: numberHint })}
         />
       </Field>
+      {step === "number" && (
+        <details className="border-2 border-ink bg-paper-2 p-3">
+          <summary className="cursor-pointer font-semibold">Add a photo of your IEEE card (optional)</summary>
+          <div className="mt-3 grid gap-3">
+            <ProofPicker file={file} onChange={setFile} disabled={busy} />
+            <p className="text-sm text-ink-2">Not needed in most cases: the officer checks your number in IEEE&apos;s own tool. Only you and the organisers can see it.</p>
+          </div>
+        </details>
+      )}
       {step === "proof" && (
         <>
           <ProofPicker file={file} onChange={setFile} disabled={busy} />
