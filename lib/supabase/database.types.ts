@@ -132,6 +132,82 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          flagged_at: string | null
+          from_admin: boolean
+          id: number
+          sender_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          flagged_at?: string | null
+          from_admin: boolean
+          id?: never
+          sender_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          flagged_at?: string | null
+          from_admin?: boolean
+          id?: never
+          sender_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_threads: {
+        Row: {
+          admin_unread: number
+          created_at: string
+          id: string
+          last_message_at: string
+          status: string
+          user_id: string
+          user_unread: number
+        }
+        Insert: {
+          admin_unread?: number
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          status?: string
+          user_id: string
+          user_unread?: number
+        }
+        Update: {
+          admin_unread?: number
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          status?: string
+          user_id?: string
+          user_unread?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_threads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_requests: {
         Row: {
           admin_note: string
@@ -1062,6 +1138,17 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_chat_block: {
+        Args: { p_reason: string; p_user_id: string }
+        Returns: undefined
+      }
+      admin_chat_close: { Args: { p_thread_id: string }; Returns: undefined }
+      admin_chat_flag: { Args: { p_message_id: number }; Returns: undefined }
+      admin_chat_threads: {
+        Args: { p_limit: number; p_offset: number; p_status: string }
+        Returns: Json
+      }
+      admin_chat_unblock: { Args: { p_user_id: string }; Returns: undefined }
       admin_claim_proof: { Args: { p_claim_id: string }; Returns: string }
       admin_decide_claim: {
         Args: {
@@ -1082,6 +1169,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_inbox_counts: { Args: never; Returns: Json }
       admin_membership_queue: {
         Args: { p_limit: number; p_offset: number }
         Returns: Json
@@ -1114,6 +1202,12 @@ export type Database = {
         Args: { p_registration_id: string }
         Returns: Json
       }
+      chat_mark_read: { Args: { p_thread_id: string }; Returns: undefined }
+      chat_send: {
+        Args: { p_body: string; p_thread_id: string }
+        Returns: Json
+      }
+      chat_state: { Args: never; Returns: Json }
       claim_refund: { Args: { p_registration_id: string }; Returns: Json }
       claim_sync_batch: { Args: { p_limit?: number }; Returns: Json }
       complete_sync: {
@@ -1171,6 +1265,7 @@ export type Database = {
         Args: { p_claim_id: string; p_ok: boolean; p_result: Json }
         Returns: undefined
       }
+      purge_community: { Args: never; Returns: Json }
       register_for_event: {
         Args: { p_answers?: Json; p_event_id: string }
         Returns: Json
