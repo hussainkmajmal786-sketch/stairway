@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ArrowLeft, CalendarDays, FileText, Landmark, LayoutDashboard, LogOut, ScrollText, Settings, SlidersHorizontal,
-  Ticket, UserRound, Users, type LucideIcon,
+  ArrowLeft, BadgeCheck, CalendarDays, FileText, IdCard, Inbox, Landmark, LayoutDashboard, LogOut, MessageCircle,
+  ScrollText, Settings, SlidersHorizontal, Ticket, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { FieldBand } from "@/components/ui/Poster";
 import { isNavActive } from "@/lib/dashboard/nav";
@@ -22,6 +22,8 @@ const NAV = {
       { href: "/me/tickets", label: "My tickets", Icon: Ticket },
       { href: "/me/profile", label: "Profile", Icon: UserRound },
       { href: "/me/settings", label: "Settings", Icon: Settings },
+      { href: "/me/membership", label: "Membership", Icon: BadgeCheck },
+      { href: "/me/chat", label: "Chat", Icon: MessageCircle },
     ],
   },
   admin: {
@@ -35,6 +37,9 @@ const NAV = {
       { href: "/admin/people", label: "Admins", Icon: Users, superOnly: true },
       { href: "/admin/audit", label: "Audit log", Icon: ScrollText, superOnly: true },
       { href: "/admin/settings", label: "Settings", Icon: SlidersHorizontal, superOnly: true },
+      { href: "/admin/membership", label: "Membership", Icon: IdCard, superOnly: true },
+      { href: "/admin/requests", label: "Requests", Icon: Inbox, superOnly: true },
+      { href: "/admin/chat", label: "Chat", Icon: MessageCircle, superOnly: true },
     ],
   },
 } satisfies Record<string, { title: string; items: NavItem[] }>;
@@ -51,11 +56,14 @@ const itemCls =
 export function DashboardShell({
   variant,
   isSuper = false,
+  badges,
   children,
 }: {
   variant: DashboardVariant;
   /** Admin variant only: shows the super-admin sections (UX only; the server authorises every request). */
   isSuper?: boolean;
+  /** Unread/pending counts keyed by nav href; hidden when 0 or missing. Display only. */
+  badges?: Partial<Record<string, number>>;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -77,6 +85,7 @@ export function DashboardShell({
           <nav aria-label={title} className="no-scrollbar -m-1.5 flex gap-2 overflow-x-auto p-1.5 lg:flex-col lg:overflow-visible">
             {items.map(({ href, label, Icon, exact }) => {
               const active = isNavActive(pathname, href, exact);
+              const n = Math.max(0, Math.floor(badges?.[href] ?? 0));
               return (
                 <Link
                   key={href}
@@ -85,6 +94,11 @@ export function DashboardShell({
                   className={cn(itemCls, active ? "bg-yellow shadow-[3px_3px_0_0_var(--ink)]" : "bg-paper hover:bg-paper-3")}
                 >
                   <Icon size={16} strokeWidth={2} aria-hidden /> {label}
+                  {n > 0 && (
+                    <span aria-label={`${n} unread`} className="ml-auto min-w-6 border-2 border-ink bg-red px-1.5 text-center font-mono text-[11px] font-bold leading-5 text-ink">
+                      {n > 99 ? "99+" : n}
+                    </span>
+                  )}
                 </Link>
               );
             })}

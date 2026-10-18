@@ -93,3 +93,14 @@ describe("invite token paths", () => {
     expect(pv[2]).toEqual({ page_location: `${ORIGIN}/invite/:token`, page_referrer: `${ORIGIN}/invite/:token` });
   });
 });
+
+describe("community routes", () => {
+  it("scrubs ids and queries on chat, request and membership routes", () => {
+    expect(scrubUrl(`${ORIGIN}/admin/chat/${UUID}`)).toBe(`${ORIGIN}/admin/chat/:id`);
+    expect(scrubUrl(`${ORIGIN}/me/chat`)).toBe(`${ORIGIN}/me/chat`);
+    expect(scrubUrl(`${ORIGIN}/admin/requests?kind=host_event&q=a@b.co`)).toBe(`${ORIGIN}/admin/requests`);
+    expect(scrubUrl(`${ORIGIN}/me/membership?claim=${UUID}`)).toBe(`${ORIGIN}/me/membership`);
+    expect(scrubUrl(`${ORIGIN}/admin/membership?page=2`)).toBe(`${ORIGIN}/admin/membership`);
+    expect(scrubReferrer(`${ORIGIN}/admin/chat/${UUID}?x=1`, ORIGIN)).toBe(`${ORIGIN}/admin/chat/:id`);
+  });
+});
