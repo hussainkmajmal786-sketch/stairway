@@ -1,4 +1,4 @@
-export type Res = { data: unknown; error: unknown };
+export type Res = { data: unknown; error: unknown; count?: number };
 export interface Call { table?: string; op: string; args: unknown[] }
 
 /**
@@ -20,7 +20,7 @@ export function fakeDb(script: Record<string, Res | Res[]> = {}) {
       calls.push({ table, op: name, args });
       return b;
     };
-    for (const m of ["select", "insert", "update", "upsert", "delete", "eq", "neq", "order", "limit", "in", "or", "is", "not", "gt", "range"]) {
+    for (const m of ["select", "insert", "update", "upsert", "delete", "eq", "neq", "order", "limit", "in", "or", "is", "not", "gt", "range", "like", "ilike", "gte", "lt", "lte"]) {
       b[m] = chain(m);
     }
     const settle = () => Promise.resolve(next(`${table}.${op}`));

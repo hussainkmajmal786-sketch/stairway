@@ -57,3 +57,42 @@ export function readCronSecret(env: Env): string | null {
 export const paymentsConfig = (): PaymentsConfig => readPaymentsConfig(process.env);
 export const syncConfig = (): SyncConfig => readSyncConfig(process.env);
 export const cronSecret = (): string | null => readCronSecret(process.env);
+
+/** The service-role key, only for server code that must act outside RLS (avatar cleanup after anonymisation). */
+export function readServiceRoleKey(env: Env): string | null {
+  return val(env.SUPABASE_SERVICE_ROLE_KEY, 20);
+}
+export const serviceRoleKey = (): string | null => readServiceRoleKey(process.env);
+
+export interface PaymentsStatus {
+  envFlag: boolean;
+  keyIdPresent: boolean;
+  keyMode: "test" | "live" | null;
+  keySecretPresent: boolean;
+  webhookSecretPresent: boolean;
+  serviceRolePresent: boolean;
+  cronSecretPresent: boolean;
+  syncFlag: boolean;
+  syncConfigured: boolean;
+}
+
+/**
+ * Presence only, for the read-only admin status panel: booleans and the word test|live. Never a secret value or any
+ * part of one (the key id prefix reveals nothing sensitive, but only the mode word leaves this function).
+ */
+export function paymentsStatus(env: Env): PaymentsStatus {
+  const keyId = val(env.RAZORPAY_KEY_ID);
+  const m = keyId ? KEY_ID.exec(keyId) : null;
+  return {
+    envFlag: env.PAYMENTS_ENABLED === "true",
+    keyIdPresent: m !== null,
+    keyMode: m ? (m[1] as "test" | "live") : null,
+    keySecretPresent: val(env.RAZORPAY_KEY_SECRET) !== null,
+    webhookSecretPresent: val(env.RAZORPAY_WEBHOOK_SECRET) !== null,
+    serviceRolePresent: readServiceRoleKey(env) !== null,
+    cronSecretPresent: readCronSecret(env) !== null,
+    syncFlag: env.FUND_EASY_SYNC_ENABLED === "true",
+    syncConfigured: readSyncConfig(env).enabled,
+  };
+}
+export const currentPaymentsStatus = (): PaymentsStatus => paymentsStatus(process.env);
