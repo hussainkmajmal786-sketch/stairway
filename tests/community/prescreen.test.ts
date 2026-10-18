@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PrescreenOutputSchema, buildVisionRequest, callVision, comparePrescreen } from "@/lib/community/prescreen";
 
-const cfg = { enabled: true as const, apiKey: "k".repeat(24), model: "claude-haiku-5-5" };
+const cfg = { enabled: true as const, apiKey: "k".repeat(24), model: "claude-haiku-4-5-20251001" };
 const URL_ = "https://signed.example/proof.png?token=abc";
 const good = { readable: true, member_number: "12345678", name: "Asha Rao", valid_until: "2027-12-31" };
 const reply = (text: string, ok = true, status = 200) =>
@@ -18,12 +18,13 @@ describe("PrescreenOutputSchema", () => {
 });
 
 describe("buildVisionRequest", () => {
-  it("sends only the image url block, no personal data and no temperature", () => {
-    const r = buildVisionRequest(URL_, "claude-haiku-5-5");
+  it("sends only the image url block, no personal data, temperature 0, no thinking", () => {
+    const r = buildVisionRequest(URL_, "claude-haiku-4-5-20251001");
     const body = JSON.parse(r.init.body);
     expect(body.messages[0].content[0]).toEqual({ type: "image", source: { type: "url", url: URL_ } });
     expect(body.max_tokens).toBe(200);
-    expect(body).not.toHaveProperty("temperature");
+    expect(body.temperature).toBe(0);
+    expect(body).not.toHaveProperty("thinking");
     expect(body.system).toContain("untrusted");
     expect(r.init.body).not.toMatch(/12345678|Asha/);
   });

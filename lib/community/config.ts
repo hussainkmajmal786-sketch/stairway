@@ -3,8 +3,8 @@
 
 type Env = Record<string, string | undefined>;
 
-/** Documented default: a cheap, vision-capable Claude model (confirmed against the claude-api model table). */
-export const DEFAULT_PRESCREEN_MODEL = "claude-haiku-5-5";
+/** Documented default: a cheap, vision-capable Claude model (Claude Haiku 4.5, vision-capable). */
+export const DEFAULT_PRESCREEN_MODEL = "claude-haiku-4-5-20251001";
 
 export type PrescreenConfig = { enabled: false } | { enabled: true; apiKey: string; model: string };
 

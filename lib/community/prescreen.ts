@@ -24,15 +24,14 @@ type Fetch = (input: string, init: { method: string; headers: Record<string, str
 
 /**
  * The request carries ONLY the signed image URL: no member number, no name (comparison happens locally).
- * No `temperature` is sent: current models reject non-default sampling values. Thinking is disabled so the short
- * output budget is not spent on reasoning.
+ * `temperature: 0` for deterministic extraction (Haiku 4.5 accepts it); no `thinking` parameter is sent.
  */
 export function buildVisionRequest(imageUrl: string, model: string): { url: string; init: { body: string } } {
   const body = {
     model,
     max_tokens: 200,
     system: SYSTEM_PROMPT,
-    thinking: { type: "disabled" },
+    temperature: 0,
     messages: [
       {
         role: "user",
