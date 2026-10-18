@@ -77,3 +77,19 @@ describe("pageViewStep", () => {
     });
   });
 });
+
+describe("invite token paths", () => {
+  const TOKEN = "Zk3_-abcdefghijklmnopqrstuvwxyz0123456789ABC";
+  it("scrubUrl and scrubReferrer never keep the token (query and hash included)", () => {
+    expect(scrubUrl(`${ORIGIN}/invite/${TOKEN}?x=1#y`)).toBe(`${ORIGIN}/invite/:token`);
+    expect(scrubUrl(`${ORIGIN}/login?next=%2Finvite%2F${TOKEN}`)).toBe(`${ORIGIN}/login`);
+    expect(scrubReferrer(`${ORIGIN}/invite/${TOKEN}`, ORIGIN)).toBe(`${ORIGIN}/invite/:token`);
+    expect(scrubUrl(`${ORIGIN}/events/invite/x`)).toBe(`${ORIGIN}/events/invite/x`); // only the real route
+  });
+  it("the inline bootstrap agrees", () => {
+    const calls = runBootstrap(`${ORIGIN}/invite/${TOKEN}`, `${ORIGIN}/invite/${TOKEN}`);
+    expect(JSON.stringify(calls)).not.toContain(TOKEN);
+    const pv = calls.find((c) => c[0] === "event" && c[1] === "page_view")!;
+    expect(pv[2]).toEqual({ page_location: `${ORIGIN}/invite/:token`, page_referrer: `${ORIGIN}/invite/:token` });
+  });
+});
