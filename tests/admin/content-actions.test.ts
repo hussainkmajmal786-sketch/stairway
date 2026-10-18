@@ -158,6 +158,13 @@ describe("reorderEntitiesAction", () => {
     expect(r.ok).toBe(true);
     expect(wrote(calls, "tracks", "update").map((c) => c.args[0])).toEqual([{ sort_order: 10 }, { sort_order: 20 }]);
   });
+  it("caps one call at 40 items with too_many, before any query", async () => {
+    const { db, calls } = fakeDb();
+    asAdmin(db);
+    const ids = Array.from({ length: 41 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    expect(await reorderEntitiesAction({ entity: "track", societyId: RAS, orderedIds: ids })).toMatchObject({ ok: false, error: { code: "too_many" } });
+    expect(calls).toHaveLength(0);
+  });
   it("forbids another society", async () => {
     const { db } = fakeDb();
     asAdmin(db);

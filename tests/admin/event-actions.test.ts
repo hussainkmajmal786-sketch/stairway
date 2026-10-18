@@ -272,3 +272,34 @@ describe("deleteDraftEventAction", () => {
     expect(await deleteDraftEventAction(EID)).toEqual({ ok: true, data: undefined });
   });
 });
+
+describe("track ownership", () => {
+  const TRACK = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  it("create: a society admin cannot attach another society's track", async () => {
+    const { db, calls } = fakeDb({ "tracks.select": { data: { society_id: CS }, error: null }, "events.insert": { data: { id: EID }, error: null } });
+    allow(db);
+    expect(await createEventAction({ societyId: RAS, ...fields, trackId: TRACK })).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    expect(wrote(calls, "events", "insert")).toHaveLength(0);
+  });
+  it("create: an unknown track is rejected, an own-society track is accepted", async () => {
+    const missing = fakeDb({ "tracks.select": { data: null, error: null } });
+    allow(missing.db);
+    expect(await createEventAction({ societyId: RAS, ...fields, trackId: TRACK })).toMatchObject({ ok: false });
+    const own = fakeDb({ "tracks.select": { data: { society_id: RAS }, error: null }, "events.insert": { data: { id: EID }, error: null } });
+    allow(own.db);
+    expect(await createEventAction({ societyId: RAS, ...fields, trackId: TRACK })).toMatchObject({ ok: true });
+  });
+  it("update: foreign track rejected for society admins, no update call", async () => {
+    const { db, calls } = fakeDb({ "tracks.select": { data: { society_id: CS }, error: null } });
+    allow(db);
+    expect(await updateEventAction({ id: EID, seenUpdatedAt: SEEN, ...fields, trackId: TRACK })).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    expect(wrote(calls, "events", "update")).toHaveLength(0);
+  });
+  it("update: a super admin is not restricted", async () => {
+    const { db } = fakeDb({
+      "events.update": { data: [{ id: EID, slug: "s", status: "draft", society_id: RAS, updated_at: "2026-10-11T10:05:00+00:00" }], error: null },
+    });
+    allow(db, { isSuper: true });
+    expect(await updateEventAction({ id: EID, seenUpdatedAt: SEEN, ...fields, trackId: TRACK })).toMatchObject({ ok: true });
+  });
+});

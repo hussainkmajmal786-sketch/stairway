@@ -49,6 +49,22 @@ const rawString = (input: unknown, key: string): string => {
   return "";
 };
 
+/**
+ * A society admin may only attach a track of the event's own society (the tracks policy would otherwise accept any
+ * visible track id). Super admins may use any track. Not found and foreign look the same.
+ */
+async function trackAllowed(
+  db: { from: (t: "tracks") => any }, // eslint-disable-line @typescript-eslint/no-explicit-any
+  isSuper: boolean,
+  trackId: string | null,
+  societyId: string | null,
+): Promise<boolean> {
+  if (isSuper || trackId === null) return true;
+  const { data } = await db.from("tracks").select("society_id").eq("id", trackId).maybeSingle();
+  return !!data && typeof data.society_id === "string" && data.society_id === societyId;
+}
+const WRONG_TRACK = "Choose a track from this society.";
+
 export async function createEventAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   // The society is the one client-supplied scope; it is only accepted when it is one of the admin's societies.
   const auth = await authorize({ kind: "society", societyId: rawString(input, "societyId") });
@@ -56,6 +72,9 @@ export async function createEventAction(input: unknown): Promise<ActionResult<{ 
   const parsed = EventInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: fromZod(parsed.error) };
   const { societyId, ...fields } = parsed.data;
+  if (!(await trackAllowed(auth.db, auth.ctx.isSuper, fields.trackId, societyId))) {
+    return fail("invalid_input", WRONG_TRACK, { trackId: WRONG_TRACK });
+  }
   const row: TablesInsert<"events"> = { society_id: societyId, status: "draft", ...fieldsToColumns(fields, auth.ctx.isSuper) };
   const { data, error } = await auth.db.from("events").insert(row).select("id").single();
   if (error || !data) return { ok: false, error: mapDbError(error) };
@@ -75,6 +94,9 @@ export async function updateEventAction(input: unknown): Promise<ActionResult<{ 
   if (!head.success) return { ok: false, error: fromZod(head.error) };
   const parsed = EventFieldsSchema.safeParse(rest);
   if (!parsed.success) return { ok: false, error: fromZod(parsed.error) };
+  if (!(await trackAllowed(auth.db, auth.ctx.isSuper, parsed.data.trackId, auth.societyId))) {
+    return fail("invalid_input", WRONG_TRACK, { trackId: WRONG_TRACK });
+  }
 
   const { data, error } = await auth.db
     .from("events")

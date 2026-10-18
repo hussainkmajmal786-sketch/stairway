@@ -5,6 +5,7 @@ export type AdminErrorCode =
   | "forbidden"
   | "invalid_input"
   | "conflict"
+  | "too_many"
   | "locked"
   | "not_found"
   | "payments_disabled"
@@ -24,6 +25,7 @@ const DEFAULT_MESSAGES: Record<AdminErrorCode, string> = {
   forbidden: "You do not have access to do that.",
   invalid_input: "Some fields need attention.",
   conflict: "That conflicts with an existing item.",
+  too_many: "That list is too long to reorder in one go (40 items at most).",
   locked: "That change is not allowed right now.",
   not_found: "We could not find that.",
   payments_disabled: "Payments are not enabled, so refunds are unavailable.",

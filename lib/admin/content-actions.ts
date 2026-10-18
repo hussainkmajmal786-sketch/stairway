@@ -151,6 +151,9 @@ export async function deleteEntityAction(input: unknown): Promise<ActionResult> 
   return okResult(undefined);
 }
 
+/** Max rows reordered per call (one subrequest each; Workers FREE allows 50 in total). */
+const MAX_REORDER = 40;
+
 const ReorderHead = z.strictObject({
   entity: z.enum(ENTITIES),
   societyId: z.uuid().optional(),
@@ -169,6 +172,9 @@ export async function reorderEntitiesAction(input: unknown): Promise<ActionResul
   const auth = await authorize(scopeFor(rule, scope), first.db);
   if (!auth.ok) return { ok: false, error: auth.error };
 
+  // One UPDATE per row: capped so a call stays far below the Workers FREE 50-subrequest limit.
+  if (orderedIds.length > MAX_REORDER) return fail("too_many");
+
   // The ids must be exactly the rows currently in scope (a permutation), re-selected server side.
   let q = from(auth.db, rule.table).select("id");
   if (rule.societyColumn) q = scope ? q.eq("society_id", scope) : q;
@@ -177,7 +183,15 @@ export async function reorderEntitiesAction(input: unknown): Promise<ActionResul
   const current = new Set((Array.isArray(data) ? data : []).map((r) => String(asRow(r)?.id)));
   const given = new Set(orderedIds);
   const same = given.size === orderedIds.length && given.size === current.size && orderedIds.every((i) => current.has(i));
-  if (!same) return fail("invalid_input", "The list changed. Reload and try again.");
+  if (current.size > MAX_REORDER) return fail("too_many");
+  if (!same) {
+    return fail(
+      "invalid_input",
+      entity === "speaker"
+        ? "The speaker list changed (or includes speakers you cannot reorder). Reload and try again."
+        : "The list changed. Reload and try again.",
+    );
+  }
 
   const results = await Promise.all(
     orderedIds.map((rowId, i) => {
