@@ -48,6 +48,7 @@ const ADMIN_ALLOWED = new Set([
   "lib/admin/refund-action.ts",
   "lib/admin/anonymise-action.ts",
   "lib/community/prescreen-action.ts",
+  "lib/community/forms-actions.ts",
 ]);
 
 describe("payment secret boundaries", () => {
