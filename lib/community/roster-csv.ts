@@ -1,3 +1,5 @@
+import { normalizeMemberNumber } from "./member-number";
+
 // Pure, DOM-free roster CSV parser. It runs in the super admin's BROWSER; member numbers and names never reach a log.
 
 export interface RosterRow {
@@ -110,7 +112,7 @@ type Cols = { n: number; e: number; name: number };
 
 function headerCols(cells: string[]): Cols | null {
   const lower = cells.map((c) => c.trim().toLowerCase());
-  if (lower.some((c) => /^\d{8,9}$/.test(c))) return null; // a data row, not a header
+  if (lower.some((c) => /^\d{7,9}$/.test(c))) return null; // a data row, not a header
   const cols: Cols = { n: -1, e: -1, name: -1 };
   lower.forEach((c, i) => {
     if (/expir|valid|renew/.test(c)) {
@@ -156,9 +158,9 @@ export function parseRosterCsv(input: string): RosterParseResult {
       break;
     }
     seen++;
-    const n = (cells[cols.n] ?? "").trim();
-    if (!/^\d{8,9}$/.test(n)) {
-      addError(line, "Member number must be 8 or 9 digits.");
+    const n = normalizeMemberNumber(cells[cols.n] ?? "");
+    if (!n) {
+      addError(line, "Member number must be 8 digits (7 digits get a leading zero).");
       continue;
     }
     const e = parseRosterDate(cells[cols.e] ?? "");

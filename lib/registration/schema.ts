@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { OnboardingSchema } from "@/lib/profile/schema";
 import { answersSchema, type Answers, type Question } from "./questions";
+import { OptionalMemberNumberSchema } from "@/lib/community/member-number";
 
 /**
  * A subset of the profile_private.phone CHECK (`[\s-]` separators there): only ASCII space or `-` here, because
@@ -11,7 +12,7 @@ export const PHONE_RE = /^(\+91[ -]?)?[6-9]\d{4}[ -]?\d{5}$/;
 /** Profile fields shown (pre-filled) on the registration form and saved back to the profile. */
 export const RegistrantSchema = OnboardingSchema.pick({ fullName: true, college: true, branch: true, year: true }).extend({
   phone: z.string().trim().regex(PHONE_RE, "Use a 10-digit Indian mobile number."),
-  ieeeMemberId: z.string().trim().regex(/^$|^\d{8,9}$/, "IEEE membership IDs are 8–9 digits."),
+  ieeeMemberId: OptionalMemberNumberSchema,
 });
 
 export interface Registrant {

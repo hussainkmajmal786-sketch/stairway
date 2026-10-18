@@ -8,7 +8,7 @@ describe("parseRosterCsv", () => {
     expect(r.rows).toEqual([{ n: "12345678", e: "2027-12-31", name: "Asha Rao" }]);
   });
   it("detects ; and tab delimiters", () => {
-    expect(parseRosterCsv("Member ID;Valid Until;Name\n123456789;31/12/2027;Asha Rao").rows[0]).toEqual({ n: "123456789", e: "2027-12-31", name: "Asha Rao" });
+    expect(parseRosterCsv("Member ID;Valid Until;Name\n01234567;31/12/2027;Asha Rao").rows[0]).toEqual({ n: "01234567", e: "2027-12-31", name: "Asha Rao" });
     expect(parseRosterCsv("Member ID\tRenewal\tName\n12345678\t31-12-2027\tAsha Rao").rows[0].e).toBe("2027-12-31");
   });
   it("accepts a headerless file", () => {
@@ -32,10 +32,10 @@ describe("parseRosterCsv", () => {
     const r = parseRosterCsv("12345678,2026-01-01\n12345678,2028-01-01\n12345678,2027-01-01");
     expect(r.rows).toEqual([{ n: "12345678", e: "2028-01-01" }]);
   });
-  it("rejects 7 and 10 digit numbers", () => {
-    const r = parseRosterCsv("1234567,2027-01-01\n1234567890,2027-01-01\n12345678,2027-01-01");
-    expect(r.rows).toHaveLength(1);
-    expect(r.errors.map((e) => e.line)).toEqual([1, 2]);
+  it("pads 7 digit numbers and rejects 6, 9 and 10 digit numbers", () => {
+    const r = parseRosterCsv("1234567,2027-01-01\n123456,2027-01-01\n1234567890,2027-01-01\n12345678,2027-01-01\n123456789,2027-01-01");
+    expect(r.rows.map((x) => x.n).sort()).toEqual(["01234567", "12345678"]);
+    expect(r.errors.map((e) => e.line)).toEqual([2, 3, 5]);
   });
   it("handles quoted names with commas, quotes and newlines", () => {
     const r = parseRosterCsv('number,expiry,name\n12345678,2027-01-01,"Rao, Asha ""A"""\n87654321,2027-01-01,"Line\nBreak"\n11112222,bad,x');
