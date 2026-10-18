@@ -54,7 +54,8 @@ Section titles are rule headings: mono eyebrow + Anton `.h2` with a lead rule an
 - **Typed errors** (`ErrorPanel`): `role="alert"`, takes focus unless the fix is in the fields, ink text on a light red tint over cream, one recovery action.
 - **Attendee lists:** "Who's going" panel; avatars only through `safeAvatarUrl()` with `referrerPolicy="no-referrer"`; signed-out visitors see the count only.
 - **OG cards** (`lib/og.tsx`, `lib/og-font.ts`): cobalt card in the same frame. Anton and Space Mono 700 are fetched from Google Fonts at render time (cached, with a timeout); if either fails the whole card falls back to the built-in font.
-- **Payments:** "Pay ₹X" is the ink primary CTA on paid events; a live hold shows "Complete payment" with
+
+- **Payments:** "Pay ₹X" is the ink primary CTA on paid events; a live hold shows "Complete payment" with
   `components/payments/HoldCountdown.tsx` (mono m:ss, minute-level `role="timer"` text for screen readers, refreshes the
   route once at zero, ticks without animation under reduced motion). `PaymentPanel` is a `.box` with a hard shadow; Checkout
   (`checkout.js`) loads only when a member starts paying. Status tags: Payment pending / Refund pending (orange), Refunded
@@ -82,3 +83,13 @@ Stair lettering climbs in once (transform/opacity, 70ms stagger) only under `pre
 
 ## Known limitation
 For an unknown society or event slug (`/s/nope`, `/events/nope`) the 404 status and `noindex` are correct, but the 404 body is streamed rather than present in the initial server HTML (calling `notFound()` from `generateMetadata` made no difference on a production build). Accepted; fixing it would need a check in middleware.
+
+
+## Admin dashboard (`/admin`)
+
+- Same shell as `/me`: cobalt chrome around a cream sidebar panel and a cream work panel (dense tables and forms never sit directly on the cobalt field).
+- BACK TO SITE is always the first control in the sidebar; super-only items (Site content, Admins, Audit log, Settings) are hidden for society admins (UX only).
+- Status chips carry an icon and a word, never colour alone. Tables collapse to cards under 640 px.
+- Destructive actions use `ConfirmDialog`; typed text is required for cancel session (title), remove admin (handle) and erase data (handle). Errors use `role="alert"`, status uses `aria-live="polite"`.
+- Targets are 44 px. The check-in scanner is a full-screen exception: cobalt field, cream result panel, controls at least 48 px, its own back control top-left, reduced motion respected.
+- One-time secrets (invite links) are shown once in a cream panel with a Copy button and are never stored or re-rendered.

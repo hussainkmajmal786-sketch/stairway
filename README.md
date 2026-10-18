@@ -145,6 +145,39 @@ Only after the Fund Easy patch is applied (see its README): secrets `FUND_EASY_S
 
 ---
 
+## 3e. Admin dashboard (`/admin`)
+
+Organisers run the site from `/admin` (signed-in admins only; everyone else gets a 404). It is `noindex`, disallowed in `robots.txt` and kept out of the sitemap. The step-by-step check list is `docs/admin-eyeball-checklist.md`.
+
+| Route | What | Who |
+|---|---|---|
+| `/admin` | Overview: upcoming sessions, seats, last-7-day registrations, recent check-ins | all admins (own society) |
+| `/admin/events`, `/new`, `/[id]` | Create, edit, publish, duplicate, cancel sessions; media, video, agenda, questions | all admins (own society) |
+| `/admin/events/[id]/registrations` | Search, details, CSV, cancel, promote waitlist, refund | all admins; refund super only |
+| `/admin/events/[id]/check-in` | Phone door scanner | all admins (own society) |
+| `/admin/society` | Society page, tracks, gallery, speakers | all admins (own society); identity fields super only |
+| `/admin/site`, `/admin/people`, `/admin/audit`, `/admin/settings` | Site content, admins and invites, audit log, status | **super admin only** |
+
+**Roles.** `super_admin` runs the whole site; `society_admin` runs one society (events, registrations, check-in, society page, tracks, speakers, gallery). Society admins cannot touch site content, settings, admins, the audit log, refunds or anonymisation. Hiding a button is only UX: every page and server action re-authorises on the server, and the database re-checks (RLS, guard triggers, definer functions).
+
+**Invites (no email).** Admins page, Invite someone: the page shows a one-time link `.../invite/<token>` once. Copy it and send it yourself. The database stores only the SHA-256 of the 32-byte token. It works once, for 7 days, and only for the signed-in account whose confirmed email equals the invite email; any failure shows the same generic message. The invite page sends `Referrer-Policy: no-referrer`, is `noindex`, and its token is scrubbed from analytics. Roles are created only by accepting an invite. Removing a role needs the person's handle typed; the last super admin can never be removed and you cannot remove yourself.
+
+**Check-in on phones.** Open a session's Check-in page on the phone (camera permission needed; works on Android Chrome and iPhone Safari). Scanning a ticket QR checks in immediately (green); scanning again shows amber "Already checked in" and never overwrites the first time. Typing a token or number asks you to confirm the person's name and photo first. Window: 24 h before start to 24 h after end.
+
+**CSV.** Registrations, Export CSV: capped at 2 000 rows, contact columns only for the admin's own society, no payment ids, and cells starting with `=`, `+`, `-` or `@` are neutralised against spreadsheet formula injection. Exports are audit-logged.
+
+**Refunds (cautions).** Refund buttons exist for super admins only and stay disabled unless payments are on in both the environment and the database flag. The UI never toggles that flag (go-live stays a SQL step, see `docs/payments-go-live-checklist.md`). Refunds go through Razorpay and cannot be undone.
+
+**Erase a person's data (cautions).** Admins, People, Erase: type the person's handle. Erased: name, picture, headline, bio, college, branch, year, skills, links, projects, experience, phone, email, IEEE id, registration answers, sign-in. Kept: registration ids, status, amounts, receipt numbers, payment ids, ticket codes, timestamps, the payment ledger, audit rows. Refused for admins, yourself, and people with a live seat or open payment. Fund Easy keeps its own copy of already-synced details. Cannot be undone.
+
+**Audit log.** Super admins read it at `/admin/audit` (50 per page; filter by action prefix, target type, actor, date range). It records content changes (by trigger), role and invite changes, cancellations, promotions, refunds, CSV exports, media uploads and anonymisation. Summaries hold column names, ids and numbers only, never emails, phones, answers or secrets. Check-ins are not logged (`checked_in_by` and `checked_in_at` are the record). It is append-only.
+
+**What the database enforces (independent of the app).** A society admin cannot move an event to another society, change a slug after first publish, cancel with a plain update, unpublish with live registrations, change the price once a paid registration exists, lower capacity below taken seats, or change ticket type/prefix after tickets exist. The last super admin cannot be removed or demoted. Admins read registrant email/phone only through one scoped function. The audit log cannot be edited or deleted.
+
+**Known deferred items.** The slug lock can be bypassed by unpublishing and editing a draft (M-4); the `media` bucket allows 100 MB and PDFs for everyone (the 5 MB image cap is client-declared plus action checks); the refund action has no server-side typed confirmation (UI dialog only; super-only and idempotent); the invite token travels in `/login?next=` for signed-out visitors, so the login and auth callback must never log query strings.
+
+---
+
 ## 4. Deploy (Cloudflare Workers)
 
 The site is deployed as a Worker via OpenNext. Log in once with `npx wrangler login`.

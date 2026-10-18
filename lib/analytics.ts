@@ -21,8 +21,11 @@ export const ID_SEGMENT_SOURCE = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[
 
 /** Path for analytics: id segments replaced by ":id". */
 export function analyticsPath(pathname: string): string {
-  return pathname.replace(new RegExp(ID_SEGMENT_SOURCE, "g"), ":id");
+  return pathname.replace(new RegExp(ID_SEGMENT_SOURCE, "g"), ":id").replace(INVITE_PATH, "/invite/:token");
 }
+
+/** `/invite/<token>` carries a one-time admin credential in the path: it must never reach analytics. */
+const INVITE_PATH = /^\/invite\/[^/]+/;
 
 /** The only query keys sent to analytics (campaign attribution). Everything else (e.g. ?new=1) is dropped. */
 export const ALLOWED_QUERY_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"] as const;
@@ -70,7 +73,7 @@ export function pageViewStep(prev: string | null, href: string): PageViewStep {
 const BOOT_SCRUB =
   "function s(h){try{var u=new URL(h),q=new URLSearchParams();" +
   "u.searchParams.forEach(function(v,k){if(A.indexOf(k)>=0)q.append(k,v)});var t=q.toString();" +
-  "return u.origin+u.pathname.replace(new RegExp(I,'g'),':id')+(t?'?'+t:'')}catch(e){return ''}}" +
+  "return u.origin+u.pathname.replace(new RegExp(I,'g'),':id').replace(new RegExp('^/invite/[^/]+'),'/invite/:token')+(t?'?'+t:'')}catch(e){return ''}}" +
   "function r(h){if(!h)return '';try{return new URL(h).origin===location.origin?s(h):h}catch(e){return ''}}";
 
 /**
