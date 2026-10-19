@@ -14,6 +14,8 @@ describe("registrationSchema", () => {
   it("requires a phone number and validates the IEEE id", () => {
     expect(s.safeParse({ registrant: { ...me, phone: "" }, answers: { laptop: "Yes" } }).success).toBe(false);
     expect(s.safeParse({ registrant: { ...me, ieeeMemberId: "123" }, answers: { laptop: "Yes" } }).success).toBe(false);
+    expect(s.safeParse({ registrant: { ...me, ieeeMemberId: "101809133" }, answers: { laptop: "Yes" } }).success).toBe(true);
+    expect(s.safeParse({ registrant: { ...me, ieeeMemberId: "1234567890" }, answers: { laptop: "Yes" } }).success).toBe(false);
     expect(s.safeParse({ registrant: { ...me, ieeeMemberId: "12345678" }, answers: { laptop: "Yes" } }).success).toBe(true);
   });
   it("only accepts listed branches and years", () =>

@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
 import { createClient } from "@/lib/supabase/browser";
 import { MemberNumberSchema, claimErrorCopy } from "@/lib/community/membership";
-import { normalizeMemberNumber } from "@/lib/community/member-number";
+import { MEMBER_NUMBER_HINT, normalizeMemberNumber } from "@/lib/community/member-number";
 import { createProofUpload, submitClaim } from "@/lib/community/membership-actions";
 import { requestPrescreen } from "@/lib/community/prescreen-action";
 import { cn } from "@/lib/utils";
@@ -88,12 +88,12 @@ export function ClaimForm({ renew = false, initialNumber = "" }: { renew?: boole
     }
   }
 
-  const numberHint = "8 digits as on your IEEE card, with the leading zero (for example 01234567). 7 digits is fine too.";
+  const numberHint = MEMBER_NUMBER_HINT;
   return (
     <form onSubmit={submit} noValidate className="grid gap-5" aria-label={renew ? "Renew IEEE membership" : "Verify IEEE membership"}>
       <Field id="claim-number" label="IEEE member number" error={numberError} hint={numberHint} required>
         <input
-          id="claim-number" inputMode="numeric" autoComplete="off" maxLength={8} className={inputCls}
+          id="claim-number" inputMode="numeric" autoComplete="off" maxLength={9} className={inputCls}
           value={number} disabled={busy || step === "proof"}
           onBlur={() => { const n = normalizeMemberNumber(number); if (n) setNumber(n); }} onChange={(e) => setNumber(e.target.value.replace(/\D/g, ""))}
           aria-invalid={!!numberError} aria-describedby={fieldDescribedBy("claim-number", { error: numberError, hint: numberHint })}

@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Field, inputCls } from "@/components/ui/Field";
 import { decideClaim, getProofUrl } from "@/lib/community/membership-admin-actions";
 import { APPROVAL_COPY, MAX_APPROVAL_DAYS, VALIDATOR_URL, addDays, prescreenChips, validateApproval, type QueueRow } from "@/lib/community/membership-admin";
+import { normalizeMemberNumber } from "@/lib/community/member-number";
 import { REJECT_REASONS, todayIST, type RejectReason } from "@/lib/community/membership";
 
 const REASON_LABEL: Record<RejectReason, string> = {
@@ -34,6 +35,7 @@ function Card({ row }: { row: QueueRow }) {
   const [dialog, setDialog] = useState<"reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const today = todayIST();
+  const shownNumber = normalizeMemberNumber(row.member_number) ?? row.member_number;
 
   function show() {
     setProofError(null);
@@ -45,7 +47,7 @@ function Card({ row }: { row: QueueRow }) {
   }
   async function copyNumber() {
     try {
-      await navigator.clipboard.writeText(row.member_number); // stays in the browser: nothing is sent anywhere
+      await navigator.clipboard.writeText(shownNumber); // stays in the browser: nothing is sent anywhere
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -90,7 +92,7 @@ function Card({ row }: { row: QueueRow }) {
         <p className="mono font-bold">Check in the IEEE Membership Validator</p>
         <dl className="grid gap-1 text-sm sm:grid-cols-[8rem_1fr]">
           <dt className="text-ink-3">Member number</dt>
-          <dd className="font-mono text-base font-bold">{row.member_number}</dd>
+          <dd className="font-mono text-base font-bold">{shownNumber}</dd>
           <dt className="text-ink-3">Name on profile</dt>
           <dd>{row.full_name}</dd>
           {row.email && (<><dt className="text-ink-3">Email used</dt><dd className="break-all">{row.email}</dd></>)}

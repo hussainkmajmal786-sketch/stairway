@@ -62,6 +62,8 @@ describe("PrivateSchema", () => {
     expect(PrivateSchema.safeParse({ phone: "", ieeeMemberId: "" }).success).toBe(true);
     expect(PrivateSchema.safeParse({ phone: "+91 98765 43210", ieeeMemberId: "12345678" }).success).toBe(true);
     expect(PrivateSchema.safeParse({ phone: "12345", ieeeMemberId: "" }).success).toBe(false);
+    expect(PrivateSchema.parse({ phone: "", ieeeMemberId: "101809133" }).ieeeMemberId).toBe("101809133");
+    expect(PrivateSchema.safeParse({ phone: "", ieeeMemberId: "1234567890" }).success).toBe(false);
     expect(PrivateSchema.safeParse({ phone: "", ieeeMemberId: "abc" }).success).toBe(false);
   });
 });

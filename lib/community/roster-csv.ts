@@ -160,7 +160,7 @@ export function parseRosterCsv(input: string): RosterParseResult {
     seen++;
     const n = normalizeMemberNumber(cells[cols.n] ?? "");
     if (!n) {
-      addError(line, "Member number must be 8 digits (7 digits get a leading zero).");
+      addError(line, "Member number must be 8 or 9 digits (7 digits get a leading zero).");
       continue;
     }
     const e = parseRosterDate(cells[cols.e] ?? "");

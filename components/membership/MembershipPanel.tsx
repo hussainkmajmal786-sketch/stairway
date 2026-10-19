@@ -84,7 +84,7 @@ export function MembershipPanel({ m }: { m: MembershipView }) {
         </p>
       )}
       <p className="text-ink-2">
-        Enter your 8-digit IEEE member number. If it is not on our roster, a branch officer confirms your membership in
+        Enter your IEEE member number (8 or 9 digits). If it is not on our roster, a branch officer confirms your membership in
         IEEE&apos;s Membership Validator; this usually takes a day. Verified members get a badge on their profile and can chat
         with the team.
       </p>
