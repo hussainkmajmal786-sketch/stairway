@@ -3,7 +3,7 @@ import { cache } from "react";
 import { createPublicClient } from "@/lib/supabase/public";
 import { EVENT_SELECT, rowToEventView, type EventRow } from "@/lib/events/mappers";
 import type { SocietyColor } from "@/lib/events/types";
-import { SettingsSchema, StatsSchema } from "./schema";
+import { SettingsSchema, StatsSchema, readHeroConfig } from "./schema";
 import type { SiteData, SponsorTierView } from "./types";
 
 const orThrow = <T,>(r: { data: T | null; error: { message: string } | null }, what: string): T => {
@@ -41,6 +41,7 @@ export const getSiteData = cache(async (): Promise<SiteData> => {
   return {
     settings: SettingsSchema.parse(blockMap.get("settings")),
     stats: StatsSchema.parse(blockMap.get("stats") ?? { items: [] }).items,
+    hero: readHeroConfig(blockMap.get("hero")),
     societies: orThrow(societies, "societies").map((s) => ({
       id: s.id,
       slug: s.slug,
