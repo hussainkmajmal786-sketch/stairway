@@ -734,9 +734,9 @@ declare res jsonb; r1 jsonb; t date := (now() at time zone 'Asia/Kolkata')::date
 begin
   insert into auth.users (id, email, aud, role, raw_user_meta_data)
   select pg_temp.uid(n)::uuid, 'c6u' || n || '@test.local', 'authenticated', 'authenticated', jsonb_build_object('full_name', 'Kiran Joseph')
-    from generate_series(18, 19) n;
+    from generate_series(30, 31) n;
   update public.profiles set college = 'CEK', branch = 'Civil', year = '1st year', onboarded = true, name_changed_at = now() - interval '10 days'
-   where id in (pg_temp.uid(18)::uuid, pg_temp.uid(19)::uuid);
+   where id in (pg_temp.uid(30)::uuid, pg_temp.uid(31)::uuid);
   perform pg_temp.cl(1); set local role authenticated;
   res := public.import_ieee_roster(jsonb_build_array(
     jsonb_build_object('n', '101809133', 'e', (t + 120)::text, 'name', 'Kiran Joseph'),
@@ -748,15 +748,15 @@ begin
   assert not exists (select 1 from private.ieee_roster r where r.member_hash = private.ieee_hash('1234567890')), '10-digit row imported';
 
   -- a 9-digit claim hashes the same value as the 9-digit roster row -> verified, stored unpadded
-  perform pg_temp.cl(18); set local role authenticated;
+  perform pg_temp.cl(30); set local role authenticated;
   r1 := public.submit_ieee_claim('101809133', null);
   reset role;
   assert r1 ->> 'status' = 'verified', '9-digit roster claim not verified: ' || r1::text;
   assert (select member_number from public.ieee_claims where id = (r1 ->> 'claim_id')::uuid) = '101809133', '9-digit number was altered';
-  assert (select ieee_member_id from public.profile_private where user_id = pg_temp.uid(18)::uuid) = '101809133', 'profile_private not synced with the 9-digit number';
+  assert (select ieee_member_id from public.profile_private where user_id = pg_temp.uid(30)::uuid) = '101809133', 'profile_private not synced with the 9-digit number';
 
   -- invalid shapes are refused; a 7-digit input is padded to 8
-  perform pg_temp.cl(19); set local role authenticated;
+  perform pg_temp.cl(31); set local role authenticated;
   begin perform public.submit_ieee_claim('1234567890', null); assert false, '10-digit number accepted';
   exception when others then if sqlerrm <> 'invalid_number' then raise; end if; end;
   begin perform public.submit_ieee_claim('12ab5678', null); assert false, 'non-digit number accepted';
