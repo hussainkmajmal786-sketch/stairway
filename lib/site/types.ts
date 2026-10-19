@@ -1,5 +1,5 @@
 import type { EventView, SocietyView } from "@/lib/events/types";
-import type { Settings } from "./schema";
+import type { HeroConfig, Settings } from "./schema";
 
 export interface SpeakerView {
   id: string;
@@ -40,6 +40,8 @@ export interface GalleryItemView {
 export interface SiteData {
   settings: Settings;
   stats: { label: string; value: number; suffix: string }[];
+  /** The stored opening-section config; null/absent = nothing stored (the Cobalt Poster default renders as before). */
+  hero?: HeroConfig | null;
   societies: SocietyView[];
   events: EventView[];
   speakers: SpeakerView[];

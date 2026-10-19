@@ -412,6 +412,148 @@
   @keyframes roll { from { transform: translateY(100%); } to { transform: none; } }
   @keyframes pop { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
+
+  /* ───────── opening section (hero) themes ─────────
+     `data-theme` on <section class="hero"> = a preset. Every value aliases a token (lib/design/tokens.ts HERO_THEMES;
+     tests/design/hero-themes.test.ts keeps both in sync), so no new hex lives here. The base block IS Cobalt Poster:
+     with no stored config the hero renders exactly as before. Ink is never text on the cobalt/ink fields. */
+  .hero, .hero[data-theme="cobalt"] {
+    --hero-bg: var(--field); --hero-fg: var(--paper); --hero-word: var(--paper); --hero-ext: var(--ink);
+    --hero-ai-bg: var(--yellow); --hero-ai-fg: var(--ink); --hero-frame: var(--paper); --hero-ghost: var(--paper);
+    --hero-band-a: var(--paper); --hero-band-b: var(--ink); --hero-accent: var(--yellow); --hero-verb-bg: transparent;
+    --hero-panel-bg: transparent; --hero-panel-fg: var(--paper);
+    --hero-cta1-bg: var(--yellow); --hero-cta1-fg: var(--ink); --hero-cta1-shadow: var(--ink);
+    --hero-cta2-bg: transparent; --hero-cta2-fg: var(--paper); --hero-cta2-border: var(--paper);
+    --hero-stat-bg: var(--paper); --hero-stat-label: var(--ink-3); --hero-stat-num: var(--field); --hero-stat-border: var(--ink);
+    --hero-motif: var(--paper); --hero-motif-2: var(--yellow); --hero-focus: var(--yellow);
+    --hero-ghost-op: 0.075; --hero-grain: 0.32;
+    --hero-chart-cur: var(--hero-ai-bg); --hero-chart-line: color-mix(in srgb, var(--hero-fg) 45%, transparent);
+  }
+  .hero[data-theme="ink"] {
+    --hero-bg: var(--ink); --hero-fg: var(--paper); --hero-word: var(--paper); --hero-ext: var(--field);
+    --hero-ai-bg: var(--yellow); --hero-ai-fg: var(--ink); --hero-frame: var(--paper); --hero-ghost: var(--paper);
+    --hero-band-a: var(--field); --hero-band-b: var(--paper); --hero-accent: var(--yellow); --hero-verb-bg: transparent;
+    --hero-panel-bg: transparent; --hero-panel-fg: var(--paper);
+    --hero-cta1-bg: var(--yellow); --hero-cta1-fg: var(--ink); --hero-cta1-shadow: var(--field);
+    --hero-cta2-bg: transparent; --hero-cta2-fg: var(--paper); --hero-cta2-border: var(--paper);
+    --hero-stat-bg: var(--field-2); --hero-stat-label: var(--paper); --hero-stat-num: var(--yellow); --hero-stat-border: var(--paper);
+    --hero-motif: var(--field); --hero-motif-2: var(--blue); --hero-focus: var(--yellow);
+    --hero-ghost-op: 0.06; --hero-grain: 0.25;
+    --hero-chart-line: var(--blue);
+  }
+  .hero[data-theme="daylight"] {
+    --hero-bg: var(--paper); --hero-fg: var(--ink); --hero-word: var(--field); --hero-ext: var(--ink);
+    --hero-ai-bg: var(--yellow); --hero-ai-fg: var(--ink); --hero-frame: var(--ink); --hero-ghost: var(--field);
+    --hero-band-a: var(--yellow); --hero-band-b: var(--red); --hero-accent: var(--ink); --hero-verb-bg: var(--yellow);
+    --hero-panel-bg: transparent; --hero-panel-fg: var(--ink);
+    --hero-cta1-bg: var(--field); --hero-cta1-fg: var(--paper); --hero-cta1-shadow: var(--ink);
+    --hero-cta2-bg: transparent; --hero-cta2-fg: var(--ink); --hero-cta2-border: var(--ink);
+    --hero-stat-bg: var(--paper-2); --hero-stat-label: var(--ink-3); --hero-stat-num: var(--field); --hero-stat-border: var(--ink);
+    --hero-motif: var(--ink); --hero-motif-2: var(--red); --hero-focus: var(--ink);
+    --hero-ghost-op: 0.07; --hero-grain: 0.18;
+  }
+  .hero[data-theme="sunrise"] {
+    --hero-bg: var(--orange); --hero-fg: var(--ink); --hero-word: var(--ink); --hero-ext: var(--paper);
+    --hero-ai-bg: var(--yellow); --hero-ai-fg: var(--ink); --hero-frame: var(--ink); --hero-ghost: var(--ink);
+    --hero-band-a: var(--yellow); --hero-band-b: var(--field); --hero-accent: var(--yellow); --hero-verb-bg: transparent;
+    --hero-panel-bg: var(--field); --hero-panel-fg: var(--paper);
+    --hero-cta1-bg: var(--ink); --hero-cta1-fg: var(--yellow); --hero-cta1-shadow: var(--field);
+    --hero-cta2-bg: var(--paper); --hero-cta2-fg: var(--ink); --hero-cta2-border: var(--ink);
+    --hero-stat-bg: var(--yellow); --hero-stat-label: var(--ink-3); --hero-stat-num: var(--ink); --hero-stat-border: var(--ink);
+    --hero-motif: var(--yellow); --hero-motif-2: var(--ink); --hero-focus: var(--ink);
+    --hero-ghost-op: 0.08; --hero-grain: 0.2;
+    --hero-chart-cur: var(--ink); --hero-chart-line: color-mix(in srgb, var(--ink) 70%, transparent);
+  }
+
+  /* wiring: the cobalt base reproduces the previous look value for value */
+  .hero .field { background-color: var(--hero-bg); }
+  .hero .field::before { opacity: var(--hero-grain); }
+  .hero .field.on-field { color: var(--hero-fg); --focus: var(--hero-focus); }
+  .hero .ghost { color: var(--hero-ghost); opacity: var(--hero-ghost-op); }
+  .hero .bands.top { background: linear-gradient(176deg, var(--hero-band-a) 0 30%, var(--hero-band-b) calc(30% + 0.5px) 62%, transparent calc(62% + 0.5px)); }
+  .hero .bands.bottom { background: linear-gradient(176deg, transparent 0 38%, var(--hero-band-b) calc(38% + 0.5px) 70%, var(--hero-band-a) calc(70% + 0.5px)); }
+  .hero .frame { border-color: var(--hero-frame); outline-color: var(--hero-frame); }
+  .hero .logo-row { color: var(--hero-frame); border-bottom-color: color-mix(in srgb, var(--hero-frame) 35%, transparent); }
+  .hero .diamond { border-color: var(--hero-frame); }
+  .hero .diamond::after { background: var(--hero-frame); }
+  .hero .stair { --x: var(--hero-ext); color: var(--hero-word); }
+  .hero .stair .ai { background: var(--hero-ai-bg); color: var(--hero-ai-fg); }
+  .hero .hero-rule { background: var(--hero-panel-bg); color: var(--hero-panel-fg); }
+  .hero .hero-verb { color: var(--hero-accent); background: var(--hero-verb-bg); }
+  .hero .field .btn-primary { background: var(--hero-cta1-bg); color: var(--hero-cta1-fg); box-shadow: 4px 4px 0 0 var(--hero-cta1-shadow); }
+  .hero .field .btn-primary:hover { box-shadow: 6px 6px 0 0 var(--hero-cta1-shadow); }
+  .hero .field .btn-primary:active { box-shadow: 0 0 0 0 var(--hero-cta1-shadow); }
+  .hero .field .btn-ghost { background: var(--hero-cta2-bg); color: var(--hero-cta2-fg); border-color: var(--hero-cta2-border); }
+  .hero .field .btn-ghost:hover { background: color-mix(in srgb, var(--hero-cta2-fg) 10%, var(--hero-cta2-bg)); }
+  .hero-stats { background: var(--hero-stat-bg); border-color: var(--hero-stat-border); --focus: var(--hero-stat-border); }
+  .hero-stats > div { border-color: var(--hero-stat-border); }
+  .hero-stats .hero-stat-label { color: var(--hero-stat-label); }
+  .hero-stats .hero-stat-num { color: var(--hero-stat-num); }
+  /* a custom headline may be long: it wraps instead of forcing one nowrap line */
+  .hero .hero-rule-custom { white-space: normal; text-align: center; }
+  .hero .hero-rule-custom > span { min-width: 0; overflow-wrap: anywhere; }
+
+  /* motifs (pure CSS/SVG, decorative, only when data-decor="on": a stored config, or any preset but Cobalt) */
+  .hero-decor { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .hero-decor .hd { position: absolute; display: none; }
+  .hero-chart, .hero-progress, .stair-line { display: none; }
+  .hero[data-decor="on"] .stair-wrap { position: relative; width: fit-content; max-width: 100%; font-size: clamp(3.4rem, 16.5vw, 11.5rem); }
+  .hero[data-decor="on"] .stair-wrap .stair { font-size: inherit; }
+  .hero[data-decor="on"] .stair-line { display: block; position: absolute; left: 0; right: 0; bottom: -0.06em; width: 100%; height: 0.76em; overflow: visible; pointer-events: none; }
+  .hero[data-decor="on"] .stair-line path { stroke: var(--hero-motif-2); stroke-width: 3px; stroke-linejoin: miter; }
+  .hero[data-theme="ink"] .stair-line path { stroke-dasharray: 8 6; }
+  .hero[data-decor="on"] .hero-progress { display: inline-flex; align-items: flex-end; gap: 10px; margin-left: auto; line-height: 1; }
+  .hero-progress .hp-bars { display: flex; align-items: flex-end; gap: 2px; }
+  .hero-progress .hp-bars i { display: block; width: 4px; background: color-mix(in srgb, var(--hero-frame) 55%, transparent); }
+  .hero-progress .hp-bars i.hp-cur { background: var(--hero-chart-cur); }
+  .hero-progress .hp-text { display: none; font-family: var(--font-mono); font-weight: 700; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  @media (min-width: 640px) { .hero-progress .hp-text { display: inline; } }
+  /* 320px phones: the frame text needs the whole row */
+  @media (max-width: 359.98px) { .hero[data-decor="on"] .hero-progress { display: none; } }
+  .hero[data-decor="on"] .hero-chart { position: absolute; right: clamp(20px, 3.4vw, 48px); top: 55%; width: min(26%, 340px); flex-direction: column; gap: 14px; }
+  @media (min-width: 1180px) { .hero[data-decor="on"] .hero-chart { display: flex; } }
+  .hero-chart svg { width: 100%; height: auto; }
+  .hero-chart .hc-bar { fill: none; stroke: var(--hero-chart-line); stroke-width: 2; }
+  .hero[data-theme="ink"] .hero-chart .hc-bar { stroke-dasharray: 5 4; }
+  .hero-chart .hc-cur { fill: var(--hero-chart-cur); stroke: none; }
+  .hero-chart .hc-top, .hero-chart .hc-cap { font-size: 0.62rem; letter-spacing: 0.12em; }
+
+  /* Cobalt Poster: halftone dots */
+  .hero[data-theme="cobalt"] .hd-1, .hero[data-theme="cobalt"] .hd-2 { display: block; background-image: radial-gradient(circle, color-mix(in srgb, var(--hero-motif) 24%, transparent) 2.6px, transparent 3.1px); }
+  .hero[data-theme="cobalt"] .hd-1 { left: 0; top: 32%; width: min(24%, 320px); height: 34%; background-size: 22px 22px; -webkit-mask-image: linear-gradient(100deg, #000, transparent 85%); mask-image: linear-gradient(100deg, #000, transparent 85%); }
+  .hero[data-theme="cobalt"] .hd-2 { right: 0; bottom: 6%; width: min(40%, 560px); height: 46%; background-size: 26px 26px; -webkit-mask-image: radial-gradient(ellipse at 100% 100%, #000 10%, transparent 72%); mask-image: radial-gradient(ellipse at 100% 100%, #000 10%, transparent 72%); }
+  /* Ink Night: blueprint grid, crosshairs, dashed stair line */
+  .hero[data-theme="ink"] .hd-1 { display: block; inset: 0; background-image:
+    linear-gradient(color-mix(in srgb, var(--hero-motif) 50%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--hero-motif) 50%, transparent) 1px, transparent 1px),
+    linear-gradient(var(--hero-motif) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hero-motif) 1px, transparent 1px);
+    background-size: 28px 28px, 28px 28px, 140px 140px, 140px 140px; }
+  .hero[data-theme="ink"] .hd-2, .hero[data-theme="ink"] .hd-3 { display: block; width: 26px; height: 26px;
+    background: linear-gradient(var(--hero-motif-2), var(--hero-motif-2)) center / 2px 100% no-repeat, linear-gradient(var(--hero-motif-2), var(--hero-motif-2)) center / 100% 2px no-repeat; }
+  .hero[data-theme="ink"] .hd-2 { right: 26px; top: calc(clamp(44px, 9vw, 120px) * 0.7); }
+  .hero[data-theme="ink"] .hd-3 { left: 6px; bottom: calc(clamp(44px, 9vw, 120px) * 0.9); }
+  /* Paper Daylight: ruled paper, registration marks, colour bar, highlighter on the verb */
+  .hero[data-theme="daylight"] .hd-1 { display: block; inset: 0; background-image: repeating-linear-gradient(to bottom, transparent 0 27px, color-mix(in srgb, var(--hero-motif) 10%, transparent) 27px 28px); }
+  .hero[data-theme="daylight"] .hd-2, .hero[data-theme="daylight"] .hd-3 { display: block; top: 46%; width: 34px; height: 34px; border: 2px solid var(--hero-motif-2); border-radius: 50%;
+    background: linear-gradient(var(--hero-motif-2), var(--hero-motif-2)) center / 2px 150% no-repeat, linear-gradient(var(--hero-motif-2), var(--hero-motif-2)) center / 150% 2px no-repeat; }
+  .hero[data-theme="daylight"] .hd-2 { left: 14px; }
+  .hero[data-theme="daylight"] .hd-3 { right: 14px; }
+  .hero[data-theme="daylight"] .hd-4 { display: block; left: 28px; top: calc(46% + 56px); width: 14px; height: 76px; border: 1px solid var(--ink);
+    background: linear-gradient(to bottom, var(--field) 0 25%, var(--yellow) 25% 50%, var(--red) 50% 75%, var(--ink) 75%); }
+  .hero[data-theme="daylight"] .hero-verb { padding: 0 0.14em; }
+  /* Sunrise: striped sun rising over a stair horizon, cobalt headline panel */
+  .hero[data-theme="sunrise"] .hd-1, .hero[data-theme="sunrise"] .hd-2 { display: block; right: 5%; top: 7%; width: clamp(240px, 42vw, 560px); aspect-ratio: 1; border-radius: 50%; }
+  .hero[data-theme="sunrise"] .hd-1 { background: var(--hero-motif); }
+  .hero[data-theme="sunrise"] .hd-2 { background: repeating-linear-gradient(to bottom, transparent 0 11px, var(--hero-bg) 11px 17px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 54%, #000 54%); mask-image: linear-gradient(to bottom, transparent 54%, #000 54%); }
+  /* the horizon sits on top of the bottom band (not behind it), as a solid stair silhouette */
+  .hero[data-theme="sunrise"] .hd-3 { display: block; left: 0; right: 0; bottom: calc(clamp(44px, 9vw, 120px) * 0.62); height: clamp(36px, 6vw, 84px);
+    background: color-mix(in srgb, var(--hero-motif-2) 40%, transparent);
+    clip-path: polygon(0 100%, 0 84%, 9% 84%, 9% 70%, 22% 70%, 22% 56%, 36% 56%, 36% 42%, 52% 42%, 52% 28%, 68% 28%, 68% 14%, 84% 14%, 84% 0, 100% 0, 100% 100%); }
+  .hero[data-theme="sunrise"] .hero-rule { padding: 0.2em 0.5em; }
+  @media (max-width: 480px) { .hero[data-theme="sunrise"] .hero-rule { padding: 0.2em 0.3em; } }
+
   /* ───────── utilities ───────── */
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .skip-link {
@@ -439,7 +581,7 @@
 
 @media print {
   .field { background: none !important; }
-  .field::before, .field::after, .ghost, .bands { display: none !important; }
+  .field::before, .field::after, .ghost, .bands, .hero-decor, .hero-chart, .stair-line { display: none !important; }
   .on-field, .on-field .stair { color: var(--ink) !important; }
   .on-field :is(.eyebrow, .lead, .tag-outline, .btn-ghost) { color: var(--ink) !important; border-color: var(--ink) !important; }
   nav[aria-label="Primary"], .skip-link { display: none !important; }

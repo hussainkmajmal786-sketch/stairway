@@ -24,23 +24,38 @@ export function Bands({ edge }: { edge: "top" | "bottom" }) {
  * separate "IEEE" mark). When the branch supplies a cream logo SVG, swap the body for it and keep FRAME_ORG as its
  * accessible name. `middle` is optional (hidden on phones) and renders nothing unless a caller passes real copy.
  */
-export function LogoRow({ org = FRAME_ORG, middle }: { org?: string; middle?: string }) {
+export function LogoRow({ org = FRAME_ORG, middle, showText = true, trailing }: { org?: string; middle?: string; showText?: boolean; trailing?: ReactNode }) {
   return (
     <div className="logo-row">
       <span className="lm">
         <span className="diamond" aria-hidden="true" />
-        {org}
+        {showText && org}
       </span>
       {middle && <span className="lm mid">{middle}</span>}
+      {trailing}
     </div>
   );
 }
 
 /** Cream double frame (6px border + inset 2px outline) with the logo row on top. */
-export function Frame({ children, logoRow = true, className }: { children: ReactNode; logoRow?: boolean; className?: string }) {
+export function Frame({
+  children,
+  logoRow = true,
+  logoText = true,
+  logoTrailing,
+  className,
+}: {
+  children: ReactNode;
+  logoRow?: boolean;
+  /** false hides the FRAME_ORG text in the logo row (the diamond stays). */
+  logoText?: boolean;
+  /** Decorative extra in the logo row (the hero's step progress). */
+  logoTrailing?: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={cn("frame", className)}>
-      {logoRow && <LogoRow />}
+      {logoRow && <LogoRow showText={logoText} trailing={logoTrailing} />}
       {children}
     </div>
   );
@@ -56,6 +71,8 @@ export interface FieldBandProps {
   /** Tall headers (event pages): 14 ghost rows on phones so the word fills the header, the usual 6 from 640px. */
   tallGhost?: boolean;
   bands?: "none" | "top" | "both";
+  /** Decorative theme layer (aria-hidden) drawn above the ghost word and below the bands and content. */
+  decor?: ReactNode;
   /** Deeper cobalt (#122C99) for variety. */
   deep?: boolean;
   className?: string;
@@ -75,6 +92,7 @@ export function FieldBand({
   ghost = GHOST_DEFAULT,
   tallGhost = false,
   bands = "none",
+  decor,
   deep = false,
   className,
   innerClassName,
@@ -85,6 +103,7 @@ export function FieldBand({
   return (
     <Tag id={id} role={role} aria-labelledby={labelledBy} aria-label={label} className={cn("field on-field", deep && "field-2", className)}>
       {ghost && (tallGhost ? <Ghost word={ghost} rows={14} className="ghost-tall" /> : <Ghost word={ghost} />)}
+      {decor}
       {bands !== "none" && <Bands edge="top" />}
       {bands === "both" && <Bands edge="bottom" />}
       <div className={cn("field-content", innerClassName)}>{children}</div>
