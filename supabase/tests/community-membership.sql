@@ -728,5 +728,51 @@ begin
   assert not has_function_privilege('anon', 'private.admin_approve_claim(uuid,date,boolean)', 'execute'), 'anon can call the private approve';
 end $$;
 
+-- ───────── 9-digit and 7-digit member numbers (IEEE issues both 8 and 9 digit numbers) ─────────
+do $$
+declare res jsonb; r1 jsonb; t date := (now() at time zone 'Asia/Kolkata')::date; hn text;
+begin
+  insert into auth.users (id, email, aud, role, raw_user_meta_data)
+  select pg_temp.uid(n)::uuid, 'c6u' || n || '@test.local', 'authenticated', 'authenticated', jsonb_build_object('full_name', 'Kiran Joseph')
+    from generate_series(18, 19) n;
+  update public.profiles set college = 'CEK', branch = 'Civil', year = '1st year', onboarded = true, name_changed_at = now() - interval '10 days'
+   where id in (pg_temp.uid(18)::uuid, pg_temp.uid(19)::uuid);
+  perform pg_temp.cl(1); set local role authenticated;
+  res := public.import_ieee_roster(jsonb_build_array(
+    jsonb_build_object('n', '101809133', 'e', (t + 120)::text, 'name', 'Kiran Joseph'),
+    jsonb_build_object('n', '1234567890', 'e', (t + 120)::text, 'name', 'Too Long'),       -- 10 digits: skipped
+    jsonb_build_object('n', '12ab5678', 'e', (t + 120)::text, 'name', 'Not Digits')), false);
+  reset role;
+  assert (res ->> 'rows')::int = 1, 'only the 9-digit row should import: ' || res::text;
+  assert exists (select 1 from private.ieee_roster r where r.member_hash = private.ieee_hash('101809133')), '9-digit roster hash missing';
+  assert not exists (select 1 from private.ieee_roster r where r.member_hash = private.ieee_hash('1234567890')), '10-digit row imported';
+
+  -- a 9-digit claim hashes the same value as the 9-digit roster row -> verified, stored unpadded
+  perform pg_temp.cl(18); set local role authenticated;
+  r1 := public.submit_ieee_claim('101809133', null);
+  reset role;
+  assert r1 ->> 'status' = 'verified', '9-digit roster claim not verified: ' || r1::text;
+  assert (select member_number from public.ieee_claims where id = (r1 ->> 'claim_id')::uuid) = '101809133', '9-digit number was altered';
+  assert (select ieee_member_id from public.profile_private where user_id = pg_temp.uid(18)::uuid) = '101809133', 'profile_private not synced with the 9-digit number';
+
+  -- invalid shapes are refused; a 7-digit input is padded to 8
+  perform pg_temp.cl(19); set local role authenticated;
+  begin perform public.submit_ieee_claim('1234567890', null); assert false, '10-digit number accepted';
+  exception when others then if sqlerrm <> 'invalid_number' then raise; end if; end;
+  begin perform public.submit_ieee_claim('12ab5678', null); assert false, 'non-digit number accepted';
+  exception when others then if sqlerrm <> 'invalid_number' then raise; end if; end;
+  r1 := public.submit_ieee_claim('1234567', null);
+  reset role;
+  assert (select member_number from public.ieee_claims where id = (r1 ->> 'claim_id')::uuid) = '01234567', '7-digit number not padded to 8';
+
+  -- the column check accepts 8 and 9 digits, rejects 7 and 10
+  update public.profile_private set ieee_member_id = '01234567' where user_id = pg_temp.uid(15)::uuid;
+  update public.profile_private set ieee_member_id = '101809133' where user_id = pg_temp.uid(15)::uuid;
+  begin update public.profile_private set ieee_member_id = '1234567' where user_id = pg_temp.uid(15)::uuid; assert false, '7-digit profile id accepted';
+  exception when check_violation then null; end;
+  begin update public.profile_private set ieee_member_id = '1234567890' where user_id = pg_temp.uid(15)::uuid; assert false, '10-digit profile id accepted';
+  exception when check_violation then null; end;
+end $$;
+
 rollback;
 select 'community-membership: all assertions passed' as result;
