@@ -22,6 +22,8 @@ export interface HeroViewProps {
   registerHref: string;
   next: { slug: string; title: string; topic: string; step: number; start: string } | null;
   progress: { current: number; total: number };
+  /** Admin live preview: the wordmark renders as a paragraph, not a heading (the page already has its own h1) and the section gets no id. */
+  preview?: boolean;
 }
 
 /** Decorative per-theme layers: shapes are drawn by CSS from the theme's --hero-motif* custom properties. */
@@ -80,21 +82,22 @@ function Progress({ progress }: { progress: { current: number; total: number } }
  * wrapper (colours and motifs are CSS custom properties, app/globals.css), so it renders on the server with no flash
  * and needs no client JS. Exactly one h1 (the wordmark); the section is named by it.
  */
-export function HeroView({ view, organizerShort, tagline, handles, stats, registerHref, next, progress }: HeroViewProps) {
+export function HeroView({ view, organizerShort, tagline, handles, stats, registerHref, next, progress, preview = false }: HeroViewProps) {
   const { decor } = view;
+  const mark = preview ? { as: "p" as const } : { id: "hero-title" };
   const wordmark = decor ? (
     <div className="stair-wrap">
-      <StairWordmark id="hero-title" />
+      <StairWordmark {...mark} />
       <svg className="stair-line" viewBox="0 0 100 76" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <path d="M0 72 H11.1 V62 H18.7 V52 H53 V42 H61.7 V32 H77.9 V22 H89.2 V12 H100" fill="none" vectorEffect="non-scaling-stroke" />
       </svg>
     </div>
   ) : (
-    <StairWordmark id="hero-title" />
+    <StairWordmark {...mark} />
   );
 
   return (
-    <section id="top" aria-labelledby="hero-title" className="hero" data-theme={view.preset} data-decor={decor ? "on" : "off"}>
+    <section id={preview ? undefined : "top"} aria-labelledby={preview ? undefined : "hero-title"} className="hero" data-theme={view.preset} data-decor={decor ? "on" : "off"}>
       <FieldBand
         as="div"
         ghost={view.ghost}
