@@ -6,12 +6,13 @@ import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 import { PrivateSchema, fieldErrors } from "@/lib/profile/schema";
 import { Field, fieldDescribedBy, inputCls } from "@/components/ui/Field";
+import { MEMBER_NUMBER_HINT } from "@/lib/community/member-number";
 import { cn } from "@/lib/utils";
 
 const HINTS = {
   email: "From your Google account.",
   phone: "Only you and event organisers can see this.",
-  ieeeMemberId: "Optional. To verify your membership and get the badge, use the Membership page.",
+  ieeeMemberId: `Optional. ${MEMBER_NUMBER_HINT} To verify your membership and get the badge, use the Membership page.`,
 };
 
 export function SettingsForm({

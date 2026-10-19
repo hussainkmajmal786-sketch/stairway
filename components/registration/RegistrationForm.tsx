@@ -16,8 +16,9 @@ import { usePayFlow } from "@/components/payments/usePayFlow";
 import { FORM_ERROR_ID, fieldOrder, firstInvalid, formLevelError, submitGate } from "@/lib/registration/form";
 import { QuestionField } from "./QuestionField";
 import { ErrorPanel } from "./ErrorPanel";
+import { MEMBER_NUMBER_HINT } from "@/lib/community/member-number";
 
-const HINTS: Partial<Record<string, string>> = { phone: "Only you and the organisers can see this.", ieeeMemberId: "Optional. Verify it under Membership in your dashboard to get the badge." };
+const HINTS: Partial<Record<string, string>> = { phone: "Only you and the organisers can see this.", ieeeMemberId: `Optional. ${MEMBER_NUMBER_HINT} Verify it under Membership in your dashboard to get the badge.` };
 
 export function RegistrationForm({
   slug, questions, initial, waitlist, fallbackUrl, paid,

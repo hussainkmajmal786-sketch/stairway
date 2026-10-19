@@ -32,10 +32,15 @@ describe("parseRosterCsv", () => {
     const r = parseRosterCsv("12345678,2026-01-01\n12345678,2028-01-01\n12345678,2027-01-01");
     expect(r.rows).toEqual([{ n: "12345678", e: "2028-01-01" }]);
   });
-  it("pads 7 digit numbers and rejects 6, 9 and 10 digit numbers", () => {
+  it("pads 7 digit numbers, keeps 8 and 9 digit numbers, rejects 6 and 10 digit numbers", () => {
     const r = parseRosterCsv("1234567,2027-01-01\n123456,2027-01-01\n1234567890,2027-01-01\n12345678,2027-01-01\n123456789,2027-01-01");
-    expect(r.rows.map((x) => x.n).sort()).toEqual(["01234567", "12345678"]);
-    expect(r.errors.map((e) => e.line)).toEqual([2, 3, 5]);
+    expect(r.rows.map((x) => x.n).sort()).toEqual(["01234567", "12345678", "123456789"]);
+    expect(r.errors.map((e) => e.line)).toEqual([2, 3]);
+  });
+  it("accepts the real 9-digit example 101809133", () => {
+    const r = parseRosterCsv("Member Number,Expiry,Name\n101809133,2027-12-31,Asha Rao\n");
+    expect(r.rows).toEqual([{ n: "101809133", e: "2027-12-31", name: "Asha Rao" }]);
+    expect(r.errors).toEqual([]);
   });
   it("handles quoted names with commas, quotes and newlines", () => {
     const r = parseRosterCsv('number,expiry,name\n12345678,2027-01-01,"Rao, Asha ""A"""\n87654321,2027-01-01,"Line\nBreak"\n11112222,bad,x');

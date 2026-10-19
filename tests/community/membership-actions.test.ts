@@ -48,6 +48,11 @@ describe("submitClaim", () => {
     await submitClaim({ memberNumber: "1234567", proofPath: null });
     expect(rpcCalls(calls, "submit_ieee_claim")[0].args[1]).toEqual({ p_member_number: "01234567", p_proof_path: null });
   });
+  it("passes a 9 digit number through unpadded", async () => {
+    const calls = setup({ "rpc.submit_ieee_claim": { data: { status: "proof_required" }, error: null } });
+    await submitClaim({ memberNumber: "101809133", proofPath: null });
+    expect(rpcCalls(calls, "submit_ieee_claim")[0].args[1]).toEqual({ p_member_number: "101809133", p_proof_path: null });
+  });
   it("passes proof_required and rate_limited through as data", async () => {
     for (const status of ["proof_required", "rate_limited"]) {
       const calls = setup({ "rpc.submit_ieee_claim": { data: { status }, error: null } });
