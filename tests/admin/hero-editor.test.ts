@@ -79,6 +79,6 @@ describe("live preview markup", () => {
     expect(html).toContain('role="switch"');
   });
   it("lists the editor in the site navigation", () => {
-    expect(SITE_SECTIONS.some((s) => s.key === "hero" && s.label === "Opening section")).toBe(true);
+    expect(SITE_SECTIONS.some((s) => s.key === "hero" && s.label === "Hero section")).toBe(true);
   });
 });

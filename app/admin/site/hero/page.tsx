@@ -5,7 +5,7 @@ import { heroHandles } from "@/lib/design/hero";
 import { SettingsSchema, StatsSchema, readHeroConfig } from "@/lib/site/schema";
 import { HeroEditor } from "@/components/admin/HeroEditor";
 
-export const metadata = { title: "Opening section" };
+export const metadata = { title: "Hero section" };
 
 export default async function AdminHeroPage() {
   // Super admins only; everyone else gets the 404 page (no role disclosure), signed out goes to login.
@@ -23,7 +23,7 @@ export default async function AdminHeroPage() {
         <Link href="/admin/site" className="mono inline-flex min-h-11 items-center font-bold underline underline-offset-4">
           All site content
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold md:text-4xl">Opening section</h1>
+        <h1 className="mt-2 text-3xl font-semibold md:text-4xl">Hero section</h1>
         <p className="mt-1 text-ink-3">The look and words at the top of the home page. Save to publish; the preview uses sample dates.</p>
       </header>
       <HeroEditor

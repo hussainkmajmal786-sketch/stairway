@@ -1,6 +1,6 @@
 /** Sections of /admin/site (super admins only). Static; the section key never selects a table by itself. */
 export const SITE_SECTIONS = [
-  { key: "hero", label: "Opening section", help: "The look and words at the top of the home page." },
+  { key: "hero", label: "Hero section", help: "The big opening banner at the top of the home page: wordmark, headline, buttons and look." },
   { key: "settings", label: "Announcement and settings", help: "Announcement bar, tagline, contact details and links." },
   { key: "stats", label: "Numbers", help: "The figures shown on the home page." },
   { key: "sponsors", label: "Sponsors", help: "Sponsor logos grouped by tier." },

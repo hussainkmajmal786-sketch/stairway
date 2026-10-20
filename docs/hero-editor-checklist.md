@@ -1,7 +1,7 @@
-# Opening section editor: eyeball checklist
+# Hero section editor: eyeball checklist
 
 For the super admin. Nothing here needs SQL. Use a real super admin account; the editor is at `/admin/site/hero`
-(also: Admin, Site content, Opening section).
+(also: Admin, Site content, Hero section).
 
 1. **Access.** Signed out, open `/admin/site/hero`: you land on the login page. Signed in as a society admin or a plain
    account: you get the 404 page (no hint that the page exists). As super admin it opens, with "Back to site" first in

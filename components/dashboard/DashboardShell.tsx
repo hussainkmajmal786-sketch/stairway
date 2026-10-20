@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft, BadgeCheck, CalendarDays, FileText, IdCard, Inbox, Landmark, LayoutDashboard, LogOut, MessageCircle,
-  ScrollText, Settings, SlidersHorizontal, Ticket, UserRound, Users, type LucideIcon,
+  ScrollText, Settings, Sparkles, SlidersHorizontal, Ticket, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { FieldBand } from "@/components/ui/Poster";
 import { isNavActive } from "@/lib/dashboard/nav";
@@ -33,7 +33,8 @@ const NAV = {
       { href: "/admin/events", label: "Events", Icon: CalendarDays },
       { href: "/admin/society", label: "Society", Icon: Landmark },
       // superOnly items are hidden for society admins (UX only: every page and action authorises on the server).
-      { href: "/admin/site", label: "Site content", Icon: FileText, superOnly: true },
+      { href: "/admin/site/hero", label: "Hero section", Icon: Sparkles, superOnly: true },
+      { href: "/admin/site", label: "Site content", Icon: FileText, superOnly: true, exact: true },
       { href: "/admin/people", label: "Admins", Icon: Users, superOnly: true },
       { href: "/admin/audit", label: "Audit log", Icon: ScrollText, superOnly: true },
       { href: "/admin/settings", label: "Settings", Icon: SlidersHorizontal, superOnly: true },
